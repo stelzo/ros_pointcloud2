@@ -44,7 +44,7 @@ fn custom_xyz_f32() {
         CustomPoint { x: 7.0, y: 8.0, z: 9.0 },
     ];
     let copy = custom_cloud.clone();
-    let custom_msg: Result<rosrust_msg::sensor_msgs::PointCloud2, _> = MyConverter::try_from(custom_cloud).unwrap().try_into();
+    let custom_msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> = MyConverter::try_from(custom_cloud).unwrap().try_into();
     assert!(custom_msg.is_ok());
     let to_custom_type = MyConverter::try_from(custom_msg.unwrap());
     assert!(to_custom_type.is_ok());
@@ -94,7 +94,7 @@ fn custom_xyzi_f32() {
         CustomPoint { x: f32::MAX, y: f32::MIN, z: f32::MAX, i: u8::MAX },
     ];
     let copy = custom_cloud.clone();
-    let custom_msg: Result<rosrust_msg::sensor_msgs::PointCloud2, _> = MyConverter::try_from(custom_cloud).unwrap().try_into();
+    let custom_msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> = MyConverter::try_from(custom_cloud).unwrap().try_into();
     assert!(custom_msg.is_ok());
     let to_custom_type = MyConverter::try_from(custom_msg.unwrap());
     assert!(to_custom_type.is_ok());
@@ -150,7 +150,7 @@ fn custom_rgba_f32() {
         CustomPoint { x: f32::MAX, y: f32::MIN, z: f32::MAX, r: u8::MAX, g: u8::MAX, b: u8::MAX, a: u8::MAX },
     ];
     let copy = custom_cloud.clone();
-    let custom_msg: Result<rosrust_msg::sensor_msgs::PointCloud2, _> = MyConverter::try_from(custom_cloud).unwrap().try_into();
+    let custom_msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> = MyConverter::try_from(custom_cloud).unwrap().try_into();
     assert!(custom_msg.is_ok());
     let to_custom_type = MyConverter::try_from(custom_msg.unwrap());
     assert!(to_custom_type.is_ok());
@@ -169,7 +169,7 @@ fn converterxyz() {
     ];
 
     let copy = cloud.clone();
-    let msg: Result<rosrust_msg::sensor_msgs::PointCloud2, _> = ConvertXYZ::try_from(cloud).unwrap().try_into();
+    let msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> = ConvertXYZ::try_from(cloud).unwrap().try_into();
     assert!(msg.is_ok());
     let to_xyz_type = ConvertXYZ::try_from(msg.unwrap());
     assert!(to_xyz_type.is_ok());
@@ -189,7 +189,7 @@ fn converterxyzrgba() {
     ];
 
     let copy = cloud.clone();
-    let msg: Result<rosrust_msg::sensor_msgs::PointCloud2, _> = ConvertXYZRGBA::try_from(cloud).unwrap().try_into();
+    let msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> = ConvertXYZRGBA::try_from(cloud).unwrap().try_into();
     assert!(msg.is_ok());
     let to_xyzrgba_type = ConvertXYZRGBA::try_from(msg.unwrap());
     assert!(to_xyzrgba_type.is_ok());
@@ -208,7 +208,7 @@ fn converterxyzinormal() {
     ];
 
     let copy = cloud.clone();
-    let msg: Result<rosrust_msg::sensor_msgs::PointCloud2, _> = ConvertXYZINormal::try_from(cloud).unwrap().try_into();
+    let msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> = ConvertXYZINormal::try_from(cloud).unwrap().try_into();
     assert!(msg.is_ok());
     let to_xyzinormal_type = ConvertXYZINormal::try_from(msg.unwrap());
     assert!(to_xyzinormal_type.is_ok());
@@ -227,7 +227,7 @@ fn converterxyzrgbnormal() {
     ];
 
     let copy = cloud.clone();
-    let msg: Result<rosrust_msg::sensor_msgs::PointCloud2, _> = ConvertXYZRGBNormal::try_from(cloud).unwrap().try_into();
+    let msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> = ConvertXYZRGBNormal::try_from(cloud).unwrap().try_into();
     assert!(msg.is_ok());
     let to_xyzrgbnormal_type = ConvertXYZRGBNormal::try_from(msg.unwrap());
     assert!(to_xyzrgbnormal_type.is_ok());

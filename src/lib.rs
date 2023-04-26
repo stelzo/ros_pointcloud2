@@ -1,8 +1,10 @@
 #![doc = include_str!("../README.md")]
 pub mod pcl_utils;
+pub mod ros_types;
 
 use num_traits::Zero;
 use crate::pcl_utils::*;
+use crate::ros_types::{PointCloud2Msg, PointFieldMsg};
 
 #[macro_use]
 pub extern crate mem_macros;
@@ -21,7 +23,7 @@ pub enum ConversionError {
     MetaIndexLengthMismatch,
     EndOfBuffer,
     PointConversionError,
-    MetaDatatypeMissmatch,
+    MetaDatatypeMismatch,
 }
 
 /// Trait to convert a point to a tuple of coordinates and meta data.
@@ -120,7 +122,7 @@ fn convert_msg_code_to_type(code: u8) -> Result<FieldDatatype, ConversionError> 
     }
 }
 
-fn check_coord(coord: Option<usize>, fields: &Vec<rosrust_msg::sensor_msgs::PointField>, xyz_field_type: &FieldDatatype) -> Result<rosrust_msg::sensor_msgs::PointField, ConversionError> {
+fn check_coord(coord: Option<usize>, fields: &Vec<PointFieldMsg>, xyz_field_type: &FieldDatatype) -> Result<PointFieldMsg, ConversionError> {
     match coord {
         Some(y_idx) => {
             let field = &fields[y_idx];
@@ -149,7 +151,8 @@ pub trait MetaNames<const METADIM: usize> {
 /// # Example
 /// ```
 /// use ros_pointcloud2::mem_macros::size_of;
-/// use ros_pointcloud2::{Convert, PointMeta};;
+/// use ros_pointcloud2::{Convert, PointMeta};
+/// use ros_pointcloud2::ros_types::PointCloud2Msg;
 /// const DIM : usize = 3; // how many dimensions your point has (e.g. x, y, z)
 /// const METADIM : usize = 4; // how many meta fields you have (e.g. r, g, b, a)
 /// type MyConverter = Convert<f32, { size_of!(f32) }, DIM, METADIM, ([f32; DIM], [PointMeta; METADIM])>;
@@ -157,7 +160,7 @@ pub trait MetaNames<const METADIM: usize> {
 pub struct Convert<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> {
     iteration: usize,
     coordinates: Vec<C>,
-    _phantom: std::marker::PhantomData<T>,
+    phantom_t: std::marker::PhantomData<T>,
     data: Vec<u8>,
     point_step_size: usize,
     cloud_length: usize,
@@ -199,7 +202,6 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
     ///
     /// # Example
     /// ```
-    /// use rosrust_msg::sensor_msgs::PointCloud2;
     /// use ros_pointcloud2::{ConvertXYZ, ConversionError};
     /// use ros_pointcloud2::pcl_utils::PointXYZ;
     ///
@@ -228,7 +230,7 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
         }
 
         Ok(Self {
-            _phantom: std::marker::PhantomData,
+            phantom_t: std::marker::PhantomData,
             iteration: usize::zero(),
             coordinates: cloud,
             data: Vec::new(),
@@ -312,7 +314,7 @@ impl PointMeta {
     /// ```
     pub fn get<T: FromBytes>(&self) -> Result<T, ConversionError> {
         if self.datatype != T::field_datatype() {
-            return Err(ConversionError::MetaDatatypeMissmatch);
+            return Err(ConversionError::MetaDatatypeMismatch);
         }
         let size = datatype_size(&T::field_datatype());
         if let Some(bytes) = self.bytes.get(0..size) {
@@ -323,7 +325,7 @@ impl PointMeta {
     }
 }
 
-impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> TryFrom<rosrust_msg::sensor_msgs::PointCloud2> for Convert<T, SIZE, DIM, METADIM, C>
+impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> TryFrom<PointCloud2Msg> for Convert<T, SIZE, DIM, METADIM, C>
 {
     type Error = ConversionError;
 
@@ -333,7 +335,7 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
     /// # Example
     /// Since we do not have a ROS node here, we first create a PointCloud2 message and then convert back to a Convert struct.
     /// ```
-    /// use rosrust_msg::sensor_msgs::PointCloud2;
+    /// use ros_pointcloud2::ros_types::PointCloud2Msg;
     /// use ros_pointcloud2::ConvertXYZ;
     /// use ros_pointcloud2::pcl_utils::PointXYZ;
     ///
@@ -341,12 +343,13 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
     ///     PointXYZ { x: 1.0, y: 2.0, z: 3.0 },
     ///     PointXYZ { x: 4.0, y: 5.0, z: 6.0 },
     /// ];
-    /// let msg: PointCloud2 = ConvertXYZ::try_from(cloud_points).unwrap().try_into().unwrap();
+    /// let msg: PointCloud2Msg = ConvertXYZ::try_from(cloud_points).unwrap().try_into().unwrap();
     ///
     /// let convert: ConvertXYZ = ConvertXYZ::try_from(msg).unwrap(); // parse message
     /// ```
-    fn try_from(cloud: rosrust_msg::sensor_msgs::PointCloud2) -> Result<Self, Self::Error> {
-        if cloud.fields.len() < 2 {
+    fn try_from(cloud: PointCloud2Msg) -> Result<Self, Self::Error> {
+        let cloud: PointCloud2Msg = cloud.into();
+        if cloud.fields.len() < DIM {
             return Err(ConversionError::NotEnoughFields);
         }
 
@@ -433,7 +436,7 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
         }
 
         Ok(Self {
-            _phantom: std::marker::PhantomData,
+            phantom_t: std::marker::PhantomData,
             iteration: usize::zero(),
             coordinates: Vec::new(),
             data: cloud.data,
@@ -460,7 +463,7 @@ fn datatype_size(datatype: &FieldDatatype) -> usize {
     }
 }
 
-impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> TryInto<rosrust_msg::sensor_msgs::PointCloud2> for Convert<T, SIZE, DIM, METADIM, C> {
+impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> TryInto<PointCloud2Msg> for Convert<T, SIZE, DIM, METADIM, C> {
     type Error = ConversionError;
 
     /// Convert the point cloud to a ROS message.
@@ -469,7 +472,7 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
     ///
     /// # Example
     /// ```
-    /// use rosrust_msg::sensor_msgs::PointCloud2;
+    /// use ros_pointcloud2::ros_types::PointCloud2Msg;
     /// use ros_pointcloud2::ConvertXYZ;
     /// use ros_pointcloud2::pcl_utils::PointXYZ;
     ///
@@ -477,10 +480,10 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
     ///     PointXYZ { x: 1.0, y: 2.0, z: 3.0 },
     ///     PointXYZ { x: 4.0, y: 5.0, z: 6.0 },
     /// ];
-    /// let msg_out: PointCloud2 = ConvertXYZ::try_from(cloud_points).unwrap().try_into().unwrap();
+    /// let msg_out: PointCloud2Msg = ConvertXYZ::try_from(cloud_points).unwrap().try_into().unwrap();
     /// ```
-    fn try_into(self) -> Result<rosrust_msg::sensor_msgs::PointCloud2, Self::Error> {
-        let mut cloud = rosrust_msg::sensor_msgs::PointCloud2::default();
+    fn try_into(self) -> Result<PointCloud2Msg, Self::Error> {
+        let mut cloud = PointCloud2Msg::default();
 
         // Define the message fields
         let mut fields = Vec::new();
@@ -491,13 +494,13 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
         let datatype: u8 = convert_to_msg_code(&self.xyz_field_type);
 
         if DIM > 1 {
-            fields.push(rosrust_msg::sensor_msgs::PointField {
+            fields.push(PointFieldMsg {
                 name: "x".to_string(),
                 offset: 0 * SIZE as u32,
                 datatype,
                 count: 1,
             });
-            fields.push(rosrust_msg::sensor_msgs::PointField {
+            fields.push(PointFieldMsg {
                 name: "y".to_string(),
                 offset: 1 * SIZE as u32,
                 datatype,
@@ -506,7 +509,7 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
         }
 
         if DIM == 3 {
-            fields.push(rosrust_msg::sensor_msgs::PointField {
+            fields.push(PointFieldMsg {
                 name: "z".to_string(),
                 offset: 2 * SIZE as u32,
                 datatype,
@@ -534,7 +537,7 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
                 let field_size = datatype_size(&field_type);
                 offset += field_size as u32;
             }
-            fields.push(rosrust_msg::sensor_msgs::PointField {
+            fields.push(PointFieldMsg {
                 name: meta_names[idx].to_string(),
                 offset,
                 datatype,
@@ -582,8 +585,7 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
     }
 }
 
-impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> fallible_iterator::FallibleIterator
-for Convert<T, SIZE, DIM, METADIM, C>
+impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> fallible_iterator::FallibleIterator for Convert<T, SIZE, DIM, METADIM, C>
 {
     type Item = C;
     type Error = ConversionError;
