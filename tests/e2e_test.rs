@@ -6,6 +6,28 @@ use ros_pointcloud2::*;
 use std::fmt::Debug;
 use std::{cmp, fmt};
 
+fn convert_from_into<C, P>(cloud: Vec<P>)
+    where
+        C: FallibleIterator<Item = P>
+        + TryFrom<PointCloud2Msg>
+        + TryFrom<Vec<P>>
+        + TryInto<PointCloud2Msg>,
+        <C as FallibleIterator>::Error: Debug,
+        <C as TryFrom<PointCloud2Msg>>::Error: Debug,
+        <C as TryInto<PointCloud2Msg>>::Error: Debug,
+        <C as TryFrom<Vec<P>>>::Error: Debug,
+        P: Clone + fmt::Debug + cmp::PartialEq,
+{
+    let copy = cloud.clone();
+    let msg: Result<PointCloud2Msg, _> = C::try_from(cloud).unwrap().try_into();
+    assert!(msg.is_ok());
+    let to_p_type = C::try_from(msg.unwrap());
+    assert!(to_p_type.is_ok());
+    let to_p_type = to_p_type.unwrap();
+    let back_to_type = to_p_type.map(|point| Ok(point)).collect::<Vec<P>>();
+    assert_eq!(copy, back_to_type.unwrap());
+}
+
 #[test]
 fn custom_xyz_f32() {
     const DIM: usize = 3;
@@ -40,7 +62,7 @@ fn custom_xyz_f32() {
     }
     impl PointConvertible<f32, { size_of!(f32) }, DIM, METADIM> for CustomPoint {}
 
-    let custom_cloud = vec![
+    convert_from_into::<MyConverter, CustomPoint>(vec![
         CustomPoint {
             x: 1.0,
             y: 2.0,
@@ -56,18 +78,7 @@ fn custom_xyz_f32() {
             y: 8.0,
             z: 9.0,
         },
-    ];
-    let copy = custom_cloud.clone();
-    let custom_msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> =
-        MyConverter::try_from(custom_cloud).unwrap().try_into();
-    assert!(custom_msg.is_ok());
-    let to_custom_type = MyConverter::try_from(custom_msg.unwrap());
-    assert!(to_custom_type.is_ok());
-    let to_custom_type = to_custom_type
-        .unwrap()
-        .map(|point| Ok(point))
-        .collect::<Vec<CustomPoint>>();
-    assert_eq!(copy, to_custom_type.unwrap());
+    ]);
 }
 
 #[test]
@@ -104,7 +115,7 @@ fn custom_xyzi_f32() {
         }
     }
     impl PointConvertible<f32, { size_of!(f32) }, DIM, METADIM> for CustomPoint {}
-    let custom_cloud = vec![
+    convert_from_into::<MyConverter, CustomPoint>(vec![
         CustomPoint {
             x: 0.0,
             y: 1.0,
@@ -129,18 +140,7 @@ fn custom_xyzi_f32() {
             z: f32::MAX,
             i: u8::MAX,
         },
-    ];
-    let copy = custom_cloud.clone();
-    let custom_msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> =
-        MyConverter::try_from(custom_cloud).unwrap().try_into();
-    assert!(custom_msg.is_ok());
-    let to_custom_type = MyConverter::try_from(custom_msg.unwrap());
-    assert!(to_custom_type.is_ok());
-    let to_custom_type = to_custom_type.unwrap();
-    let back_to_type = to_custom_type
-        .map(|point| Ok(point))
-        .collect::<Vec<CustomPoint>>();
-    assert_eq!(copy, back_to_type.unwrap());
+    ]);
 }
 
 #[test]
@@ -191,7 +191,7 @@ fn custom_rgba_f32() {
         }
     }
     impl PointConvertible<f32, { size_of!(f32) }, DIM, METADIM> for CustomPoint {}
-    let custom_cloud = vec![
+    convert_from_into::<MyConverter, CustomPoint>(vec![
         CustomPoint {
             x: 0.0,
             y: 1.0,
@@ -228,40 +228,7 @@ fn custom_rgba_f32() {
             b: u8::MAX,
             a: u8::MAX,
         },
-    ];
-    let copy = custom_cloud.clone();
-    let custom_msg: Result<ros_pointcloud2::ros_types::PointCloud2Msg, _> =
-        MyConverter::try_from(custom_cloud).unwrap().try_into();
-    assert!(custom_msg.is_ok());
-    let to_custom_type = MyConverter::try_from(custom_msg.unwrap());
-    assert!(to_custom_type.is_ok());
-    let to_custom_type = to_custom_type.unwrap();
-    let back_to_type = to_custom_type
-        .map(|point| Ok(point))
-        .collect::<Vec<CustomPoint>>();
-    assert_eq!(copy, back_to_type.unwrap());
-}
-
-fn convert_from_into<C, P>(cloud: Vec<P>)
-where
-    C: FallibleIterator<Item = P>
-        + TryFrom<PointCloud2Msg>
-        + TryFrom<Vec<P>>
-        + TryInto<PointCloud2Msg>,
-    <C as FallibleIterator>::Error: Debug,
-    <C as TryFrom<PointCloud2Msg>>::Error: Debug,
-    <C as TryInto<PointCloud2Msg>>::Error: Debug,
-    <C as TryFrom<Vec<P>>>::Error: Debug,
-    P: Clone + fmt::Debug + cmp::PartialEq,
-{
-    let copy = cloud.clone();
-    let msg: Result<PointCloud2Msg, _> = C::try_from(cloud).unwrap().try_into();
-    assert!(msg.is_ok());
-    let to_p_type = C::try_from(msg.unwrap());
-    assert!(to_p_type.is_ok());
-    let to_p_type = to_p_type.unwrap();
-    let back_to_type = to_p_type.map(|point| Ok(point)).collect::<Vec<P>>();
-    assert_eq!(copy, back_to_type.unwrap());
+    ]);
 }
 
 #[test]
@@ -466,56 +433,6 @@ fn converterxyznormal() {
 
 #[test]
 fn converterxyzrgbl() {
-    let cloud = vec![
-        PointXYZRGBL {
-            x: 0.0,
-            y: 1.0,
-            z: 5.0,
-            r: 0,
-            g: 0,
-            b: 0,
-            label: 0,
-        },
-        PointXYZRGBL {
-            x: 1.0,
-            y: 1.5,
-            z: 5.0,
-            r: 1,
-            g: 1,
-            b: 1,
-            label: 1,
-        },
-        PointXYZRGBL {
-            x: 1.3,
-            y: 1.6,
-            z: 5.7,
-            r: 2,
-            g: 2,
-            b: 2,
-            label: 2,
-        },
-        PointXYZRGBL {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-            r: u8::MAX,
-            g: u8::MAX,
-            b: u8::MAX,
-            label: u32::MAX,
-        },
-    ];
-
-    let copy = cloud.clone();
-    let msg: Result<PointCloud2Msg, _> = ConvertXYZRGBL::try_from(cloud).unwrap().try_into();
-    assert!(msg.is_ok());
-    let to_p_type = ConvertXYZRGBL::try_from(msg.unwrap());
-    assert!(to_p_type.is_ok());
-    let to_p_type = to_p_type.unwrap();
-    let back_to_type = to_p_type
-        .map(|point| Ok(point))
-        .collect::<Vec<PointXYZRGBL>>();
-    assert_eq!(copy, back_to_type.unwrap());
-    /*
     convert_from_into::<ConvertXYZRGBL, PointXYZRGBL>(vec![
         PointXYZRGBL {
             x: 0.0,
@@ -553,7 +470,7 @@ fn converterxyzrgbl() {
             b: u8::MAX,
             label: u32::MAX,
         },
-    ]);*/
+    ]);
 }
 
 #[test]
