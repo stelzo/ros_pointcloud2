@@ -6,10 +6,7 @@ pub struct TimeMsg {
 
 impl Default for TimeMsg {
     fn default() -> Self {
-        Self {
-            sec: 0,
-            nsec: 0,
-        }
+        Self { sec: 0, nsec: 0 }
     }
 }
 
@@ -143,4 +140,3 @@ impl Into<rosrust_msg::sensor_msgs::PointCloud2> for PointCloud2Msg {
         }
     }
 }
-

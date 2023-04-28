@@ -2,9 +2,9 @@
 pub mod pcl_utils;
 pub mod ros_types;
 
-use num_traits::Zero;
 use crate::pcl_utils::*;
 use crate::ros_types::{PointCloud2Msg, PointFieldMsg};
+use num_traits::Zero;
 
 #[macro_use]
 pub extern crate mem_macros;
@@ -28,8 +28,15 @@ pub enum ConversionError {
 
 /// Trait to convert a point to a tuple of coordinates and meta data.
 /// Implement this trait for your point type to use the conversion.
-pub trait PointConvertible<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize>: TryInto<([T; DIM], [PointMeta; METADIM])> + TryFrom<([T; DIM], [PointMeta; METADIM])> + MetaNames<METADIM> + Clone {}
-
+pub trait PointConvertible<T, const SIZE: usize, const DIM: usize, const METADIM: usize>:
+    TryInto<([T; DIM], [PointMeta; METADIM])>
+    + TryFrom<([T; DIM], [PointMeta; METADIM])>
+    + MetaNames<METADIM>
+    + Clone
+where
+    T: FromBytes,
+{
+}
 
 /// Datatypes from the [PointField message](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/PointField.html).
 #[derive(Clone, Debug, PartialEq, Copy)]
@@ -56,7 +63,9 @@ impl GetFieldDatatype for f32 {
 }
 
 impl GetFieldDatatype for f64 {
-    fn field_datatype() -> FieldDatatype { FieldDatatype::F64 }
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::F64
+    }
 }
 
 impl GetFieldDatatype for i32 {
@@ -122,7 +131,11 @@ fn convert_msg_code_to_type(code: u8) -> Result<FieldDatatype, ConversionError> 
     }
 }
 
-fn check_coord(coord: Option<usize>, fields: &Vec<PointFieldMsg>, xyz_field_type: &FieldDatatype) -> Result<PointFieldMsg, ConversionError> {
+fn check_coord(
+    coord: Option<usize>,
+    fields: &Vec<PointFieldMsg>,
+    xyz_field_type: &FieldDatatype,
+) -> Result<PointFieldMsg, ConversionError> {
     match coord {
         Some(y_idx) => {
             let field = &fields[y_idx];
@@ -130,7 +143,7 @@ fn check_coord(coord: Option<usize>, fields: &Vec<PointFieldMsg>, xyz_field_type
                 return Err(ConversionError::InvalidFieldFormat);
             }
             Ok(field.clone())
-        },
+        }
         None => {
             return Err(ConversionError::NotEnoughFields);
         }
@@ -157,7 +170,11 @@ pub trait MetaNames<const METADIM: usize> {
 /// const METADIM : usize = 4; // how many meta fields you have (e.g. r, g, b, a)
 /// type MyConverter = Convert<f32, { size_of!(f32) }, DIM, METADIM, ([f32; DIM], [PointMeta; METADIM])>;
 /// ```
-pub struct Convert<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> {
+pub struct Convert<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
+where
+    T: FromBytes,
+    C: PointConvertible<T, SIZE, DIM, METADIM>,
+{
     iteration: usize,
     coordinates: Vec<C>,
     phantom_t: std::marker::PhantomData<T>,
@@ -170,31 +187,21 @@ pub struct Convert<T: FromBytes, const SIZE: usize, const DIM: usize, const META
     meta: Vec<(String, FieldDatatype)>,
 }
 
-/// X, Y, Z in f32 (float) without meta data.
 pub type ConvertXYZ = Convert<f32, { size_of!(f32) }, 3, 0, PointXYZ>;
-
-/// X, Y, Z in f32 (float), meta: intensity in f32.
 pub type ConvertXYZI = Convert<f32, { size_of!(f32) }, 3, 1, PointXYZI>;
-
-/// X, Y, Z in f32 (float), meta: normal_x, normal_y, normal_z in f32.
 pub type ConvertXYZNormal = Convert<f32, { size_of!(f32) }, 3, 3, PointXYZNormal>;
-
-/// X, Y, Z in f32 (float), meta: r, g, b in u8.
-pub type ConvertXYZRGB = Convert<f32, { size_of!(f32) }, 3, 3, PointXYZRGB>;
-
-/// X, Y, Z in f32 (float), meta: r, g, b, a in u8.
-pub type ConvertXYZRGBA = Convert<f32, { size_of!(f32) }, 3, 4, PointXYZRGBA>;
-
-/// X, Y, Z in f32 (float), meta: r, g, b in u8, normal_x, normal_y, normal_z in f32.
-pub type ConvertXYZRGBNormal = Convert<f32, { size_of!(f32) }, 3, 6, PointXYZRGBNormal>;
-
-/// X, Y, Z in f32 (float), meta: intensity in f32, normal_x, normal_y, normal_z in f32.
+pub type ConvertXYZRGB = Convert<f32, { size_of!(f32) }, 3, 1, PointXYZRGB>;
+pub type ConvertXYZRGBL = Convert<f32, { size_of!(f32) }, 3, 2, PointXYZRGBL>;
+pub type ConvertXYZRGBA = Convert<f32, { size_of!(f32) }, 3, 2, PointXYZRGBA>;
+pub type ConvertXYZRGBNormal = Convert<f32, { size_of!(f32) }, 3, 4, PointXYZRGBNormal>;
 pub type ConvertXYZINormal = Convert<f32, { size_of!(f32) }, 3, 4, PointXYZINormal>;
-
-/// X, Y, Z in f32 (float), meta: label in u32.
 pub type ConvertXYZL = Convert<f32, { size_of!(f32) }, 3, 1, PointXYZL>;
 
-impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> TryFrom<Vec<C>> for Convert<T, SIZE, DIM, METADIM, C>
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> TryFrom<Vec<C>>
+    for Convert<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes,
+    C: PointConvertible<T, SIZE, DIM, METADIM>,
 {
     type Error = ConversionError;
 
@@ -225,7 +232,13 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
         let meta_names = C::meta_names();
         let mut point_step_size = DIM * SIZE;
         for (idx, value) in point_meta.1.iter().enumerate() {
-            meta.push((meta_names.get(idx).ok_or(ConversionError::MetaIndexLengthMismatch)?.clone(), value.datatype.clone()));
+            meta.push((
+                meta_names
+                    .get(idx)
+                    .ok_or(ConversionError::MetaIndexLengthMismatch)?
+                    .clone(),
+                value.datatype.clone(),
+            ));
             point_step_size += datatype_size(&value.datatype);
         }
 
@@ -291,9 +304,15 @@ impl PointMeta {
         }
     }
 
-    fn new_from_buffer(data: &Vec<u8>, offset: usize, datatype: &FieldDatatype) -> Result<Self, ConversionError> {
+    fn new_from_buffer(
+        data: &Vec<u8>,
+        offset: usize,
+        datatype: &FieldDatatype,
+    ) -> Result<Self, ConversionError> {
         let size = datatype_size(datatype);
-        let bytes = data.get(offset..offset + size).ok_or(ConversionError::DataLengthMismatch)?;
+        let bytes = data
+            .get(offset..offset + size)
+            .ok_or(ConversionError::DataLengthMismatch)?;
         let mut bytes_array = [0; size_of!(f64)]; // 8 bytes as f64 is the largest type
         for (idx, byte) in bytes.iter().enumerate() {
             bytes_array[idx] = *byte;
@@ -325,7 +344,11 @@ impl PointMeta {
     }
 }
 
-impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> TryFrom<PointCloud2Msg> for Convert<T, SIZE, DIM, METADIM, C>
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> TryFrom<PointCloud2Msg>
+    for Convert<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes,
+    C: PointConvertible<T, SIZE, DIM, METADIM>,
 {
     type Error = ConversionError;
 
@@ -359,9 +382,13 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
         let mut has_y: Option<usize> = None;
         let mut has_z: Option<usize> = None;
 
-        let mut meta_with_offsets: Vec<(String, FieldDatatype, usize)> = Vec::with_capacity(METADIM);
+        let mut meta_with_offsets: Vec<(String, FieldDatatype, usize)> =
+            Vec::with_capacity(METADIM);
 
-        let lower_meta_names = C::meta_names().iter().map(|x| x.to_lowercase()).collect::<Vec<String>>();
+        let lower_meta_names = C::meta_names()
+            .iter()
+            .map(|x| x.to_lowercase())
+            .collect::<Vec<String>>();
         for (idx, field) in cloud.fields.iter().enumerate() {
             let lower_field_name = field.name.to_lowercase();
             match lower_field_name.as_str() {
@@ -370,7 +397,11 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
                 "z" => has_z = Some(idx),
                 _ => {
                     if lower_meta_names.contains(&lower_field_name) {
-                        meta_with_offsets.push((field.name.clone(), convert_msg_code_to_type(field.datatype)?, field.offset as usize));
+                        meta_with_offsets.push((
+                            field.name.clone(),
+                            convert_msg_code_to_type(field.datatype)?,
+                            field.offset as usize,
+                        ));
                     }
                 }
             }
@@ -378,31 +409,29 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
 
         meta_with_offsets.sort_by(|a, b| a.2.cmp(&b.2));
         let meta_offsets: Vec<usize> = meta_with_offsets.iter().map(|x| x.2).collect();
-        let meta: Vec<(String, FieldDatatype)> = meta_with_offsets.iter().map(|x| (x.0.clone(), x.1.clone())).collect();
+        let meta: Vec<(String, FieldDatatype)> = meta_with_offsets
+            .iter()
+            .map(|x| (x.0.clone(), x.1.clone()))
+            .collect();
 
         let x_field = check_coord(has_x, &cloud.fields, &xyz_field_type)?;
         let y_field = check_coord(has_y, &cloud.fields, &xyz_field_type)?;
 
-        let mut offsets = vec![
-            x_field.offset as usize,
-            y_field.offset as usize
-        ];
+        let mut offsets = vec![x_field.offset as usize, y_field.offset as usize];
 
         let z_field = check_coord(has_z, &cloud.fields, &xyz_field_type);
         match z_field {
             Ok(z_field) => {
                 offsets.push(z_field.offset as usize);
-            },
-            Err(err) => {
-                match err {
-                    ConversionError::NotEnoughFields => {
-                        if DIM == 3 {
-                            return Err(ConversionError::NotEnoughFields);
-                        }
-                    },
-                    _ => return Err(err),
-                }
             }
+            Err(err) => match err {
+                ConversionError::NotEnoughFields => {
+                    if DIM == 3 {
+                        return Err(ConversionError::NotEnoughFields);
+                    }
+                }
+                _ => return Err(err),
+            },
         }
 
         let endian = if cloud.is_bigendian {
@@ -463,7 +492,12 @@ fn datatype_size(datatype: &FieldDatatype) -> usize {
     }
 }
 
-impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> TryInto<PointCloud2Msg> for Convert<T, SIZE, DIM, METADIM, C> {
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> TryInto<PointCloud2Msg>
+    for Convert<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes,
+    C: PointConvertible<T, SIZE, DIM, METADIM>,
+{
     type Error = ConversionError;
 
     /// Convert the point cloud to a ROS message.
@@ -566,7 +600,10 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
                 Ok(meta) => meta,
                 Err(_) => return Err(ConversionError::PointConversionError),
             };
-            coords_data.0.iter().for_each(|x| cloud.data.extend_from_slice(T::bytes(x).as_slice()));
+            coords_data
+                .0
+                .iter()
+                .for_each(|x| cloud.data.extend_from_slice(T::bytes(x).as_slice()));
             coords_data.1.iter().for_each(|meta| {
                 let truncated_bytes = &meta.bytes[0..datatype_size(&meta.datatype)];
                 cloud.data.extend_from_slice(truncated_bytes);
@@ -577,7 +614,11 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
     }
 }
 
-impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> Convert<T, SIZE, DIM, METADIM, C>
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
+    Convert<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes,
+    C: PointConvertible<T, SIZE, DIM, METADIM>,
 {
     /// Convenience getter for the number of points in the cloud.
     pub fn len(&self) -> usize {
@@ -585,7 +626,11 @@ impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C:
     }
 }
 
-impl<T: FromBytes, const SIZE: usize, const DIM: usize, const METADIM: usize, C: PointConvertible<T, SIZE, DIM, METADIM>> fallible_iterator::FallibleIterator for Convert<T, SIZE, DIM, METADIM, C>
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
+    fallible_iterator::FallibleIterator for Convert<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes,
+    C: PointConvertible<T, SIZE, DIM, METADIM>,
 {
     type Item = C;
     type Error = ConversionError;
@@ -650,7 +695,6 @@ impl FromBytes for i8 {
         Vec::from(x.to_le_bytes())
     }
 }
-
 
 impl FromBytes for i16 {
     fn from_be_bytes(bytes: &[u8]) -> Self {
@@ -788,7 +832,6 @@ fn load_bytes<const S: usize>(start_idx: usize, data: &[u8]) -> Option<[u8; S]> 
     Some(buff)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -804,5 +847,4 @@ mod tests {
         f32::bytes(&1.0);
         f64::bytes(&1.0);
     }
-
 }

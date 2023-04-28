@@ -1,13 +1,13 @@
 # ROS PointCloud2
 
-A lightweight Rust implementation for fast, safe and customizable conversions to and from the `sensor_msgs/PointCloud2` ROS message.
+Customizable conversions to and from the `sensor_msgs/PointCloud2` ROS message.
 
 ```toml
 [dependencies]
-ros_pointcloud2 = "0.2.0"
+ros_pointcloud2 = "0.2.1"
 ```
 
-Providing a fast and memory efficient way for message conversion while allowing user defined types without the cost of iterations.
+Providing a memory efficient way for message conversion while allowing user defined types without the cost of iterations.
 
 Instead of converting the entire cloud into a `Vec`, you get an `Iterator` that converts each point from the message on the fly.
 An example for using this crate is [this filter node](https://github.com/stelzo/cloudfilter). It is also a good starting point for
@@ -52,7 +52,7 @@ assert_eq!(new_cloud_points, cloud_copy);
 
 To use `ros_pointcloud2` in your favorite ROS crate, you can either use this crate's features (see Integration section below) or implement the `Into` and `From` traits for `PointCloud2Msg`.
 
-Please avoid cloning the `data: Vec<u8>` of the message.
+Try to avoid cloning the `data: Vec<u8>` field.
 ```rust
 use ros_pointcloud2::ros_types::PointCloud2Msg;
 
@@ -73,13 +73,13 @@ impl From<YourROSPointCloud2> for PointCloud2Msg {
 
 ## Integrations
 
-Currently, we only implement a conversion for the following ROS crate:
+Currently, there is only 1 integration for the following ROS crate:
 - [rosrust](https://github.com/adnanademovic/rosrust)
 
 You can use one by enabling the corresponding feature.
 ```toml
 [dependencies]
-ros_pointcloud2 = { version = "0.2.0", features = ["rosrust_msg"]}
+ros_pointcloud2 = { version = "0.2.1", features = ["rosrust_msg"]}
 ```
 
 Please open an issue or PR if you want to see support for other crates.
