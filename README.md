@@ -15,21 +15,32 @@ implementing ROS1 nodes in Rust inside a catkin environment.
 
 To keep the crate a general purpose library for the problem and support ROS1 and ROS2, it uses its own type for the message.
 ```rust
-use ros_pointcloud2::ConvertXYZ;
+use ros_pointcloud2::fallible_iterator::FallibleIterator;
 use ros_pointcloud2::pcl_utils::PointXYZ;
 use ros_pointcloud2::ros_types::PointCloud2Msg;
-use ros_pointcloud2::fallible_iterator::FallibleIterator;
+use ros_pointcloud2::ConvertXYZ;
 
 // Your points (here using the predefined type PointXYZ).
 let cloud_points = vec![
-  PointXYZ { x: 1.3, y: 1.6, z: 5.7 },
-  PointXYZ { x: f32::MAX, y: f32::MIN, z: f32::MAX },
+  PointXYZ {
+    x: 1.3,
+    y: 1.6,
+    z: 5.7,
+  },
+  PointXYZ {
+    x: f32::MAX,
+    y: f32::MIN,
+    z: f32::MAX,
+  },
 ];
 
 let cloud_copy = cloud_points.clone(); // Only for checking equality later.
 
 // Vector -> Convert -> Message
-let internal_msg: PointCloud2Msg = ConvertXYZ::try_from(cloud_points).unwrap().try_into().unwrap();
+let internal_msg: PointCloud2Msg = ConvertXYZ::try_from(cloud_points)
+    .unwrap()
+    .try_into()
+    .unwrap();
 
 // Convert to your favorite ROS crate message type, we will use rosrust here.
 // let msg: rosrust_msg::sensor_msgs::PointCloud2 = internal_msg.into();
@@ -39,13 +50,15 @@ let internal_msg: PointCloud2Msg = ConvertXYZ::try_from(cloud_points).unwrap().t
 
 // Message -> Convert -> Vector
 let convert: ConvertXYZ = ConvertXYZ::try_from(internal_msg).unwrap();
-let new_cloud_points = convert.map(|point: PointXYZ| {
-    // Insert your point business logic here or use other methods like .for_each().
-    // I will just copy the points into a vector as an example.
-    // Also, since we are using a fallible iterator, we need to return a Result.
-    Ok(point)
-}).collect::<Vec<PointXYZ>>()
-  .unwrap(); // Handle point conversion or byte errors here.
+let new_cloud_points = convert
+    .map(|point: PointXYZ| {
+      // Insert your point business logic here or use other methods like .for_each().
+      // I will just copy the points into a vector as an example.
+      // Also, since we are using a fallible iterator, we need to return a Result.
+      Ok(point)
+    })
+    .collect::<Vec<PointXYZ>>()
+    .unwrap(); // Handle point conversion or byte errors here.
 
 assert_eq!(new_cloud_points, cloud_copy);
 ```
@@ -107,11 +120,11 @@ You can freely convert to your own point types without reiterating the entire cl
 You just need to implement the `Into` and `From` traits.
 ```rust
 use ros_pointcloud2::mem_macros::size_of;
-use ros_pointcloud2::{Convert, MetaNames, PointMeta, ConversionError, PointConvertible};
 use ros_pointcloud2::ros_types::PointCloud2Msg;
+use ros_pointcloud2::{ConversionError, Convert, MetaNames, PointConvertible, PointMeta};
 
-const DIM : usize = 3;
-const METADIM : usize = 4;
+const DIM: usize = 3;
+const METADIM: usize = 4;
 
 #[derive(Debug, PartialEq, Clone)]
 struct CustomPoint {
@@ -127,7 +140,15 @@ struct CustomPoint {
 // Converting your custom point to the crate's internal representation
 impl Into<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
   fn into(self) -> ([f32; DIM], [PointMeta; METADIM]) {
-    ([self.x, self.y, self.z], [PointMeta::new(self.r), PointMeta::new(self.g), PointMeta::new(self.b), PointMeta::new(self.a)])
+    (
+      [self.x, self.y, self.z],
+      [
+        PointMeta::new(self.r),
+        PointMeta::new(self.g),
+        PointMeta::new(self.b),
+        PointMeta::new(self.a),
+      ],
+    )
   }
 }
 
@@ -160,15 +181,22 @@ type MyConverter = Convert<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
 
 // Your custom cloud (Vector)
 let custom_cloud = vec![
-  CustomPoint { x: 0.0, y: 1.0, z: 5.0, r: 0, g: 0, b: 0, a: 0 },
-  CustomPoint { x: 1.0, y: 1.5, z: 5.0, r: 1, g: 1, b: 1, a: 1 },
-  CustomPoint { x: 1.3, y: 1.6, z: 5.7, r: 2, g: 2, b: 2, a: 2 },
-  CustomPoint { x: f32::MAX, y: f32::MIN, z: f32::MAX, r: u8::MAX, g: u8::MAX, b: u8::MAX, a: u8::MAX },
+  CustomPoint {
+    x: f32::MAX,
+    y: f32::MIN,
+    z: f32::MAX,
+    r: u8::MAX,
+    g: u8::MAX,
+    b: u8::MAX,
+    a: u8::MAX,
+  },
 ];
 
-
 // Cloud -> ROS message
-let custom_msg: PointCloud2Msg = MyConverter::try_from(custom_cloud).unwrap().try_into().unwrap();
+let custom_msg: PointCloud2Msg = MyConverter::try_from(custom_cloud)
+    .unwrap()
+    .try_into()
+    .unwrap();
 
 // ROS message -> Cloud
 let to_custom_type = MyConverter::try_from(custom_msg).unwrap();
