@@ -1,14 +1,19 @@
+#[cfg(not(feature = "rosrust_msg"))]
 #[derive(Clone, Debug)]
 pub struct TimeMsg {
     pub sec: u32,
     pub nsec: u32,
 }
 
+#[cfg(not(feature = "rosrust_msg"))]
 impl Default for TimeMsg {
     fn default() -> Self {
         Self { sec: 0, nsec: 0 }
     }
 }
+
+#[cfg(feature = "rosrust_msg")]
+pub use rosrust::Time as TimeMsg;
 
 #[derive(Clone, Debug)]
 pub struct HeaderMsg {
