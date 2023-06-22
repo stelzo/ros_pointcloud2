@@ -4,7 +4,7 @@ Customizable conversions to and from the `sensor_msgs/PointCloud2` ROS message.
 
 ```toml
 [dependencies]
-ros_pointcloud2 = "0.2.1"
+ros_pointcloud2 = "0.2"
 ```
 
 Providing a memory efficient way for message conversion while allowing user defined types without the cost of iterations.
@@ -92,7 +92,7 @@ Currently, there is only 1 integration for the following ROS crate:
 You can use one by enabling the corresponding feature.
 ```toml
 [dependencies]
-ros_pointcloud2 = { version = "0.2.1", features = ["rosrust_msg"]}
+ros_pointcloud2 = { version = "0.2", features = ["rosrust_msg"]}
 ```
 
 Please open an issue or PR if you want to see support for other crates.
