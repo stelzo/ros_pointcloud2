@@ -7,16 +7,16 @@ use std::fmt::Debug;
 use std::{cmp, fmt};
 
 fn convert_from_into<C, P>(cloud: Vec<P>)
-    where
-        C: FallibleIterator<Item = P>
+where
+    C: FallibleIterator<Item = P>
         + TryFrom<PointCloud2Msg>
         + TryFrom<Vec<P>>
         + TryInto<PointCloud2Msg>,
-        <C as FallibleIterator>::Error: Debug,
-        <C as TryFrom<PointCloud2Msg>>::Error: Debug,
-        <C as TryInto<PointCloud2Msg>>::Error: Debug,
-        <C as TryFrom<Vec<P>>>::Error: Debug,
-        P: Clone + fmt::Debug + cmp::PartialEq,
+    <C as FallibleIterator>::Error: Debug,
+    <C as TryFrom<PointCloud2Msg>>::Error: Debug,
+    <C as TryInto<PointCloud2Msg>>::Error: Debug,
+    <C as TryFrom<Vec<P>>>::Error: Debug,
+    P: Clone + fmt::Debug + cmp::PartialEq,
 {
     let copy = cloud.clone();
     let msg: Result<PointCloud2Msg, _> = C::try_from(cloud).unwrap().try_into();
