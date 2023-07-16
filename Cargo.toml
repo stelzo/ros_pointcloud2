@@ -16,7 +16,7 @@ exclude = ["**/tests/**", "**/examples/**", "**/benches/**", "**/target/**", "**
 [dependencies]
 mem_macros = "1.0.1"
 num-traits = "0.2.15"
-fallible-iterator = "0.2.0"
+fallible-iterator = "0.3.0"
 rosrust_msg = { version = "0.1", optional = true }
 rosrust = { version = "0.9", optional = true }
 
