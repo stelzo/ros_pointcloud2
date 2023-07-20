@@ -1,0 +1,17 @@
+name: galactic_r2r_test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tests_galactic:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: docker build . --file ./tests/Dockerfile_galactic --tag r2r_galactic
+    - run: docker run r2r_galactic cargo test --features r2r_msg
