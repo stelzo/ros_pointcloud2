@@ -40,9 +40,9 @@ fn custom_xyz_f32() {
         z: f32,
     }
     type MyConverter = Convert<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
-    impl Into<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
-        fn into(self) -> ([f32; DIM], [PointMeta; METADIM]) {
-            ([self.x, self.y, self.z], [])
+    impl From<CustomPoint> for ([f32; DIM], [PointMeta; METADIM]) {
+        fn from(point: CustomPoint) -> Self {
+            ([point.x, point.y, point.z], [])
         }
     }
     impl TryFrom<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
@@ -93,9 +93,9 @@ fn custom_xyzi_f32() {
         i: u8,
     }
     type MyConverter = Convert<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
-    impl Into<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
-        fn into(self) -> ([f32; DIM], [PointMeta; METADIM]) {
-            ([self.x, self.y, self.z], [PointMeta::new(self.i)])
+    impl From<CustomPoint> for ([f32; DIM], [PointMeta; METADIM]) {
+        fn from(point: CustomPoint) -> Self {
+            ([point.x, point.y, point.z], [PointMeta::new(point.i)])
         }
     }
     impl TryFrom<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
@@ -158,15 +158,15 @@ fn custom_rgba_f32() {
         a: u8,
     }
     type MyConverter = Convert<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
-    impl Into<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
-        fn into(self) -> ([f32; DIM], [PointMeta; METADIM]) {
+    impl From<CustomPoint> for ([f32; DIM], [PointMeta; METADIM]) {
+        fn from(point: CustomPoint) -> Self {
             (
-                [self.x, self.y, self.z],
+                [point.x, point.y, point.z],
                 [
-                    PointMeta::new(self.r),
-                    PointMeta::new(self.g),
-                    PointMeta::new(self.b),
-                    PointMeta::new(self.a),
+                    PointMeta::new(point.r),
+                    PointMeta::new(point.g),
+                    PointMeta::new(point.b),
+                    PointMeta::new(point.a),
                 ],
             )
         }

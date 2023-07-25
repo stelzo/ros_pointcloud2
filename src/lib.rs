@@ -133,7 +133,7 @@ fn convert_msg_code_to_type(code: u8) -> Result<FieldDatatype, ConversionError> 
 
 fn check_coord(
     coord: Option<usize>,
-    fields: &Vec<PointFieldMsg>,
+    fields: &[PointFieldMsg],
     xyz_field_type: &FieldDatatype,
 ) -> Result<PointFieldMsg, ConversionError> {
     match coord {
@@ -144,9 +144,7 @@ fn check_coord(
             }
             Ok(field.clone())
         }
-        None => {
-            return Err(ConversionError::NotEnoughFields);
-        }
+        None => Err(ConversionError::NotEnoughFields),
     }
 }
 
@@ -237,7 +235,7 @@ where
                     .get(idx)
                     .ok_or(ConversionError::MetaIndexLengthMismatch)?
                     .clone(),
-                value.datatype.clone(),
+                value.datatype,
             ));
             point_step_size += datatype_size(&value.datatype);
         }
@@ -305,7 +303,7 @@ impl PointMeta {
     }
 
     fn new_from_buffer(
-        data: &Vec<u8>,
+        data: &[u8],
         offset: usize,
         datatype: &FieldDatatype,
     ) -> Result<Self, ConversionError> {
@@ -319,7 +317,7 @@ impl PointMeta {
         }
         Ok(Self {
             bytes: bytes_array,
-            datatype: datatype.clone(),
+            datatype: *datatype,
         })
     }
 
@@ -371,7 +369,6 @@ where
     /// let convert: ConvertXYZ = ConvertXYZ::try_from(msg).unwrap(); // parse message
     /// ```
     fn try_from(cloud: PointCloud2Msg) -> Result<Self, Self::Error> {
-        let cloud: PointCloud2Msg = cloud.into();
         if cloud.fields.len() < DIM {
             return Err(ConversionError::NotEnoughFields);
         }
@@ -411,7 +408,7 @@ where
         let meta_offsets: Vec<usize> = meta_with_offsets.iter().map(|x| x.2).collect();
         let meta: Vec<(String, FieldDatatype)> = meta_with_offsets
             .iter()
-            .map(|x| (x.0.clone(), x.1.clone()))
+            .map(|x| (x.0.clone(), x.1))
             .collect();
 
         let x_field = check_coord(has_x, &cloud.fields, &xyz_field_type)?;
@@ -530,13 +527,13 @@ where
         if DIM > 1 {
             fields.push(PointFieldMsg {
                 name: "x".to_string(),
-                offset: 0 * SIZE as u32,
+                offset: 0,
                 datatype,
                 count: 1,
             });
             fields.push(PointFieldMsg {
                 name: "y".to_string(),
-                offset: 1 * SIZE as u32,
+                offset: SIZE as u32,
                 datatype,
                 count: 1,
             });
@@ -584,7 +581,7 @@ where
         for field in fields.iter() {
             let field_type = convert_msg_code_to_type(field.datatype)?;
             let field_size = datatype_size(&field_type);
-            step_size += field.count as u32 * field_size as u32;
+            step_size += field.count * field_size as u32;
         }
 
         cloud.fields = fields;
@@ -623,6 +620,10 @@ where
     /// Convenience getter for the number of points in the cloud.
     pub fn len(&self) -> usize {
         self.cloud_length
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.cloud_length == 0
     }
 }
 
@@ -668,7 +669,7 @@ where
         self.iteration += 1;
         let conv = C::try_from((xyz, meta)); // try convert the point
         match conv {
-            Err(_) => return Err(ConversionError::PointConversionError),
+            Err(_) => Err(ConversionError::PointConversionError),
             Ok(tuple) => Ok(Some(tuple)),
         }
     }
@@ -817,14 +818,14 @@ fn load_bytes<const S: usize>(start_idx: usize, data: &[u8]) -> Option<[u8; S]> 
         return None;
     }
     let mut buff: [u8; S] = [u8::zero(); S];
-    for byte in 0..S {
+    for (byte, buff_val) in buff.iter_mut().enumerate().take(S) {
         let raw_byte = data.get(start_idx + byte);
         match raw_byte {
             None => {
                 return None;
             }
             Some(some_byte) => {
-                buff[byte] = some_byte.clone();
+                *buff_val = *some_byte;
             }
         }
     }

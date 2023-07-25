@@ -1,38 +1,21 @@
 #[cfg(not(feature = "rosrust_msg"))]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TimeMsg {
     pub sec: u32,
     pub nsec: u32,
 }
 
-#[cfg(not(feature = "rosrust_msg"))]
-impl Default for TimeMsg {
-    fn default() -> Self {
-        Self { sec: 0, nsec: 0 }
-    }
-}
-
 #[cfg(feature = "rosrust_msg")]
 pub use rosrust::Time as TimeMsg;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct HeaderMsg {
     pub seq: u32,
     pub stamp: TimeMsg,
     pub frame_id: String,
 }
 
-impl Default for HeaderMsg {
-    fn default() -> Self {
-        Self {
-            seq: 0,
-            stamp: TimeMsg::default(),
-            frame_id: String::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct PointFieldMsg {
     pub name: String,
     pub offset: u32,
@@ -40,18 +23,7 @@ pub struct PointFieldMsg {
     pub count: u32,
 }
 
-impl Default for PointFieldMsg {
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            offset: 0,
-            datatype: 0,
-            count: 0,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct PointCloud2Msg {
     pub header: HeaderMsg,
     pub height: u32,
@@ -62,22 +34,6 @@ pub struct PointCloud2Msg {
     pub row_step: u32,
     pub data: Vec<u8>,
     pub is_dense: bool,
-}
-
-impl Default for PointCloud2Msg {
-    fn default() -> Self {
-        Self {
-            header: HeaderMsg::default(),
-            height: 0,
-            width: 0,
-            fields: Vec::new(),
-            is_bigendian: false,
-            point_step: 0,
-            row_step: 0,
-            data: Vec::new(),
-            is_dense: false,
-        }
-    }
 }
 
 #[cfg(feature = "r2r_msg")]
