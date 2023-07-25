@@ -18,5 +18,5 @@ RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 
 COPY . /r2r
-RUN chmod +x /r2r/tests/test.bash
-ENTRYPOINT [ "/r2r/tests/test.bash" ]
+RUN chmod +x /r2r/tests/r2r_20.04_test.bash
+ENTRYPOINT [ "/r2r/tests/r2r_20.04_test.bash" ]

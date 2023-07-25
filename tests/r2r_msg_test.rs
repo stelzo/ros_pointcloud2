@@ -1,6 +1,6 @@
 #[cfg(feature = "r2r_msg")]
 #[test]
-fn convertxyz_rosrust_msg() {
+fn convertxyz_r2r_msg() {
     use ros_pointcloud2::fallible_iterator::FallibleIterator;
     use ros_pointcloud2::pcl_utils::PointXYZ;
     use ros_pointcloud2::ros_types::PointCloud2Msg;
@@ -30,5 +30,4 @@ fn convertxyz_rosrust_msg() {
     let to_convert: ConvertXYZ = ConvertXYZ::try_from(convert_back_internal).unwrap();
     let back_to_type = to_convert.map(|point| Ok(point)).collect::<Vec<PointXYZ>>();
     assert_eq!(copy, back_to_type.unwrap());
-    //assert_eq!(1, 0);
 }

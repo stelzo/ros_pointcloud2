@@ -15,6 +15,6 @@ if [ -e "/opt/ros/foxy/setup.bash" ]; then
     source "/opt/ros/foxy/setup.bash"
 fi
 
-cd /r2r/
+cd /r2r/ || exit
 
 "$@"
