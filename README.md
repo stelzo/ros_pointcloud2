@@ -2,11 +2,6 @@
 
 Customizable conversions to and from the `sensor_msgs/PointCloud2` ROS message.
 
-```toml
-[dependencies]
-ros_pointcloud2 = "0.2"
-```
-
 Providing a memory efficient way for message conversion while allowing user defined types without the cost of iterations.
 
 Instead of converting the entire cloud into a `Vec`, you get an `Iterator` that converts each point from the message on the fly.
@@ -86,13 +81,14 @@ impl From<YourROSPointCloud2> for PointCloud2Msg {
 
 ## Integrations
 
-Currently, there is only 1 integration for the following ROS crate:
-- [rosrust](https://github.com/adnanademovic/rosrust)
+There are currently 2 integrations for common ROS crates such as rosrust for ROS1 and R2R for ROS2 (Galactic).
+- [rosrust_msg](https://github.com/adnanademovic/rosrust)
+- [r2r_msg](https://github.com/sequenceplanner/r2r)
 
-You can use one by enabling the corresponding feature.
+You can use them by enabling the corresponding feature. Example:
 ```toml
 [dependencies]
-ros_pointcloud2 = { version = "0.2", features = ["rosrust_msg"]}
+ros_pointcloud2 = { version = "*", features = ["r2r_msg"]}
 ```
 
 Please open an issue or PR if you want to see support for other crates.
@@ -117,7 +113,7 @@ Please open an issue or PR if you want to see support for other crates.
 
 You can freely convert to your own point types without reiterating the entire cloud.
 
-You just need to implement the `Into` and `From` traits.
+You just need to implement some traits.
 ```rust
 use ros_pointcloud2::mem_macros::size_of;
 use ros_pointcloud2::ros_types::PointCloud2Msg;
@@ -138,15 +134,15 @@ struct CustomPoint {
 }
 
 // Converting your custom point to the crate's internal representation
-impl Into<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
-  fn into(self) -> ([f32; DIM], [PointMeta; METADIM]) {
+impl From<CustomPoint> for ([f32; DIM], [PointMeta; METADIM]) {
+  fn from(point: CustomPoint) -> Self {
     (
-      [self.x, self.y, self.z],
+      [point.x, point.y, point.z],
       [
-        PointMeta::new(self.r),
-        PointMeta::new(self.g),
-        PointMeta::new(self.b),
-        PointMeta::new(self.a),
+        PointMeta::new(point.r),
+        PointMeta::new(point.g),
+        PointMeta::new(point.b),
+        PointMeta::new(point.a),
       ],
     )
   }
