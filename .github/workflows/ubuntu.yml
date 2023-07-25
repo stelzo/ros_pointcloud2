@@ -1,0 +1,24 @@
+name: Pure latest Ubuntu without integrations
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tests_galactic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install latest Rust
+        run: |
+            curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
+            rustc --version
+            cargo --version
+      - name: Linting
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test
