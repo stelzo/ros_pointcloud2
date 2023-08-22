@@ -3,12 +3,12 @@ use crate::{ConversionError, MetaNames, PointConvertible, PointMeta};
 #[inline]
 fn pack_rgb(r: u8, g: u8, b: u8) -> f32 {
     let packed = ((r as u32) << 16) + ((g as u32) << 8) + (b as u32);
-    unsafe { std::mem::transmute(packed) }
+    f32::from_bits(packed)
 }
 
 #[inline]
 fn unpack_rgb(rgb: f32) -> [u8; 3] {
-    let packed: u32 = unsafe { std::mem::transmute(rgb) };
+    let packed: u32 = rgb.to_bits();
     let r: u8 = (packed >> 16) as u8;
     let g: u8 = (packed >> 8) as u8;
     let b: u8 = packed as u8;
