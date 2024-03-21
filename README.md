@@ -1,19 +1,21 @@
-# ROS PointCloud2
-
-Customizable conversions to and from the `sensor_msgs/PointCloud2` ROS message.
+<p align="center">
+  <h3 align="center">ROS PointCloud2</h3>
+  <p align="center">Customizable conversions to and from the PointCloud2 ROS message.</p>
+  <p align="center"><a href="https://crates.io/crates/ros_pointcloud2"><img src="https://img.shields.io/crates/v/ros_pointcloud2.svg" alt=""></a> <a href="https://github.com/stelzo/ros_pointcloud2/tree/main/tests"><img src="https://github.com/stelzo/ros_pointcloud2/actions/workflows/tests.yml/badge.svg" alt=""></a>
+  </p>
+</p>
 
 Providing a memory efficient way for message conversion while allowing user defined types without the cost of iterations.
+Instead of converting the entire cloud into a `Vec`, you get an iterable type that converts each point from the message on the fly.
 
-Instead of converting the entire cloud into a `Vec`, you get an `Iterator` that converts each point from the message on the fly.
-An example for using this crate is [this filter node](https://github.com/stelzo/cloudfilter). It is also a good starting point for
-implementing ROS1 nodes in Rust inside a catkin environment.
-
-To keep the crate a general purpose library for the problem and support ROS1 and ROS2, it uses its own type for the message.
+To keep the crate a general purpose library for the problem and support ROS1 and ROS2, it uses its own type for the message `ros_types::PointCloud2Msg`.
 ```rust
-use ros_pointcloud2::fallible_iterator::FallibleIterator;
-use ros_pointcloud2::pcl_utils::PointXYZ;
-use ros_pointcloud2::ros_types::PointCloud2Msg;
-use ros_pointcloud2::ConvertXYZ;
+use ros_pointcloud2::{
+    fallible_iterator::FallibleIterator,
+    pcl_utils::PointXYZ,
+    ros_types::PointCloud2Msg,
+    ConvertXYZ,
+};
 
 // Your points (here using the predefined type PointXYZ).
 let cloud_points = vec![
@@ -29,9 +31,9 @@ let cloud_points = vec![
   },
 ];
 
-let cloud_copy = cloud_points.clone(); // Only for checking equality later.
+let cloud_copy = cloud_points.clone(); // For checking equality later.
 
-// Vector -> Convert -> Message
+// Vector -> Converter -> Message
 let internal_msg: PointCloud2Msg = ConvertXYZ::try_from(cloud_points)
     .unwrap()
     .try_into()
@@ -43,13 +45,14 @@ let internal_msg: PointCloud2Msg = ConvertXYZ::try_from(cloud_points)
 // Back to this crate's message type.
 // let internal_msg: PointCloud2Msg = msg.into();
 
-// Message -> Convert -> Vector
+// Message -> Converter -> Vector
 let convert: ConvertXYZ = ConvertXYZ::try_from(internal_msg).unwrap();
 let new_cloud_points = convert
     .map(|point: PointXYZ| {
-      // Insert your point business logic here or use other methods like .for_each().
-      // I will just copy the points into a vector as an example.
-      // Also, since we are using a fallible iterator, we need to return a Result.
+      // Insert your point business logic here
+      // or use other methods like .for_each().
+      
+      // We are using a fallible iterator so we need to return a Result.
       Ok(point)
     })
     .collect::<Vec<PointXYZ>>()
@@ -81,9 +84,13 @@ impl From<YourROSPointCloud2> for PointCloud2Msg {
 
 ## Integrations
 
-There are currently 2 integrations for common ROS crates such as rosrust for ROS1 and R2R for ROS2 (Galactic).
+There are currently 2 integrations for common ROS crates such as rosrust for ROS1 and R2R for ROS2.
 - [rosrust_msg](https://github.com/adnanademovic/rosrust)
+  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rosrust_noetic.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rosrust_noetic.yml)
 - [r2r_msg](https://github.com/sequenceplanner/r2r)
+  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_galactic.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_galactic.yml)
+  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_humble.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_humble.yml)
+  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_iron.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_iron.yml)
 
 You can use them by enabling the corresponding feature. Example:
 ```toml
