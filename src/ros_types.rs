@@ -1,4 +1,4 @@
-#[cfg(not(feature = "rosrust_msg"))]
+#[cfg(not(any(feature = "rosrust_msg", feature = "rclrs_msg")))]
 #[derive(Clone, Debug, Default)]
 pub struct TimeMsg {
     pub sec: u32,
@@ -7,6 +7,9 @@ pub struct TimeMsg {
 
 #[cfg(feature = "rosrust_msg")]
 pub use rosrust::Time as TimeMsg;
+
+#[cfg(feature = "rclrs_msg")]
+pub use builtin_interfaces::msg::Time as TimeMsg;
 
 #[derive(Clone, Debug, Default)]
 pub struct HeaderMsg {
@@ -152,6 +155,71 @@ impl Into<rosrust_msg::sensor_msgs::PointCloud2> for PointCloud2Msg {
                 .fields
                 .into_iter()
                 .map(|field| rosrust_msg::sensor_msgs::PointField {
+                    name: field.name,
+                    offset: field.offset,
+                    datatype: field.datatype,
+                    count: field.count,
+                })
+                .collect(),
+            is_bigendian: self.is_bigendian,
+            point_step: self.point_step,
+            row_step: self.row_step,
+            data: self.data,
+            is_dense: self.is_dense,
+        }
+    }
+}
+
+#[cfg(feature = "rclrs_msg")]
+impl From<sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
+    fn from(msg: sensor_msgs::msg::PointCloud2) -> Self {
+        Self {
+            header: HeaderMsg {
+                seq: 0,
+                stamp: TimeMsg {
+                    sec: msg.header.stamp.sec as u32,
+                    nsec: msg.header.stamp.nanosec,
+                },
+                frame_id: msg.header.frame_id,
+            },
+            height: msg.height,
+            width: msg.width,
+            fields: msg
+                .fields
+                .into_iter()
+                .map(|field| PointFieldMsg {
+                    name: field.name,
+                    offset: field.offset,
+                    datatype: field.datatype,
+                    count: field.count,
+                })
+                .collect(),
+            is_bigendian: msg.is_bigendian,
+            point_step: msg.point_step,
+            row_step: msg.row_step,
+            data: msg.data,
+            is_dense: msg.is_dense,
+        }
+    }
+}
+
+#[cfg(feature = "rclrs_msg")]
+impl Into<sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
+    fn into(self) -> sensor_msgs::msg::PointCloud2 {
+        sensor_msgs::msg::PointCloud2 {
+            header: std_msgs::msg::Header {
+                stamp: builtin_interfaces::msg::Time {
+                    sec: self.header.stamp.sec as i32,
+                    nanosec: self.header.stamp.nsec,
+                },
+                frame_id: self.header.frame_id,
+            },
+            height: self.height,
+            width: self.width,
+            fields: self
+                .fields
+                .into_iter()
+                .map(|field| sensor_msgs::msg::PointField {
                     name: field.name,
                     offset: field.offset,
                     datatype: field.datatype,
