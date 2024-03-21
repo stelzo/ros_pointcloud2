@@ -5,6 +5,7 @@ fn convertxyz_r2r_msg() {
     use ros_pointcloud2::pcl_utils::PointXYZ;
     use ros_pointcloud2::ros_types::PointCloud2Msg;
     use ros_pointcloud2::ConvertXYZ;
+    use r2r::sensor_msgs::msg::PointCloud2;
 
     let cloud = vec![
         PointXYZ {
@@ -25,8 +26,8 @@ fn convertxyz_r2r_msg() {
     ];
     let copy = cloud.clone();
     let internal_cloud: PointCloud2Msg = ConvertXYZ::try_from(cloud).unwrap().try_into().unwrap();
-    let rosrust_msg_cloud: r2r::sensor_msgs::msg::PointCloud2 = internal_cloud.into();
-    let convert_back_internal: PointCloud2Msg = rosrust_msg_cloud.into();
+    let r2r_msg_cloud: PointCloud2 = internal_cloud.into();
+    let convert_back_internal: PointCloud2Msg = r2r_msg_cloud.into();
     let to_convert: ConvertXYZ = ConvertXYZ::try_from(convert_back_internal).unwrap();
     let back_to_type = to_convert.map(|point| Ok(point)).collect::<Vec<PointXYZ>>();
     assert_eq!(copy, back_to_type.unwrap());

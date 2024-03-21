@@ -1,0 +1,17 @@
+name: r2r_iron
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tests_humble:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: docker build . --file ./tests/Dockerfile_r2r_iron --tag r2r_iron
+    - run: docker run r2r_iron cargo test --features r2r_msg

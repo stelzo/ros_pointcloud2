@@ -1,4 +1,4 @@
-name: Pure latest Ubuntu without integrations
+name: Tests
 
 on:
   push:

@@ -1,0 +1,17 @@
+name: r2r_humble
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tests_humble:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: docker build . --file ./tests/Dockerfile_r2r_humble --tag r2r_humble
+    - run: docker run r2r_humble cargo test --features r2r_msg
