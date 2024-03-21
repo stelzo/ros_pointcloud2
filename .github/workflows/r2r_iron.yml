@@ -1,4 +1,4 @@
-name: iron_r2r_test
+name: r2r_iron
 
 on:
   push:

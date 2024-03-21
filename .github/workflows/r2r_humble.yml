@@ -1,4 +1,4 @@
-name: humble_r2r_test
+name: r2r_humble
 
 on:
   push:

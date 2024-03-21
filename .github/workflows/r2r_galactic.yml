@@ -1,4 +1,4 @@
-name: galactic_r2r_test
+name: r2r_galactic
 
 on:
   push:
