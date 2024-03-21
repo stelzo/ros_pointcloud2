@@ -1,12 +1,12 @@
 [package]
 name = "ros_pointcloud2"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
 repository = "https://github.com/stelzo/ros_pointcloud2"
 license = "MIT"
-keywords = ["ros", "rosrust", "pointcloud2", "pointcloud", "message",]
+keywords = ["ros", "pointcloud2", "pointcloud", "message"]
 categories = ["science::robotics", "encoding", "data-structures", "api-bindings"]
 readme = "README.md"
 documentation = "https://docs.rs/ros_pointcloud2"
