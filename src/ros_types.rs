@@ -176,10 +176,7 @@ impl From<sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
         Self {
             header: HeaderMsg {
                 seq: 0,
-                stamp: TimeMsg {
-                    sec: msg.header.stamp.sec as u32,
-                    nsec: msg.header.stamp.nanosec,
-                },
+                stamp: msg.header.stamp,
                 frame_id: msg.header.frame_id,
             },
             height: msg.height,
@@ -208,10 +205,7 @@ impl Into<sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
     fn into(self) -> sensor_msgs::msg::PointCloud2 {
         sensor_msgs::msg::PointCloud2 {
             header: std_msgs::msg::Header {
-                stamp: builtin_interfaces::msg::Time {
-                    sec: self.header.stamp.sec as i32,
-                    nanosec: self.header.stamp.nsec,
-                },
+                stamp: self.header.stamp,
                 frame_id: self.header.frame_id,
             },
             height: self.height,
