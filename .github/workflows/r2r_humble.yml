@@ -2,7 +2,11 @@ name: r2r_humble
 
 on:
   push:
+    branches-ignore:
+      - rclrs
   pull_request:
+    branches-ignore:
+      - rclrs
   workflow_dispatch:
 
 env:

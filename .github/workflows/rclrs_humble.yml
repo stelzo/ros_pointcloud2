@@ -2,7 +2,11 @@ name: rclrs_humble
 
 on:
   push:
+    branches:
+      - rclrs
   pull_request:
+    branches:
+      - rclrs
   workflow_dispatch:
 
 env:

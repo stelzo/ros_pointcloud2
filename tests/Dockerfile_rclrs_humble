@@ -13,22 +13,22 @@ RUN apt-get install -y \
     python3-pip \
     python3-vcstool
 
-# Get ros test messages
-RUN apt-get install -y ros-humble-test-msgs ros-humble-example-interfaces
-
 # Get Rust
 RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
-RUN cargo install --debug cargo-ament-build
+RUN . $HOME/.cargo/env && cargo install --debug cargo-ament-build
 RUN pip install git+https://github.com/colcon/colcon-cargo.git
 RUN pip install git+https://github.com/colcon/colcon-ros-cargo.git
 
 WORKDIR /ros2_rust_build
 RUN git clone https://github.com/ros2-rust/ros2_rust.git src/ros2_rust
 RUN vcs import src < src/ros2_rust/ros2_rust_humble.repos
-RUN . /opt/ros/humble/setup.sh && colcon build
 
-WORKDIR /rclrs
+WORKDIR /ros2_rust_build/src/ros_pointcloud2_tests
 COPY . .
-RUN chmod +x /rclrs/tests/rclrs_test.bash
-ENTRYPOINT [ "/rclrs/tests/rclrs_test.bash" ]
+
+WORKDIR /ros2_rust_build
+RUN . $HOME/.cargo/env && . /opt/ros/humble/setup.sh && colcon build
+
+RUN chmod +x /ros2_rust_build/src/ros_pointcloud2_tests/tests/rclrs_test.bash
+ENTRYPOINT [ "/ros2_rust_build/src/ros_pointcloud2_tests/tests/rclrs_test.bash" ]
