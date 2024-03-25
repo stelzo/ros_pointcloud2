@@ -1,4 +1,4 @@
-name: rclrs_humble
+name: rclrs_iron
 
 on:
   push:
@@ -13,9 +13,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  tests_humble:
+  tests_iron:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: docker build . --file ./tests/Dockerfile_rclrs_humble --tag rclrs_humble
-    - run: docker run rclrs_humble cargo test
+    - run: docker build . --file ./tests/Dockerfile_rclrs_iron --tag rclrs_iron
+    - run: docker run rclrs_iron cargo test
