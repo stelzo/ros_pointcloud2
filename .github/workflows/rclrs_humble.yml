@@ -19,3 +19,4 @@ jobs:
     - uses: actions/checkout@v2
     - run: docker build . --file ./tests/Dockerfile_rclrs_humble --tag rclrs_humble
     - run: docker run rclrs_humble cargo test
+    - run: docker run rclrs_humble cargo clippy --all-targets -- -D warnings
