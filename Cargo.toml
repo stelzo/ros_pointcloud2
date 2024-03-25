@@ -11,7 +11,7 @@ categories = ["science::robotics", "encoding", "data-structures", "api-bindings"
 readme = "README.md"
 documentation = "https://docs.rs/ros_pointcloud2"
 homepage = "https://github.com/stelzo/ros_pointcloud2"
-exclude = ["**/tests/**", "**/examples/**", "**/benches/**", "**/target/**", "**/build/**", "**/dist/**", "**/docs/**", "**/doc/**"]
+exclude = ["**/tests/**", "**/examples/**", "**/benches/**", "**/target/**", "**/build/**", "**/dist/**", "**/docs/**", "**/doc/**", "package.xml"]
 
 [dependencies]
 mem_macros = "1.0.1"
