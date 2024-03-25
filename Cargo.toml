@@ -26,6 +26,7 @@ std_msgs = { version = "*", optional = true }
 builtin_interfaces = { version = "*", optional = true }
 
 [features]
+default = ["rclrs_msg"]
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
 rclrs_msg = ["dep:sensor_msgs", "dep:std_msgs", "dep:builtin_interfaces"]
