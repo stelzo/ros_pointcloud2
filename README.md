@@ -102,7 +102,7 @@ ros_pointcloud2 = { version = "*", features = ["r2r_msg"]}
 For `rclrs_msg`, features do not work properly because of the way it generates the messages. You need to use tags instead:
 ```toml
 [dependencies]
-ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.3.2_rclrs", features = ["rclrs_msg"] }
+ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.3.2_rclrs" }
 ```
 
 Please open an issue or PR if you want to see support for other crates.
