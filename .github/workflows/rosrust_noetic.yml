@@ -2,13 +2,11 @@ name: rosrust_noetic
 
 on:
   push:
-    branches:
-      - "*"
-      - "!rclrs"
+    branches-ignore:
+      - rclrs
   pull_request:
-    branches:
-      - "*"
-      - "!rclrs"
+    branches-ignore:
+      - rclrs
   workflow_dispatch:
 
 jobs:
