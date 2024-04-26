@@ -50,7 +50,7 @@ impl MetaNames<0> for PointXYZ {
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 0> for PointXYZ {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 0> for PointXYZ {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an intensity value.
@@ -89,7 +89,7 @@ impl MetaNames<1> for PointXYZI {
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 1> for PointXYZI {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 1> for PointXYZI {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an RGB color value.
@@ -135,7 +135,7 @@ impl MetaNames<1> for PointXYZRGB {
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 1> for PointXYZRGB {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 1> for PointXYZRGB {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an RGBA color value.
@@ -187,7 +187,7 @@ impl MetaNames<2> for PointXYZRGBA {
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 2> for PointXYZRGBA {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 2> for PointXYZRGBA {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an RGB color value and a normal vector.
@@ -247,7 +247,7 @@ impl MetaNames<4> for PointXYZRGBNormal {
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 4> for PointXYZRGBNormal {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 4> for PointXYZRGBNormal {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an intensity value and a normal vector.
@@ -300,7 +300,7 @@ impl MetaNames<4> for PointXYZINormal {
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 4> for PointXYZINormal {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 4> for PointXYZINormal {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
@@ -339,7 +339,7 @@ impl MetaNames<1> for PointXYZL {
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 1> for PointXYZL {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 1> for PointXYZL {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
@@ -390,7 +390,7 @@ impl MetaNames<2> for PointXYZRGBL {
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 2> for PointXYZRGBL {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 2> for PointXYZRGBL {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a normal vector.
@@ -440,4 +440,4 @@ impl MetaNames<3> for PointXYZNormal {
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 3> for PointXYZNormal {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 3> for PointXYZNormal {}

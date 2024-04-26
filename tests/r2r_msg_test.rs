@@ -1,11 +1,11 @@
 #[cfg(feature = "r2r_msg")]
 #[test]
 fn convertxyz_r2r_msg() {
+    use r2r::sensor_msgs::msg::PointCloud2;
     use ros_pointcloud2::fallible_iterator::FallibleIterator;
     use ros_pointcloud2::pcl_utils::PointXYZ;
     use ros_pointcloud2::ros_types::PointCloud2Msg;
     use ros_pointcloud2::ConvertXYZ;
-    use r2r::sensor_msgs::msg::PointCloud2;
 
     let cloud = vec![
         PointXYZ {
