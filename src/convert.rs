@@ -8,10 +8,8 @@ pub enum FieldDatatype {
     I32,
     U8,
     U16,
-
     #[default]
     U32,
-
     I8,
     I16,
 }
@@ -135,7 +133,50 @@ pub(crate) fn check_coord(
 }
 
 /// Matching field names from each meta data per point to the PointField name.
-/// Always make sure to use the same order as in your Into<> implementation to have a correct mapping.
+/// Always make sure to use the same order as in your conversion implementation to have a correct mapping.
+///
+/// This trait is needed to implement the `PointConvertible` trait.
+///
+/// # Example for full point conversion.
+/// ```
+/// use ros_pointcloud2::{Point, PointConvertible, MetaNames, size_of};
+///
+/// #[derive(Clone, Debug, PartialEq, Copy)]
+/// pub struct MyPointXYZI {
+///     pub x: f32,
+///     pub y: f32,
+///     pub z: f32,
+///     pub intensity: f32,
+/// }
+///
+/// impl From<MyPointXYZI> for Point<f32, 3, 1> {
+///     fn from(point: MyPointXYZI) -> Self {
+///         Point {
+///             coords: [point.x, point.y, point.z],
+///             meta: [point.intensity.into()],
+///         }
+///     }
+/// }
+///
+/// impl From<Point<f32, 3, 1>> for MyPointXYZI {
+///     fn from(point: Point<f32, 3, 1>) -> Self {
+///         Self {
+///             x: point.coords[0],
+///             y: point.coords[1],
+///             z: point.coords[2],
+///             intensity: point.meta[0].get(),
+///         }
+///     }
+/// }
+///
+/// impl MetaNames<1> for MyPointXYZI {
+///    fn meta_names() -> [&'static str; 1] {
+///       ["intensity"]
+///   }
+/// }
+///
+/// impl PointConvertible<f32, {size_of!(f32)}, 3, 1> for MyPointXYZI {}
+/// ```
 pub trait MetaNames<const METADIM: usize> {
     fn meta_names() -> [&'static str; METADIM];
 }

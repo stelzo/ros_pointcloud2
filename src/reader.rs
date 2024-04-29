@@ -124,7 +124,7 @@ pub type ReaderXYZL = ReaderF32<3, 1, PointXYZL>;
 /// ## Example
 /// ```
 /// use ros_pointcloud2::{
-///     reader::Reader, writer::Writer, PointConvertible, Point, size_of, convert::MetaNames, PointMeta,
+///     reader::Reader, writer::Writer, PointConvertible, Point, size_of, MetaNames, PointMeta,
 /// };
 ///
 /// type Xyz = f32; // coordinate type
