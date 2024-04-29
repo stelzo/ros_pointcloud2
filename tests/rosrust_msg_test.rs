@@ -26,7 +26,7 @@ fn convertxyz_rosrust_msg() {
     let internal_cloud: PointCloud2Msg = WriterXYZ::from(cloud).try_into().unwrap();
     let rosrust_msg_cloud: rosrust_msg::sensor_msgs::PointCloud2 = internal_cloud.into();
     let convert_back_internal: PointCloud2Msg = rosrust_msg_cloud.into();
-    let to_convert: ConvertXYZ = ReaderXYZ::try_from(convert_back_internal).unwrap();
+    let to_convert = ReaderXYZ::try_from(convert_back_internal).unwrap();
     let back_to_type = to_convert.map(|point| Ok(point)).collect::<Vec<PointXYZ>>();
     assert_eq!(copy, back_to_type.unwrap());
 }
