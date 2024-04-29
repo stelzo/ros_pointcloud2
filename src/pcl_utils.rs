@@ -36,17 +36,17 @@ impl From<Point<f32, 3, 0>> for PointXYZ {
     }
 }
 
-impl Into<Point<f32, 3, 0>> for PointXYZ {
-    fn into(self) -> Point<f32, 3, 0> {
+impl From<PointXYZ> for Point<f32, 3, 0> {
+    fn from(point: PointXYZ) -> Self {
         Point {
-            coords: [self.x, self.y, self.z],
-            meta: Default::default(),
+            coords: [point.x, point.y, point.z],
+            meta: [],
         }
     }
 }
 
 impl MetaNames<0> for PointXYZ {
-    fn meta_names() -> [String; 0] {
+    fn meta_names() -> [&'static str; 0] {
         []
     }
 }
@@ -63,6 +63,15 @@ pub struct PointXYZI {
     pub intensity: f32,
 }
 
+impl From<PointXYZI> for Point<f32, 3, 1> {
+    fn from(point: PointXYZI) -> Self {
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [point.intensity.into()],
+        }
+    }
+}
+
 impl From<Point<f32, 3, 1>> for PointXYZI {
     fn from(point: Point<f32, 3, 1>) -> Self {
         Self {
@@ -74,18 +83,9 @@ impl From<Point<f32, 3, 1>> for PointXYZI {
     }
 }
 
-impl Into<Point<f32, 3, 1>> for PointXYZI {
-    fn into(self) -> Point<f32, 3, 1> {
-        Point {
-            coords: [self.x, self.y, self.z],
-            meta: [self.intensity.into()],
-        }
-    }
-}
-
 impl MetaNames<1> for PointXYZI {
-    fn meta_names() -> [String; 1] {
-        ["intensity"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 1] {
+        ["intensity"]
     }
 }
 
@@ -118,19 +118,18 @@ impl From<Point<f32, 3, 1>> for PointXYZRGB {
     }
 }
 
-impl Into<Point<f32, 3, 1>> for PointXYZRGB {
-    fn into(self) -> Point<f32, 3, 1> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
+impl From<PointXYZRGB> for Point<f32, 3, 1> {
+    fn from(point: PointXYZRGB) -> Self {
         Point {
-            coords: [self.x, self.y, self.z],
-            meta: [rgb.into()],
+            coords: [point.x, point.y, point.z],
+            meta: [pack_rgb(point.r, point.g, point.b).into()],
         }
     }
 }
 
 impl MetaNames<1> for PointXYZRGB {
-    fn meta_names() -> [String; 1] {
-        ["rgb"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 1] {
+        ["rgb"]
     }
 }
 
@@ -166,19 +165,19 @@ impl From<Point<f32, 3, 2>> for PointXYZRGBA {
     }
 }
 
-impl Into<Point<f32, 3, 2>> for PointXYZRGBA {
-    fn into(self) -> Point<f32, 3, 2> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
+impl From<PointXYZRGBA> for Point<f32, 3, 2> {
+    fn from(point: PointXYZRGBA) -> Self {
+        let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
-            coords: [self.x, self.y, self.z],
-            meta: [rgb.into(), self.a.into()],
+            coords: [point.x, point.y, point.z],
+            meta: [rgb.into(), point.a.into()],
         }
     }
 }
 
 impl MetaNames<2> for PointXYZRGBA {
-    fn meta_names() -> [String; 2] {
-        ["rgb", "a"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 2] {
+        ["rgb", "a"]
     }
 }
 
@@ -217,24 +216,24 @@ impl From<Point<f32, 3, 4>> for PointXYZRGBNormal {
     }
 }
 
-impl Into<Point<f32, 3, 4>> for PointXYZRGBNormal {
-    fn into(self) -> Point<f32, 3, 4> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
+impl From<PointXYZRGBNormal> for Point<f32, 3, 4> {
+    fn from(point: PointXYZRGBNormal) -> Self {
+        let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
-            coords: [self.x, self.y, self.z],
+            coords: [point.x, point.y, point.z],
             meta: [
                 rgb.into(),
-                self.normal_x.into(),
-                self.normal_y.into(),
-                self.normal_z.into(),
+                point.normal_x.into(),
+                point.normal_y.into(),
+                point.normal_z.into(),
             ],
         }
     }
 }
 
 impl MetaNames<4> for PointXYZRGBNormal {
-    fn meta_names() -> [String; 4] {
-        ["rgb", "normal_x", "normal_y", "normal_z"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 4] {
+        ["rgb", "normal_x", "normal_y", "normal_z"]
     }
 }
 
@@ -253,6 +252,20 @@ pub struct PointXYZINormal {
     pub normal_z: f32,
 }
 
+impl From<PointXYZINormal> for Point<f32, 3, 4> {
+    fn from(point: PointXYZINormal) -> Self {
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [
+                point.intensity.into(),
+                point.normal_x.into(),
+                point.normal_y.into(),
+                point.normal_z.into(),
+            ],
+        }
+    }
+}
+
 impl From<Point<f32, 3, 4>> for PointXYZINormal {
     fn from(point: Point<f32, 3, 4>) -> Self {
         Self {
@@ -267,23 +280,9 @@ impl From<Point<f32, 3, 4>> for PointXYZINormal {
     }
 }
 
-impl Into<Point<f32, 3, 4>> for PointXYZINormal {
-    fn into(self) -> Point<f32, 3, 4> {
-        Point {
-            coords: [self.x, self.y, self.z],
-            meta: [
-                self.intensity.into(),
-                self.normal_x.into(),
-                self.normal_y.into(),
-                self.normal_z.into(),
-            ],
-        }
-    }
-}
-
 impl MetaNames<4> for PointXYZINormal {
-    fn meta_names() -> [String; 4] {
-        ["intensity", "normal_x", "normal_y", "normal_z"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 4] {
+        ["intensity", "normal_x", "normal_y", "normal_z"]
     }
 }
 
@@ -310,18 +309,18 @@ impl From<Point<f32, 3, 1>> for PointXYZL {
     }
 }
 
-impl Into<Point<f32, 3, 1>> for PointXYZL {
-    fn into(self) -> Point<f32, 3, 1> {
+impl From<PointXYZL> for Point<f32, 3, 1> {
+    fn from(point: PointXYZL) -> Self {
         Point {
-            coords: [self.x, self.y, self.z],
-            meta: [self.label.into()],
+            coords: [point.x, point.y, point.z],
+            meta: [point.label.into()],
         }
     }
 }
 
 impl MetaNames<1> for PointXYZL {
-    fn meta_names() -> [String; 1] {
-        ["label".to_string()]
+    fn meta_names() -> [&'static str; 1] {
+        ["label"]
     }
 }
 
@@ -356,19 +355,21 @@ impl From<Point<f32, 3, 2>> for PointXYZRGBL {
     }
 }
 
-impl Into<Point<f32, 3, 2>> for PointXYZRGBL {
-    fn into(self) -> Point<f32, 3, 2> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
+impl From<PointXYZRGBL> for Point<f32, 3, 2> {
+    fn from(point: PointXYZRGBL) -> Self {
         Point {
-            coords: [self.x, self.y, self.z],
-            meta: [rgb.into(), self.label.into()],
+            coords: [point.x, point.y, point.z],
+            meta: [
+                pack_rgb(point.r, point.g, point.b).into(),
+                point.label.into(),
+            ],
         }
     }
 }
 
 impl MetaNames<2> for PointXYZRGBL {
-    fn meta_names() -> [String; 2] {
-        ["rgb", "label"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 2] {
+        ["rgb", "label"]
     }
 }
 
@@ -399,22 +400,22 @@ impl From<Point<f32, 3, 3>> for PointXYZNormal {
     }
 }
 
-impl Into<Point<f32, 3, 3>> for PointXYZNormal {
-    fn into(self) -> Point<f32, 3, 3> {
+impl From<PointXYZNormal> for Point<f32, 3, 3> {
+    fn from(point: PointXYZNormal) -> Self {
         Point {
-            coords: [self.x, self.y, self.z],
+            coords: [point.x, point.y, point.z],
             meta: [
-                self.normal_x.into(),
-                self.normal_y.into(),
-                self.normal_z.into(),
+                point.normal_x.into(),
+                point.normal_y.into(),
+                point.normal_z.into(),
             ],
         }
     }
 }
 
 impl MetaNames<3> for PointXYZNormal {
-    fn meta_names() -> [String; 3] {
-        ["normal_x", "normal_y", "normal_z"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 3] {
+        ["normal_x", "normal_y", "normal_z"]
     }
 }
 

@@ -132,18 +132,20 @@ pub type WriterXYZL = WriterF32<3, 1, PointXYZL>;
 ///     }
 /// }
 ///
-///impl Into<Point<f32, 3, 1>> for CustomPoint {
-///    fn into(self) -> Point<f32, 3, 1> {
+///impl From<CustomPoint> for Point<f32, 3, 1> {
+///    fn from(point: CustomPoint) -> Self {
 ///        Point {
-///            coords: [self.x, self.y, self.z],
-///            meta: [self.i.into()],
+///            coords: [point.x, point.y, point.z],
+///            meta: [
+///                point.i.into(),
+///            ],
 ///        }
 ///    }
 ///}
 ///
 /// impl MetaNames<METADIM> for CustomPoint {
-///     fn meta_names() -> [String; METADIM] {
-///         [format!("intensity")]
+///     fn meta_names() -> [&'static str; METADIM] {
+///         ["intensity"]
 ///     }
 /// }
 /// impl PointConvertible<Xyz, XYZ_S, DIM, METADIM> for CustomPoint {}
@@ -198,14 +200,14 @@ where
 
         if DIM > 1 {
             fields.push(PointFieldMsg {
-                name: "x".to_string(),
+                name: "x".into(),
                 offset: 0,
                 datatype: T::field_datatype().into(),
                 count: 1,
             });
 
             fields.push(PointFieldMsg {
-                name: "y".to_string(),
+                name: "y".into(),
                 offset: SIZE as u32,
                 datatype: T::field_datatype().into(),
                 count: 1,
@@ -214,41 +216,44 @@ where
 
         if DIM == 3 {
             fields.push(PointFieldMsg {
-                name: "z".to_string(),
+                name: "z".into(),
                 offset: 2 * SIZE as u32,
                 datatype: T::field_datatype().into(),
                 count: 1,
             });
         }
 
-
         let first_point = self.coordinates.next().ok_or(ConversionError::NoPoints)?;
         let point: Point<T, DIM, METADIM> = first_point.clone().into();
         let meta_names = C::meta_names();
 
         let mut meta_offsets_acc = DIM as u32 * SIZE as u32;
-        for(meta_value, meta_name) in point.meta.into_iter().zip(meta_names.into_iter()) {
+        for (meta_value, meta_name) in point.meta.into_iter().zip(meta_names.into_iter()) {
             let datatype_code = meta_value.datatype.into();
             if FieldDatatype::try_from(datatype_code).is_err() {
                 return Err(ConversionError::UnsupportedFieldType);
             }
 
             fields.push(PointFieldMsg {
-                name: meta_name,
+                name: meta_name.into(),
                 offset: meta_offsets_acc,
                 datatype: datatype_code,
                 count: 1,
             });
             meta_offsets_acc += meta_value.datatype.size() as u32
-        };
+        }
 
-        let mut cloud = PointCloud2Msg::default();
-        
-        cloud.point_step = fields.iter().fold(0, |acc, field| {
-            let field_type: FieldDatatype = field.datatype.try_into().expect("Unsupported field but checked before."); 
-            let field_size = field_type.size();
-            acc + field.count * field_size as u32
-        });
+        let mut cloud = PointCloud2Msg {
+            point_step: fields.iter().fold(Default::default(), |acc, field| {
+                let field_type: FieldDatatype = field
+                    .datatype
+                    .try_into()
+                    .expect("Unsupported field but checked before.");
+                let field_size = field_type.size();
+                acc + field.count * field_size as u32
+            }),
+            ..Default::default()
+        };
 
         // actual point -> byte conversion -- O(n)
         add_point_to_byte_buffer(first_point, &mut cloud)?;

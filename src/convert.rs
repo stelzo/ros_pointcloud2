@@ -1,22 +1,19 @@
 use crate::*;
 
 /// Datatypes from the [PointField message](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/PointField.html).
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
 pub enum FieldDatatype {
     F32,
     F64,
     I32,
     U8,
     U16,
+
+    #[default]
     U32,
+
     I8,
     I16,
-}
-
-impl Default for FieldDatatype {
-    fn default() -> Self {
-        FieldDatatype::F32
-    }
 }
 
 impl FieldDatatype {
@@ -105,9 +102,9 @@ impl TryFrom<u8> for FieldDatatype {
     }
 }
 
-impl Into<u8> for FieldDatatype {
-    fn into(self) -> u8 {
-        match self {
+impl From<FieldDatatype> for u8 {
+    fn from(val: FieldDatatype) -> Self {
+        match val {
             FieldDatatype::I8 => 1,
             FieldDatatype::U8 => 2,
             FieldDatatype::I16 => 3,
@@ -140,7 +137,7 @@ pub(crate) fn check_coord(
 /// Matching field names from each meta data per point to the PointField name.
 /// Always make sure to use the same order as in your Into<> implementation to have a correct mapping.
 pub trait MetaNames<const METADIM: usize> {
-    fn meta_names() -> [String; METADIM];
+    fn meta_names() -> [&'static str; METADIM];
 }
 
 #[inline(always)]
@@ -183,71 +180,92 @@ pub trait FromBytes: Default + Sized + Copy + GetFieldDatatype {
 }
 
 impl FromBytes for i8 {
+    #[inline]
     fn from_be_bytes(bytes: &[u8]) -> Self {
         Self::from_be_bytes([bytes[0]])
     }
+
+    #[inline]
     fn from_le_bytes(bytes: &[u8]) -> Self {
         Self::from_le_bytes([bytes[0]])
     }
 
+    #[inline]
     fn bytes(x: &i8) -> Vec<u8> {
         Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for i16 {
+    #[inline]
     fn from_be_bytes(bytes: &[u8]) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1]])
     }
+
+    #[inline]
     fn from_le_bytes(bytes: &[u8]) -> Self {
         Self::from_le_bytes([bytes[0], bytes[1]])
     }
 
+    #[inline]
     fn bytes(x: &i16) -> Vec<u8> {
         Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for u16 {
+    #[inline]
     fn from_be_bytes(bytes: &[u8]) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1]])
     }
+
+    #[inline]
     fn from_le_bytes(bytes: &[u8]) -> Self {
         Self::from_le_bytes([bytes[0], bytes[1]])
     }
 
+    #[inline]
     fn bytes(x: &u16) -> Vec<u8> {
         Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for u32 {
+    #[inline]
     fn from_be_bytes(bytes: &[u8]) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
+
+    #[inline]
     fn from_le_bytes(bytes: &[u8]) -> Self {
         Self::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
+    #[inline]
     fn bytes(x: &u32) -> Vec<u8> {
         Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for f32 {
+    #[inline]
     fn from_be_bytes(bytes: &[u8]) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
+
+    #[inline]
     fn from_le_bytes(bytes: &[u8]) -> Self {
         Self::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
+    #[inline]
     fn bytes(x: &f32) -> Vec<u8> {
         Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for i32 {
+    #[inline]
     fn from_be_bytes(bytes: &[u8]) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
@@ -261,47 +279,52 @@ impl FromBytes for i32 {
 }
 
 impl FromBytes for f64 {
+    #[inline]
     fn from_be_bytes(bytes: &[u8]) -> Self {
         Self::from_be_bytes([
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
         ])
     }
+
+    #[inline]
     fn from_le_bytes(bytes: &[u8]) -> Self {
         Self::from_le_bytes([
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
         ])
     }
 
+    #[inline]
     fn bytes(x: &f64) -> Vec<u8> {
         Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for u8 {
+    #[inline]
     fn from_be_bytes(bytes: &[u8]) -> Self {
         Self::from_be_bytes([bytes[0]])
     }
+
+    #[inline]
     fn from_le_bytes(bytes: &[u8]) -> Self {
         Self::from_le_bytes([bytes[0]])
     }
 
+    #[inline]
     fn bytes(x: &u8) -> Vec<u8> {
         Vec::from(x.to_le_bytes())
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub(crate) enum Endianness {
     Big,
+
+    #[default]
     Little,
 }
 
-impl Default for Endianness {
-    fn default() -> Self {
-        Endianness::Little
-    }
-}
-
+#[inline(always)]
 pub(crate) fn load_loadable<T: FromBytes, const SIZE: usize>(
     start_idx: usize,
     data: &[u8],
@@ -313,7 +336,8 @@ pub(crate) fn load_loadable<T: FromBytes, const SIZE: usize>(
     }
 }
 
-/// Note: check if the data slice is long enough to load the bytes beforehand!
+/// Note: check if the data slice is long enough to load the bytes beforehand! Uses unsafe indexing.
+#[inline(always)]
 fn load_bytes<const S: usize>(start_idx: usize, data: &[u8]) -> [u8; S] {
     let mut target = [u8::default(); S];
 

@@ -70,19 +70,19 @@ impl From<r2r::sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
 }
 
 #[cfg(feature = "r2r_msg")]
-impl Into<r2r::sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
-    fn into(self) -> r2r::sensor_msgs::msg::PointCloud2 {
+impl From<PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
+    fn from(msg: PointCloud2Msg) -> Self {
         r2r::sensor_msgs::msg::PointCloud2 {
             header: r2r::std_msgs::msg::Header {
                 stamp: r2r::builtin_interfaces::msg::Time {
-                    sec: self.header.stamp.sec as i32,
-                    nanosec: self.header.stamp.nsec,
+                    sec: msg.header.stamp.sec as i32,
+                    nanosec: msg.header.stamp.nsec,
                 },
-                frame_id: self.header.frame_id,
+                frame_id: msg.header.frame_id,
             },
-            height: self.height,
-            width: self.width,
-            fields: self
+            height: msg.height,
+            width: msg.width,
+            fields: msg
                 .fields
                 .into_iter()
                 .map(|field| r2r::sensor_msgs::msg::PointField {
@@ -92,11 +92,11 @@ impl Into<r2r::sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
                     count: field.count,
                 })
                 .collect(),
-            is_bigendian: self.is_bigendian,
-            point_step: self.point_step,
-            row_step: self.row_step,
-            data: self.data,
-            is_dense: self.is_dense,
+            is_bigendian: msg.is_bigendian,
+            point_step: msg.point_step,
+            row_step: msg.row_step,
+            data: msg.data,
+            is_dense: msg.is_dense,
         }
     }
 }
@@ -135,20 +135,20 @@ impl From<rosrust_msg::sensor_msgs::PointCloud2> for PointCloud2Msg {
 }
 
 #[cfg(feature = "rosrust_msg")]
-impl Into<rosrust_msg::sensor_msgs::PointCloud2> for PointCloud2Msg {
-    fn into(self) -> rosrust_msg::sensor_msgs::PointCloud2 {
+impl From<PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
+    fn from(msg: PointCloud2Msg) -> Self {
         rosrust_msg::sensor_msgs::PointCloud2 {
             header: rosrust_msg::std_msgs::Header {
-                seq: self.header.seq,
-                stamp: rosrust::Time {
-                    sec: self.header.stamp.sec,
-                    nsec: self.header.stamp.nsec,
+                seq: msg.header.seq,
+                stamp: rosrust_msg::Time {
+                    sec: msg.header.stamp.sec,
+                    nsec: msg.header.stamp.nsec,
                 },
-                frame_id: self.header.frame_id,
+                frame_id: msg.header.frame_id,
             },
-            height: self.height,
-            width: self.width,
-            fields: self
+            height: msg.height,
+            width: msg.width,
+            fields: msg
                 .fields
                 .into_iter()
                 .map(|field| rosrust_msg::sensor_msgs::PointField {
@@ -158,11 +158,11 @@ impl Into<rosrust_msg::sensor_msgs::PointCloud2> for PointCloud2Msg {
                     count: field.count,
                 })
                 .collect(),
-            is_bigendian: self.is_bigendian,
-            point_step: self.point_step,
-            row_step: self.row_step,
-            data: self.data,
-            is_dense: self.is_dense,
+            is_bigendian: msg.is_bigendian,
+            point_step: msg.point_step,
+            row_step: msg.row_step,
+            data: msg.data,
+            is_dense: msg.is_dense,
         }
     }
 }

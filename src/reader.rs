@@ -1,5 +1,4 @@
 use crate::*;
-use convert::*;
 
 /// Convenience type for a Reader that reads coordinates as f32. Specify the number of dimensions, metadata dimensions and C, the point type.
 pub type ReaderF32<const DIM: usize, const METADIM: usize, C> =
@@ -152,18 +151,20 @@ pub type ReaderXYZL = ReaderF32<3, 1, PointXYZL>;
 ///     }
 /// }
 ///
-///impl Into<Point<f32, 3, 1>> for CustomPoint {
-///    fn into(self) -> Point<f32, 3, 1> {
+///impl From<CustomPoint> for Point<f32, 3, 1> {
+///    fn from(point: CustomPoint) -> Self {
 ///        Point {
-///            coords: [self.x, self.y, self.z],
-///            meta: [self.i.into()],
+///            coords: [point.x, point.y, point.z],
+///            meta: [
+///                point.i.into(),
+///            ],
 ///        }
 ///    }
 ///}
 ///
 /// impl MetaNames<METADIM> for CustomPoint {
-///     fn meta_names() -> [String; METADIM] {
-///         [format!("intensity")]
+///     fn meta_names() -> [&'static str; METADIM] {
+///         ["intensity"]
 ///     }
 /// }
 ///
@@ -218,7 +219,7 @@ where
             return None; // iteration finished
         }
 
-        let mut xyz: [T; DIM] = [T::default(); DIM];
+        let mut xyz = [T::default(); DIM];
         xyz.iter_mut()
             .zip(self.offsets.iter())
             .for_each(|(p_xyz, in_point_offset)| {
@@ -235,7 +236,7 @@ where
             "Offset length mismatch"
         );
 
-        let mut meta: [PointMeta; METADIM] = [PointMeta::default(); METADIM];
+        let mut meta = [PointMeta::default(); METADIM];
         meta.iter_mut()
             .zip(self.offsets.iter().skip(DIM))
             .zip(self.meta.iter())
@@ -387,10 +388,8 @@ where
             if size_with_last_meta > point_step_size {
                 return Err(ConversionError::DataLengthMismatch);
             }
-        } else {
-            if last_offset + xyz_field_type.size() > point_step_size {
-                return Err(ConversionError::DataLengthMismatch);
-            }
+        } else if last_offset + xyz_field_type.size() > point_step_size {
+            return Err(ConversionError::DataLengthMismatch);
         }
 
         Ok(Self {

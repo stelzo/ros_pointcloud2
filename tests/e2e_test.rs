@@ -56,17 +56,17 @@ fn custom_xyz_f32() {
         }
     }
 
-    impl Into<Point<f32, 3, 0>> for CustomPoint {
-        fn into(self) -> Point<f32, 3, 0> {
+    impl From<CustomPoint> for Point<f32, 3, 0> {
+        fn from(point: CustomPoint) -> Self {
             Point {
-                coords: [self.x, self.y, self.z],
+                coords: [point.x, point.y, point.z],
                 meta: [],
             }
         }
     }
 
     impl convert::MetaNames<METADIM> for CustomPoint {
-        fn meta_names() -> [String; METADIM] {
+        fn meta_names() -> [&'static str; METADIM] {
             []
         }
     }
@@ -121,18 +121,18 @@ fn custom_xyzi_f32() {
         }
     }
 
-    impl Into<Point<f32, 3, 1>> for CustomPoint {
-        fn into(self) -> Point<f32, 3, 1> {
+    impl From<CustomPoint> for Point<f32, 3, 1> {
+        fn from(point: CustomPoint) -> Self {
             Point {
-                coords: [self.x, self.y, self.z],
-                meta: [self.i.into()],
+                coords: [point.x, point.y, point.z],
+                meta: [point.i.into()],
             }
         }
     }
 
     impl convert::MetaNames<METADIM> for CustomPoint {
-        fn meta_names() -> [String; METADIM] {
-            [format!("intensity")]
+        fn meta_names() -> [&'static str; METADIM] {
+            ["intensity"]
         }
     }
 
@@ -201,17 +201,23 @@ fn custom_rgba_f32() {
         }
     }
 
-    impl Into<Point<f32, 3, 4>> for CustomPoint {
-        fn into(self) -> Point<f32, 3, 4> {
+    impl From<CustomPoint> for Point<f32, 3, 4> {
+        fn from(point: CustomPoint) -> Self {
             Point {
-                coords: [self.x, self.y, self.z],
-                meta: [self.r.into(), self.g.into(), self.b.into(), self.a.into()],
+                coords: [point.x, point.y, point.z],
+                meta: [
+                    point.r.into(),
+                    point.g.into(),
+                    point.b.into(),
+                    point.a.into(),
+                ],
             }
         }
     }
+
     impl convert::MetaNames<METADIM> for CustomPoint {
-        fn meta_names() -> [String; METADIM] {
-            ["r", "g", "b", "a"].map(|s| s.to_string())
+        fn meta_names() -> [&'static str; METADIM] {
+            ["r", "g", "b", "a"]
         }
     }
     impl PointConvertible<f32, { std::mem::size_of::<f32>() }, DIM, METADIM> for CustomPoint {}
@@ -726,17 +732,17 @@ fn write_less_than_available() {
         }
     }
 
-    impl Into<Point<f32, 3, 0>> for CustomPoint {
-        fn into(self) -> Point<f32, 3, 0> {
+    impl From<CustomPoint> for Point<f32, 3, 0> {
+        fn from(point: CustomPoint) -> Self {
             Point {
-                coords: [self.x, self.y, self.z],
+                coords: [point.x, point.y, point.z],
                 meta: [],
             }
         }
     }
 
     impl convert::MetaNames<METADIM> for CustomPoint {
-        fn meta_names() -> [String; METADIM] {
+        fn meta_names() -> [&'static str; METADIM] {
             []
         }
     }
@@ -793,4 +799,53 @@ fn write_less_than_available() {
         read_cloud,
         CustomPoint
     );
+}
+
+#[test]
+fn readme() {
+    use ros_pointcloud2::{
+        pcl_utils::PointXYZ, reader::ReaderXYZ, writer::WriterXYZ, PointCloud2Msg,
+    };
+
+    // Your points (here using the predefined type PointXYZ).
+    let cloud_points = vec![
+        PointXYZ {
+            x: 1337.0,
+            y: 42.0,
+            z: 69.0,
+        },
+        PointXYZ {
+            x: f32::MAX,
+            y: f32::MIN,
+            z: f32::MAX,
+        },
+    ];
+
+    // For equality test later
+    let cloud_copy = cloud_points.clone();
+
+    // Vector -> Writer -> Message
+    let internal_msg: PointCloud2Msg = WriterXYZ::from(cloud_points)
+        .try_into() // iterating points here O(n)
+        .unwrap();
+
+    // Convert to your ROS crate message type, we will use r2r here.
+    // let msg: r2r::sensor_msgs::msg::PointCloud2 = internal_msg.into();
+
+    // Publish ...
+
+    // ... now incoming from a topic.
+    // let internal_msg: PointCloud2Msg = msg.into();
+
+    // Message -> Reader. The Reader implements the Iterator trait.
+    let reader = ReaderXYZ::try_from(internal_msg).unwrap();
+    let new_cloud_points = reader
+        .map(|point: PointXYZ| {
+            // Some logic here
+
+            point
+        })
+        .collect::<Vec<PointXYZ>>();
+
+    assert_eq!(new_cloud_points, cloud_copy);
 }
