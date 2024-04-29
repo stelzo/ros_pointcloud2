@@ -140,7 +140,7 @@ impl From<PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
         rosrust_msg::sensor_msgs::PointCloud2 {
             header: rosrust_msg::std_msgs::Header {
                 seq: msg.header.seq,
-                stamp: rosrust_msg::Time {
+                stamp: TimeMsg {
                     sec: msg.header.stamp.sec,
                     nsec: msg.header.stamp.nsec,
                 },

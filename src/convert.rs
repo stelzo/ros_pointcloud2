@@ -125,7 +125,7 @@ pub(crate) fn check_coord(
     match coord {
         Some(y_idx) => {
             let field = &fields[y_idx];
-            if field.datatype != (*xyz_field_type).into() {
+            if field.datatype != u8::from(*xyz_field_type) {
                 return Err(ConversionError::InvalidFieldFormat);
             }
             Ok(field.clone())
