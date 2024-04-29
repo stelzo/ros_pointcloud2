@@ -1,11 +1,13 @@
-use crate::{ConversionError, MetaNames, PointConvertible, PointMeta};
+use crate::{MetaNames, Point, PointConvertible};
 
+/// Pack an RGB color into a single f32 value as used in ROS with PCL for RViz usage.
 #[inline]
 fn pack_rgb(r: u8, g: u8, b: u8) -> f32 {
     let packed = ((r as u32) << 16) + ((g as u32) << 8) + (b as u32);
     f32::from_bits(packed)
 }
 
+/// Unpack an RGB color from a single f32 value as used in ROS with PCL for RViz usage.
 #[inline]
 fn unpack_rgb(rgb: f32) -> [u8; 3] {
     let packed: u32 = rgb.to_bits();
@@ -24,23 +26,22 @@ pub struct PointXYZ {
     pub z: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 0])> for PointXYZ {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 0]), Self::Error> {
-        Ok(([self.x, self.y, self.z], []))
+impl From<Point<f32, 3, 0>> for PointXYZ {
+    fn from(point: Point<f32, 3, 0>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 0])> for PointXYZ {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 0])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-        })
+impl Into<Point<f32, 3, 0>> for PointXYZ {
+    fn into(self) -> Point<f32, 3, 0> {
+        Point {
+            coords: [self.x, self.y, self.z],
+            meta: Default::default(),
+        }
     }
 }
 
@@ -62,24 +63,23 @@ pub struct PointXYZI {
     pub intensity: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 1])> for PointXYZI {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 1]), Self::Error> {
-        Ok(([self.x, self.y, self.z], [PointMeta::new(self.intensity)]))
+impl From<Point<f32, 3, 1>> for PointXYZI {
+    fn from(point: Point<f32, 3, 1>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+            intensity: point.meta[0].get(),
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 1])> for PointXYZI {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 1])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-            intensity: data.1[0].get()?,
-        })
+impl Into<Point<f32, 3, 1>> for PointXYZI {
+    fn into(self) -> Point<f32, 3, 1> {
+        Point {
+            coords: [self.x, self.y, self.z],
+            meta: [self.intensity.into()],
+        }
     }
 }
 
@@ -103,29 +103,28 @@ pub struct PointXYZRGB {
     pub b: u8,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 1])> for PointXYZRGB {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 1]), Self::Error> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
-        Ok(([self.x, self.y, self.z], [PointMeta::new(rgb)]))
-    }
-}
-
-impl TryFrom<([f32; 3], [PointMeta; 1])> for PointXYZRGB {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 1])) -> Result<Self, Self::Error> {
-        let rgb = data.1[0].get::<f32>()?;
+impl From<Point<f32, 3, 1>> for PointXYZRGB {
+    fn from(point: Point<f32, 3, 1>) -> Self {
+        let rgb = point.meta[0].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-        })
+        }
+    }
+}
+
+impl Into<Point<f32, 3, 1>> for PointXYZRGB {
+    fn into(self) -> Point<f32, 3, 1> {
+        let rgb = pack_rgb(self.r, self.g, self.b);
+        Point {
+            coords: [self.x, self.y, self.z],
+            meta: [rgb.into()],
+        }
     }
 }
 
@@ -151,33 +150,29 @@ pub struct PointXYZRGBA {
     pub a: u8,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 2])> for PointXYZRGBA {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 2]), Self::Error> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
-        Ok((
-            [self.x, self.y, self.z],
-            [PointMeta::new(rgb), PointMeta::new(self.a)],
-        ))
-    }
-}
-
-impl TryFrom<([f32; 3], [PointMeta; 2])> for PointXYZRGBA {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 2])) -> Result<Self, Self::Error> {
-        let rgb = data.1[0].get::<f32>()?;
+impl From<Point<f32, 3, 2>> for PointXYZRGBA {
+    fn from(point: Point<f32, 3, 2>) -> Self {
+        let rgb = point.meta[0].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-            a: data.1[1].get()?,
-        })
+            a: point.meta[1].get(),
+        }
+    }
+}
+
+impl Into<Point<f32, 3, 2>> for PointXYZRGBA {
+    fn into(self) -> Point<f32, 3, 2> {
+        let rgb = pack_rgb(self.r, self.g, self.b);
+        Point {
+            coords: [self.x, self.y, self.z],
+            meta: [rgb.into(), self.a.into()],
+        }
     }
 }
 
@@ -204,40 +199,36 @@ pub struct PointXYZRGBNormal {
     pub normal_z: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 4])> for PointXYZRGBNormal {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 4]), Self::Error> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
-        Ok((
-            [self.x, self.y, self.z],
-            [
-                PointMeta::new(rgb),
-                PointMeta::new(self.normal_x),
-                PointMeta::new(self.normal_y),
-                PointMeta::new(self.normal_z),
-            ],
-        ))
-    }
-}
-
-impl TryFrom<([f32; 3], [PointMeta; 4])> for PointXYZRGBNormal {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 4])) -> Result<Self, Self::Error> {
-        let rgb = data.1[0].get::<f32>()?;
+impl From<Point<f32, 3, 4>> for PointXYZRGBNormal {
+    fn from(point: Point<f32, 3, 4>) -> Self {
+        let rgb = point.meta[0].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-            normal_x: data.1[1].get()?,
-            normal_y: data.1[2].get()?,
-            normal_z: data.1[3].get()?,
-        })
+            normal_x: point.meta[1].get(),
+            normal_y: point.meta[2].get(),
+            normal_z: point.meta[3].get(),
+        }
+    }
+}
+
+impl Into<Point<f32, 3, 4>> for PointXYZRGBNormal {
+    fn into(self) -> Point<f32, 3, 4> {
+        let rgb = pack_rgb(self.r, self.g, self.b);
+        Point {
+            coords: [self.x, self.y, self.z],
+            meta: [
+                rgb.into(),
+                self.normal_x.into(),
+                self.normal_y.into(),
+                self.normal_z.into(),
+            ],
+        }
     }
 }
 
@@ -262,35 +253,31 @@ pub struct PointXYZINormal {
     pub normal_z: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 4])> for PointXYZINormal {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 4]), Self::Error> {
-        Ok((
-            [self.x, self.y, self.z],
-            [
-                PointMeta::new(self.intensity),
-                PointMeta::new(self.normal_x),
-                PointMeta::new(self.normal_y),
-                PointMeta::new(self.normal_z),
-            ],
-        ))
+impl From<Point<f32, 3, 4>> for PointXYZINormal {
+    fn from(point: Point<f32, 3, 4>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+            intensity: point.meta[0].get(),
+            normal_x: point.meta[1].get(),
+            normal_y: point.meta[2].get(),
+            normal_z: point.meta[3].get(),
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 4])> for PointXYZINormal {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 4])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-            intensity: data.1[0].get()?,
-            normal_x: data.1[1].get()?,
-            normal_y: data.1[2].get()?,
-            normal_z: data.1[3].get()?,
-        })
+impl Into<Point<f32, 3, 4>> for PointXYZINormal {
+    fn into(self) -> Point<f32, 3, 4> {
+        Point {
+            coords: [self.x, self.y, self.z],
+            meta: [
+                self.intensity.into(),
+                self.normal_x.into(),
+                self.normal_y.into(),
+                self.normal_z.into(),
+            ],
+        }
     }
 }
 
@@ -312,24 +299,23 @@ pub struct PointXYZL {
     pub label: u32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 1])> for PointXYZL {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 1]), Self::Error> {
-        Ok(([self.x, self.y, self.z], [PointMeta::new(self.label)]))
+impl From<Point<f32, 3, 1>> for PointXYZL {
+    fn from(point: Point<f32, 3, 1>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+            label: point.meta[0].get(),
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 1])> for PointXYZL {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 1])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-            label: data.1[0].get()?,
-        })
+impl Into<Point<f32, 3, 1>> for PointXYZL {
+    fn into(self) -> Point<f32, 3, 1> {
+        Point {
+            coords: [self.x, self.y, self.z],
+            meta: [self.label.into()],
+        }
     }
 }
 
@@ -354,33 +340,29 @@ pub struct PointXYZRGBL {
     pub label: u32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 2])> for PointXYZRGBL {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 2]), Self::Error> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
-        Ok((
-            [self.x, self.y, self.z],
-            [PointMeta::new(rgb), PointMeta::new(self.label)],
-        ))
-    }
-}
-
-impl TryFrom<([f32; 3], [PointMeta; 2])> for PointXYZRGBL {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 2])) -> Result<Self, Self::Error> {
-        let rgb = data.1[0].get::<f32>()?;
+impl From<Point<f32, 3, 2>> for PointXYZRGBL {
+    fn from(point: Point<f32, 3, 2>) -> Self {
+        let rgb = point.meta[0].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-            label: data.1[1].get()?,
-        })
+            label: point.meta[1].get(),
+        }
+    }
+}
+
+impl Into<Point<f32, 3, 2>> for PointXYZRGBL {
+    fn into(self) -> Point<f32, 3, 2> {
+        let rgb = pack_rgb(self.r, self.g, self.b);
+        Point {
+            coords: [self.x, self.y, self.z],
+            meta: [rgb.into(), self.label.into()],
+        }
     }
 }
 
@@ -404,33 +386,29 @@ pub struct PointXYZNormal {
     pub normal_z: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 3])> for PointXYZNormal {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 3]), Self::Error> {
-        Ok((
-            [self.x, self.y, self.z],
-            [
-                PointMeta::new(self.normal_x),
-                PointMeta::new(self.normal_y),
-                PointMeta::new(self.normal_z),
-            ],
-        ))
+impl From<Point<f32, 3, 3>> for PointXYZNormal {
+    fn from(point: Point<f32, 3, 3>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+            normal_x: point.meta[0].get(),
+            normal_y: point.meta[1].get(),
+            normal_z: point.meta[2].get(),
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 3])> for PointXYZNormal {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 3])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-            normal_x: data.1[0].get()?,
-            normal_y: data.1[1].get()?,
-            normal_z: data.1[2].get()?,
-        })
+impl Into<Point<f32, 3, 3>> for PointXYZNormal {
+    fn into(self) -> Point<f32, 3, 3> {
+        Point {
+            coords: [self.x, self.y, self.z],
+            meta: [
+                self.normal_x.into(),
+                self.normal_y.into(),
+                self.normal_z.into(),
+            ],
+        }
     }
 }
 

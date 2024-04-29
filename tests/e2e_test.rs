@@ -1,4 +1,3 @@
-use fallible_iterator::FallibleIterator;
 use ros_pointcloud2::pcl_utils::*;
 use ros_pointcloud2::reader::*;
 use ros_pointcloud2::ros_types::PointCloud2Msg;
@@ -8,14 +7,27 @@ use std::fmt::Debug;
 
 macro_rules! convert_from_into {
     ($reader:ty, $writer:ty, $point:ty, $cloud:expr) => {
-        let copy = $cloud.clone();
-        let msg: Result<PointCloud2Msg, _> = <$writer>::from($cloud).try_into();
+        convert_from_into_in_out_cloud!(
+            $reader,
+            $writer,
+            $point,
+            $cloud.clone(),
+            $point,
+            $cloud,
+            $point
+        );
+    };
+}
+
+macro_rules! convert_from_into_in_out_cloud {
+    ($reader:ty, $writer:ty, $point:ty, $in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
+        let msg: Result<PointCloud2Msg, _> = <$writer>::from($in_cloud).try_into();
         assert!(msg.is_ok());
         let to_p_type = <$reader>::try_from(msg.unwrap());
         assert!(to_p_type.is_ok());
         let to_p_type = to_p_type.unwrap();
-        let back_to_type = to_p_type.map(|point| Ok(point)).collect::<Vec<$point>>();
-        assert_eq!(copy, back_to_type.unwrap());
+        let back_to_type = to_p_type.collect::<Vec<$out_point>>();
+        assert_eq!($out_cloud, back_to_type);
     };
 }
 
@@ -30,29 +42,35 @@ fn custom_xyz_f32() {
         y: f32,
         z: f32,
     }
-    type MyReader = Reader<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
-    type MyWriter = Writer<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
-    impl From<CustomPoint> for ([f32; DIM], [PointMeta; METADIM]) {
-        fn from(point: CustomPoint) -> Self {
-            ([point.x, point.y, point.z], [])
+
+    type MyReader = ReaderF32<DIM, METADIM, CustomPoint>;
+    type MyWriter = WriterF32<DIM, METADIM, CustomPoint>;
+
+    impl From<Point<f32, 3, 0>> for CustomPoint {
+        fn from(point: Point<f32, 3, 0>) -> Self {
+            Self {
+                x: point.coords[0],
+                y: point.coords[1],
+                z: point.coords[2],
+            }
         }
     }
-    impl TryFrom<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
-        type Error = ConversionError;
-        fn try_from(data: ([f32; DIM], [PointMeta; METADIM])) -> Result<Self, ConversionError> {
-            Ok(Self {
-                x: data.0[0],
-                y: data.0[1],
-                z: data.0[2],
-            })
+
+    impl Into<Point<f32, 3, 0>> for CustomPoint {
+        fn into(self) -> Point<f32, 3, 0> {
+            Point {
+                coords: [self.x, self.y, self.z],
+                meta: [],
+            }
         }
     }
+
     impl convert::MetaNames<METADIM> for CustomPoint {
         fn meta_names() -> [String; METADIM] {
             []
         }
     }
-    impl PointConvertible<f32, { size_of!(f32) }, DIM, METADIM> for CustomPoint {}
+    impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 0> for CustomPoint {}
 
     convert_from_into!(
         MyReader,
@@ -80,6 +98,8 @@ fn custom_xyz_f32() {
 
 #[test]
 fn custom_xyzi_f32() {
+    type Xyz = f32;
+    const XYZ_S: usize = std::mem::size_of::<Xyz>();
     const DIM: usize = 3;
     const METADIM: usize = 1;
     #[derive(Debug, PartialEq, Clone)]
@@ -89,32 +109,37 @@ fn custom_xyzi_f32() {
         z: f32,
         i: u8,
     }
-    type MyReader = reader::Reader<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
-    impl From<CustomPoint> for ([f32; DIM], [PointMeta; METADIM]) {
-        fn from(point: CustomPoint) -> Self {
-            ([point.x, point.y, point.z], [PointMeta::new(point.i)])
+
+    impl From<Point<f32, 3, 1>> for CustomPoint {
+        fn from(point: Point<f32, 3, 1>) -> Self {
+            Self {
+                x: point.coords[0],
+                y: point.coords[1],
+                z: point.coords[2],
+                i: point.meta[0].get(),
+            }
         }
     }
 
-    type MyWriter = writer::Writer<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
-
-    impl TryFrom<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
-        type Error = ConversionError;
-        fn try_from(data: ([f32; DIM], [PointMeta; METADIM])) -> Result<Self, ConversionError> {
-            Ok(Self {
-                x: data.0[0],
-                y: data.0[1],
-                z: data.0[2],
-                i: data.1.first().unwrap().get().unwrap(),
-            })
+    impl Into<Point<f32, 3, 1>> for CustomPoint {
+        fn into(self) -> Point<f32, 3, 1> {
+            Point {
+                coords: [self.x, self.y, self.z],
+                meta: [self.i.into()],
+            }
         }
     }
+
     impl convert::MetaNames<METADIM> for CustomPoint {
         fn meta_names() -> [String; METADIM] {
             [format!("intensity")]
         }
     }
-    impl PointConvertible<f32, { size_of!(f32) }, DIM, METADIM> for CustomPoint {}
+
+    type MyReader = reader::Reader<Xyz, XYZ_S, DIM, METADIM, CustomPoint>;
+    type MyWriter = writer::Writer<Xyz, XYZ_S, DIM, METADIM, CustomPoint>;
+
+    impl PointConvertible<Xyz, XYZ_S, DIM, METADIM> for CustomPoint {}
 
     let cloud = vec![
         CustomPoint {
@@ -159,33 +184,29 @@ fn custom_rgba_f32() {
         b: u8,
         a: u8,
     }
-    type MyReader = reader::Reader<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
-    type MyWriter = writer::Writer<f32, { size_of!(f32) }, DIM, METADIM, CustomPoint>;
-    impl From<CustomPoint> for ([f32; DIM], [PointMeta; METADIM]) {
-        fn from(point: CustomPoint) -> Self {
-            (
-                [point.x, point.y, point.z],
-                [
-                    PointMeta::new(point.r),
-                    PointMeta::new(point.g),
-                    PointMeta::new(point.b),
-                    PointMeta::new(point.a),
-                ],
-            )
+    type MyReader = reader::Reader<f32, { std::mem::size_of::<f32>() }, DIM, METADIM, CustomPoint>;
+    type MyWriter = writer::Writer<f32, { std::mem::size_of::<f32>() }, DIM, METADIM, CustomPoint>;
+
+    impl From<Point<f32, 3, 4>> for CustomPoint {
+        fn from(point: Point<f32, 3, 4>) -> Self {
+            Self {
+                x: point.coords[0],
+                y: point.coords[1],
+                z: point.coords[2],
+                r: point.meta[0].get(),
+                g: point.meta[1].get(),
+                b: point.meta[2].get(),
+                a: point.meta[3].get(),
+            }
         }
     }
-    impl TryFrom<([f32; DIM], [PointMeta; METADIM])> for CustomPoint {
-        type Error = ConversionError;
-        fn try_from(data: ([f32; DIM], [PointMeta; METADIM])) -> Result<Self, Self::Error> {
-            Ok(Self {
-                x: data.0[0],
-                y: data.0[1],
-                z: data.0[2],
-                r: data.1[0].get()?,
-                g: data.1[1].get()?,
-                b: data.1[2].get()?,
-                a: data.1[3].get()?,
-            })
+
+    impl Into<Point<f32, 3, 4>> for CustomPoint {
+        fn into(self) -> Point<f32, 3, 4> {
+            Point {
+                coords: [self.x, self.y, self.z],
+                meta: [self.r.into(), self.g.into(), self.b.into(), self.a.into()],
+            }
         }
     }
     impl convert::MetaNames<METADIM> for CustomPoint {
@@ -193,7 +214,7 @@ fn custom_rgba_f32() {
             ["r", "g", "b", "a"].map(|s| s.to_string())
         }
     }
-    impl PointConvertible<f32, { size_of!(f32) }, DIM, METADIM> for CustomPoint {}
+    impl PointConvertible<f32, { std::mem::size_of::<f32>() }, DIM, METADIM> for CustomPoint {}
     let cloud = vec![
         CustomPoint {
             x: 0.0,
@@ -612,5 +633,164 @@ fn converterxyzi() {
                 intensity: f32::MAX,
             },
         ]
+    );
+}
+
+#[test]
+fn write_xyzi_read_xyz() {
+    let write_cloud = vec![
+        PointXYZI {
+            x: 0.0,
+            y: 1.0,
+            z: 5.0,
+            intensity: 0.0,
+        },
+        PointXYZI {
+            x: 1.0,
+            y: 1.5,
+            z: 5.0,
+            intensity: 1.0,
+        },
+        PointXYZI {
+            x: 1.3,
+            y: 1.6,
+            z: 5.7,
+            intensity: 2.0,
+        },
+        PointXYZI {
+            x: f32::MAX,
+            y: f32::MIN,
+            z: f32::MAX,
+            intensity: f32::MAX,
+        },
+    ];
+
+    let read_cloud = vec![
+        PointXYZ {
+            x: 0.0,
+            y: 1.0,
+            z: 5.0,
+        },
+        PointXYZ {
+            x: 1.0,
+            y: 1.5,
+            z: 5.0,
+        },
+        PointXYZ {
+            x: 1.3,
+            y: 1.6,
+            z: 5.7,
+        },
+        PointXYZ {
+            x: f32::MAX,
+            y: f32::MIN,
+            z: f32::MAX,
+        },
+    ];
+
+    convert_from_into_in_out_cloud!(
+        ReaderXYZ,
+        WriterXYZI,
+        PointXYZI,
+        write_cloud,
+        PointXYZI,
+        read_cloud,
+        PointXYZ
+    );
+}
+
+#[test]
+fn write_less_than_available() {
+    const DIM: usize = 3;
+    const METADIM: usize = 0;
+
+    #[derive(Debug, PartialEq, Clone)]
+    struct CustomPoint {
+        x: f32,
+        y: f32,
+        z: f32,
+        dummy: f32,
+    }
+
+    type MyReader = ReaderF32<DIM, METADIM, CustomPoint>;
+    type MyWriter = WriterF32<DIM, METADIM, CustomPoint>;
+
+    impl From<Point<f32, 3, 0>> for CustomPoint {
+        fn from(point: Point<f32, 3, 0>) -> Self {
+            Self {
+                x: point.coords[0],
+                y: point.coords[1],
+                z: point.coords[2],
+                dummy: 0.0,
+            }
+        }
+    }
+
+    impl Into<Point<f32, 3, 0>> for CustomPoint {
+        fn into(self) -> Point<f32, 3, 0> {
+            Point {
+                coords: [self.x, self.y, self.z],
+                meta: [],
+            }
+        }
+    }
+
+    impl convert::MetaNames<METADIM> for CustomPoint {
+        fn meta_names() -> [String; METADIM] {
+            []
+        }
+    }
+    impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 0> for CustomPoint {}
+
+    let write_cloud = vec![
+        CustomPoint {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+            dummy: -10.0,
+        },
+        CustomPoint {
+            x: 4.0,
+            y: 5.0,
+            z: 6.0,
+            dummy: -10.0,
+        },
+        CustomPoint {
+            x: 7.0,
+            y: 8.0,
+            z: 9.0,
+            dummy: -10.0,
+        },
+    ];
+
+    let read_cloud = vec![
+        CustomPoint {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+            dummy: 0.0,
+        },
+        CustomPoint {
+            x: 4.0,
+            y: 5.0,
+            z: 6.0,
+            dummy: 0.0,
+        },
+        CustomPoint {
+            x: 7.0,
+            y: 8.0,
+            z: 9.0,
+            dummy: 0.0,
+        },
+    ];
+
+    convert_from_into_in_out_cloud!(
+        MyReader,
+        MyWriter,
+        CustomPoint,
+        write_cloud,
+        CustomPoint,
+        read_cloud,
+        CustomPoint
     );
 }

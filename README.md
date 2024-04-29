@@ -5,16 +5,14 @@
   </p>
 </p>
 
-Providing a memory efficient way for message conversion while allowing user defined types without the cost of iterations.
-Instead of converting the entire cloud into a `Vec`, you get an iterable type that converts each point from the message on the fly.
+Providing a easy to use, generics defined, point-wise iterator abstraction of the byte buffer of `PointCloud2` to minimize iterations in your processing pipeline.
 
-To keep the crate a general purpose library for the problem and support ROS1 and ROS2, it uses its own type for the message `ros_types::PointCloud2Msg`.
+To keep the crate a general purpose library for the problem and support ROS1 and ROS2, it uses its own type for the message `PointCloud2Msg`.
+
+## Example
 ```rust
 use ros_pointcloud2::{
-    fallible_iterator::FallibleIterator,
-    pcl_utils::PointXYZ,
-    ros_types::PointCloud2Msg,
-    ConvertXYZ,
+  pcl_utils::PointXYZ, reader::ReaderXYZ, writer::WriterXYZ, PointCloud2Msg,
 };
 
 // Your points (here using the predefined type PointXYZ).
@@ -31,32 +29,41 @@ let cloud_points = vec![
   },
 ];
 
-let cloud_copy = cloud_points.clone(); // For checking equality later.
+// For equality test later
+let cloud_copy = cloud_points.clone();
 
-// Vector -> Converter -> Message
-let internal_msg: PointCloud2Msg = ConvertXYZ::try_from(cloud_points)
-    .unwrap()
-    .try_into()
+// Some changes to demonstrate lazy iterator usage
+let changed_it = cloud_points.iter().map(|p| {
+  p.x = 0.5;
+});
+
+// Vector -> Writer -> Message
+let internal_msg: PointCloud2Msg = WriterXYZ::from(cloud_points)
+    .try_into() // iterating points here O(n)
     .unwrap();
 
-// Convert to your favorite ROS crate message type, we will use rosrust here.
-// let msg: rosrust_msg::sensor_msgs::PointCloud2 = internal_msg.into();
+// Anything that implements `IntoIterator` also works - like another iterator.
+let internal_msg_changed: PointCloud2Msg = WriterXYZ::from(changed_it)
+    .try_into() // iterating points here O(n)
+    .unwrap();
 
-// Back to this crate's message type.
+// Convert to your ROS crate message type, we will use r2r here.
+// let msg: r2r::sensor_msgs::msg::PointCloud2 = internal_msg.into();
+
+// Publish ...
+
+// ... now incoming from a topic.
 // let internal_msg: PointCloud2Msg = msg.into();
 
-// Message -> Converter -> Vector
-let convert: ConvertXYZ = ConvertXYZ::try_from(internal_msg).unwrap();
-let new_cloud_points = convert
+// Message -> Reader. The Reader implements the Iterator trait.
+let reader = ReaderXYZ::try_from(internal_msg).unwrap();
+let new_cloud_points = reader
     .map(|point: PointXYZ| {
-      // Insert your point business logic here
-      // or use other methods like .for_each().
-      
-      // We are using a fallible iterator so we need to return a Result.
-      Ok(point)
+      // Some logic here
+
+      point
     })
-    .collect::<Vec<PointXYZ>>()
-    .unwrap(); // Handle point conversion or byte errors here.
+    .collect::<Vec<PointXYZ>>();
 
 assert_eq!(new_cloud_points, cloud_copy);
 ```
@@ -226,10 +233,25 @@ let to_custom_type = MyConverter::try_from(custom_msg).unwrap();
 
 ## Future Work
 - Benchmark vs PCL
-- Proper error passing to the iterator result (currently merged into `PointConversionError`)
-- remove allocations
-- introduce no-panic for maximum stability
 - Add more predefined types
+- Optional derive macros for custom point implementations
+
+## Changelog 1.0.0
+- `Convert` is now `Reader` and `Writer`.
+`Convert` had to translate both ways and keep a different state depending on the way it was created. This led to an edge case where the user could create a point cloud that always returns uninitialized points. While the reproduction was unlikely to occur in normal use cases, the possibility of it alone is unnecessary ambiguity.
+The new `Reader` and `Writer` not only eliminates ambiguity but also makes the code much more readable and concise.
+- Zero-cost iterator abstraction. `Reader` and `Writer` now either take or implement iterable traits. This means, you can read a message, implement a `filter` function and pass the resulting iterator directly to the `Writer`. The entire pipeline is then compiled to a typesafe message-to-message filter with a single iteration.
+- Divide error types to message and human errors.
+Corrupted messages with valid descriptions and correct byte buffer length can not be classified as corrupted at runtime, thus point conversions can be assumed to always work when passing these checks. There now are less error types and the point conversions within the iteration can omit the `try_*` prefix. Discrepancies within the point cloud message and the described point are checked at `Reader` and `Writer` creation instead.
+Human errors are possible with wrong point types or internal crate bugs that could lead to out-of-bound panics. These cases are checked in debug mode via debug_assert now. In release builds, the crate fully leans into performance optimizations and assumes a correct type description via generics (mainly the first 2 parameters coord_type and sizeof(coord_type)). Previously, these errors resulted in an error at runtime but the only possible source for them is the crate user, so the decision was made to promote them to a panic like a compile error. TODO check coord_type and sizeof at compile time statically?
+- More Documentation and more relevant examples for every function and type. The example for custom points is moved from the Readme into the documentation as well.
+- Performance and efficiency. By leaning into iterators whenever possible, the amount of bound checks have been reduced. There are less iterations in every function and dynamic memory usage is reduced.
+- Removed dependencies. By switching to normal iterators and intializing different start values, the crate only depends on the std now.
+
+API changes
+- replace every use of `([T; DIM], [ros_pointcloud2::PointMeta; METADIM])` with `ros_pointcloud2::Point<T, DIM, METADIM>`
+- 
+
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)

@@ -19,6 +19,21 @@ impl Default for FieldDatatype {
     }
 }
 
+impl FieldDatatype {
+    pub fn size(&self) -> usize {
+        match self {
+            FieldDatatype::U8 => 1,
+            FieldDatatype::U16 => 2,
+            FieldDatatype::U32 => 4,
+            FieldDatatype::I8 => 1,
+            FieldDatatype::I16 => 2,
+            FieldDatatype::I32 => 4,
+            FieldDatatype::F32 => 4,
+            FieldDatatype::F64 => 8,
+        }
+    }
+}
+
 /// Getter trait for the datatype of a field value.
 pub trait GetFieldDatatype {
     fn field_datatype() -> FieldDatatype;
@@ -72,30 +87,36 @@ impl GetFieldDatatype for i16 {
     }
 }
 
-pub(crate) fn convert_to_msg_code(geo_type: &FieldDatatype) -> u8 {
-    match geo_type {
-        FieldDatatype::I8 => 1,
-        FieldDatatype::U8 => 2,
-        FieldDatatype::I16 => 3,
-        FieldDatatype::U16 => 4,
-        FieldDatatype::I32 => 5,
-        FieldDatatype::U32 => 6,
-        FieldDatatype::F32 => 7,
-        FieldDatatype::F64 => 8,
+impl TryFrom<u8> for FieldDatatype {
+    type Error = ConversionError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(FieldDatatype::I8),
+            2 => Ok(FieldDatatype::U8),
+            3 => Ok(FieldDatatype::I16),
+            4 => Ok(FieldDatatype::U16),
+            5 => Ok(FieldDatatype::I32),
+            6 => Ok(FieldDatatype::U32),
+            7 => Ok(FieldDatatype::F32),
+            8 => Ok(FieldDatatype::F64),
+            _ => Err(ConversionError::UnsupportedFieldType),
+        }
     }
 }
 
-pub(crate) fn convert_msg_code_to_type(code: u8) -> Result<FieldDatatype, ConversionError> {
-    match code {
-        7 => Ok(FieldDatatype::F32),
-        8 => Ok(FieldDatatype::F64),
-        5 => Ok(FieldDatatype::I32),
-        2 => Ok(FieldDatatype::U8),
-        4 => Ok(FieldDatatype::U16),
-        6 => Ok(FieldDatatype::U32),
-        1 => Ok(FieldDatatype::I8),
-        3 => Ok(FieldDatatype::I16),
-        _ => Err(ConversionError::UnsupportedFieldType),
+impl Into<u8> for FieldDatatype {
+    fn into(self) -> u8 {
+        match self {
+            FieldDatatype::I8 => 1,
+            FieldDatatype::U8 => 2,
+            FieldDatatype::I16 => 3,
+            FieldDatatype::U16 => 4,
+            FieldDatatype::I32 => 5,
+            FieldDatatype::U32 => 6,
+            FieldDatatype::F32 => 7,
+            FieldDatatype::F64 => 8,
+        }
     }
 }
 
@@ -107,7 +128,7 @@ pub(crate) fn check_coord(
     match coord {
         Some(y_idx) => {
             let field = &fields[y_idx];
-            if field.datatype != convert_to_msg_code(xyz_field_type) {
+            if field.datatype != (*xyz_field_type).into() {
                 return Err(ConversionError::InvalidFieldFormat);
             }
             Ok(field.clone())
@@ -122,19 +143,6 @@ pub trait MetaNames<const METADIM: usize> {
     fn meta_names() -> [String; METADIM];
 }
 
-pub(crate) fn datatype_size(datatype: &FieldDatatype) -> usize {
-    match datatype {
-        FieldDatatype::U8 => 1,
-        FieldDatatype::U16 => 2,
-        FieldDatatype::U32 => 4,
-        FieldDatatype::I8 => 1,
-        FieldDatatype::I16 => 2,
-        FieldDatatype::I32 => 4,
-        FieldDatatype::F32 => 4,
-        FieldDatatype::F64 => 8,
-    }
-}
-
 #[inline(always)]
 pub(crate) fn add_point_to_byte_buffer<
     T: FromBytes,
@@ -146,19 +154,17 @@ pub(crate) fn add_point_to_byte_buffer<
     coords: C,
     cloud: &mut PointCloud2Msg,
 ) -> Result<bool, ConversionError> {
-    let (coords_data, coords_meta): ([T; DIM], [PointMeta; METADIM]) = match coords.try_into() {
-        Ok(meta) => meta,
-        Err(_) => return Err(ConversionError::PointConversionError),
-    };
+    let point: Point<T, DIM, METADIM> = coords.into();
 
     // (x, y, z...)
-    coords_data
+    point
+        .coords
         .iter()
         .for_each(|x| cloud.data.extend_from_slice(T::bytes(x).as_slice()));
 
     // meta data description
-    coords_meta.iter().for_each(|meta| {
-        let truncated_bytes = &meta.bytes[0..datatype_size(&meta.datatype)];
+    point.meta.iter().for_each(|meta| {
+        let truncated_bytes = &meta.bytes[0..meta.datatype.size()];
         cloud.data.extend_from_slice(truncated_bytes);
     });
 
@@ -300,35 +306,28 @@ pub(crate) fn load_loadable<T: FromBytes, const SIZE: usize>(
     start_idx: usize,
     data: &[u8],
     endian: &Endianness,
-) -> Option<T> {
+) -> T {
     match endian {
-        Endianness::Big => Some(T::from_be_bytes(
-            load_bytes::<SIZE>(start_idx, data)?.as_slice(),
-        )),
-        Endianness::Little => Some(T::from_le_bytes(
-            load_bytes::<SIZE>(start_idx, data)?.as_slice(),
-        )),
+        Endianness::Big => T::from_be_bytes(load_bytes::<SIZE>(start_idx, data).as_slice()),
+        Endianness::Little => T::from_le_bytes(load_bytes::<SIZE>(start_idx, data).as_slice()),
     }
 }
 
-fn load_bytes<const S: usize>(start_idx: usize, data: &[u8]) -> Option<[u8; S]> {
-    if start_idx + S > data.len() {
-        return None;
-    }
-    let mut buff: [u8; S] = [0; S];
-    for (byte, buff_val) in buff.iter_mut().enumerate().take(S) {
-        let raw_byte = data.get(start_idx + byte);
-        match raw_byte {
-            None => {
-                return None;
-            }
-            Some(some_byte) => {
-                *buff_val = *some_byte;
-            }
-        }
-    }
+/// Note: check if the data slice is long enough to load the bytes beforehand!
+fn load_bytes<const S: usize>(start_idx: usize, data: &[u8]) -> [u8; S] {
+    let mut target = [u8::default(); S];
 
-    Some(buff)
+    debug_assert!(target.len() == S);
+    debug_assert!(data.len() >= start_idx + S);
+
+    let source = unsafe { data.get_unchecked(start_idx..start_idx + S) };
+    target
+        .iter_mut()
+        .zip(source.iter())
+        .for_each(|(target, source)| {
+            *target = *source;
+        });
+    target
 }
 
 #[cfg(test)]
