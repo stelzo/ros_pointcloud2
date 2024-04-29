@@ -84,8 +84,11 @@ pub mod writer;
 pub use convert::MetaNames;
 pub use ros_types::PointCloud2Msg;
 
-use crate::convert::*;
-use crate::pcl_utils::*;
+use crate::convert::{
+    FieldDatatype,
+    FromBytes,
+};
+
 use crate::ros_types::PointFieldMsg;
 
 /// All errors that can occur for creating Reader and Writer.
@@ -112,7 +115,7 @@ pub enum ConversionError {
 
 /// Internal point representation. It is used to store the coordinates and meta data of a point.
 /// In each iteration, the Reader will convert the internal representation to the desired point type.
-/// Implement the `From` traits for your point type to use the conversion as part of the PointConvertible trait.
+/// Implement the `From` traits for your point type to use the conversion as part of the [`PointConvertible`] trait.
 ///
 /// # Example
 /// ```
@@ -153,6 +156,47 @@ pub struct Point<T, const DIM: usize, const METADIM: usize> {
 
 /// Trait to convert a point to a tuple of coordinates and meta data.
 /// Implement this trait for your point type to use the conversion.
+/// 
+/// # Example
+/// ```
+/// use ros_pointcloud2::{Point, PointConvertible, MetaNames, size_of};
+///
+/// #[derive(Clone, Debug, PartialEq, Copy)]
+/// pub struct MyPointXYZI {
+///     pub x: f32,
+///     pub y: f32,
+///     pub z: f32,
+///     pub intensity: f32,
+/// }
+///
+/// impl From<MyPointXYZI> for Point<f32, 3, 1> {
+///     fn from(point: MyPointXYZI) -> Self {
+///         Point {
+///             coords: [point.x, point.y, point.z],
+///             meta: [point.intensity.into()],
+///         }
+///     }
+/// }
+///
+/// impl From<Point<f32, 3, 1>> for MyPointXYZI {
+///     fn from(point: Point<f32, 3, 1>) -> Self {
+///         Self {
+///             x: point.coords[0],
+///             y: point.coords[1],
+///             z: point.coords[2],
+///             intensity: point.meta[0].get(),
+///         }
+///     }
+/// }
+///
+/// impl MetaNames<1> for MyPointXYZI {
+///    fn meta_names() -> [&'static str; 1] {
+///       ["intensity"]
+///   }
+/// }
+///
+/// impl PointConvertible<f32, {size_of!(f32)}, 3, 1> for MyPointXYZI {}
+/// ```
 pub trait PointConvertible<T, const SIZE: usize, const DIM: usize, const METADIM: usize>:
     From<Point<T, DIM, METADIM>> + Into<Point<T, DIM, METADIM>> + MetaNames<METADIM> + Clone + 'static
 where
@@ -189,7 +233,7 @@ impl Default for PointMeta {
 }
 
 impl PointMeta {
-    /// Create a new PointMeta from a value
+    /// Create a new PointMeta from a value.
     ///
     /// # Example
     /// ```

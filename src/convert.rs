@@ -149,66 +149,14 @@ pub(crate) fn check_coord(
 ///     pub intensity: f32,
 /// }
 ///
-/// impl From<MyPointXYZI> for Point<f32, 3, 1> {
-///     fn from(point: MyPointXYZI) -> Self {
-///         Point {
-///             coords: [point.x, point.y, point.z],
-///             meta: [point.intensity.into()],
-///         }
-///     }
-/// }
-///
-/// impl From<Point<f32, 3, 1>> for MyPointXYZI {
-///     fn from(point: Point<f32, 3, 1>) -> Self {
-///         Self {
-///             x: point.coords[0],
-///             y: point.coords[1],
-///             z: point.coords[2],
-///             intensity: point.meta[0].get(),
-///         }
-///     }
-/// }
-///
 /// impl MetaNames<1> for MyPointXYZI {
 ///    fn meta_names() -> [&'static str; 1] {
 ///       ["intensity"]
 ///   }
 /// }
-///
-/// impl PointConvertible<f32, {size_of!(f32)}, 3, 1> for MyPointXYZI {}
 /// ```
 pub trait MetaNames<const METADIM: usize> {
     fn meta_names() -> [&'static str; METADIM];
-}
-
-#[inline(always)]
-pub(crate) fn add_point_to_byte_buffer<
-    T: FromBytes,
-    const SIZE: usize,
-    const DIM: usize,
-    const METADIM: usize,
-    C: PointConvertible<T, SIZE, DIM, METADIM>,
->(
-    coords: C,
-    cloud: &mut PointCloud2Msg,
-) -> Result<bool, ConversionError> {
-    let point: Point<T, DIM, METADIM> = coords.into();
-
-    // (x, y, z...)
-    point
-        .coords
-        .iter()
-        .for_each(|x| cloud.data.extend_from_slice(T::bytes(x).as_slice()));
-
-    // meta data description
-    point.meta.iter().for_each(|meta| {
-        let truncated_bytes = &meta.bytes[0..meta.datatype.size()];
-        cloud.data.extend_from_slice(truncated_bytes);
-    });
-
-    cloud.width += 1;
-
-    Ok(true)
 }
 
 /// This trait is used to convert a byte slice to a primitive type.
