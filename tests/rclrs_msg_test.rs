@@ -1,10 +1,10 @@
 #[cfg(feature = "rclrs_msg")]
 #[test]
 fn convertxyz_rclrs_msg() {
-    use ros_pointcloud2::fallible_iterator::FallibleIterator;
-    use ros_pointcloud2::pcl_utils::PointXYZ;
-    use ros_pointcloud2::ros_types::PointCloud2Msg;
-    use ros_pointcloud2::ConvertXYZ;
+    use ros_pointcloud2::{
+        pcl_utils::PointXYZ, reader::ReaderXYZ, writer::WriterXYZ, PointCloud2Msg,
+    };
+    
     use sensor_msgs::msg::PointCloud2;
 
     let cloud = vec![
