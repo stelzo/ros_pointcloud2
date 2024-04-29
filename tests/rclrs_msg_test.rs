@@ -25,10 +25,10 @@ fn convertxyz_rclrs_msg() {
         },
     ];
     let copy = cloud.clone();
-    let internal_cloud: PointCloud2Msg = ConvertXYZ::try_from(cloud).unwrap().try_into().unwrap();
+    let internal_cloud: PointCloud2Msg = WriterXYZ::from(cloud).try_into().unwrap();
     let rclrs_msg_cloud: PointCloud2 = internal_cloud.into();
     let convert_back_internal: PointCloud2Msg = rclrs_msg_cloud.into();
-    let to_convert: ConvertXYZ = ConvertXYZ::try_from(convert_back_internal).unwrap();
-    let back_to_type = to_convert.map(|point| Ok(point)).collect::<Vec<PointXYZ>>();
+    let to_convert = ReaderXYZ::try_from(convert_back_internal).unwrap();
+    let back_to_type = to_convert.collect::<Vec<PointXYZ>>();
     assert_eq!(copy, back_to_type.unwrap());
 }

@@ -14,9 +14,6 @@ homepage = "https://github.com/stelzo/ros_pointcloud2"
 exclude = ["**/tests/**", "**/examples/**", "**/benches/**", "**/target/**", "**/build/**", "**/dist/**", "**/docs/**", "**/doc/**", "package.xml"]
 
 [dependencies]
-mem_macros = "1.0.1"
-num-traits = "0.2.15"
-fallible-iterator = "0.3.0"
 rosrust_msg = { version = "0.1", optional = true }
 rosrust = { version = "0.9.11", optional = true }
 r2r = { version = "0.8.4", optional = true }

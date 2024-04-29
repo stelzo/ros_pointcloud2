@@ -1,11 +1,13 @@
-use crate::{ConversionError, MetaNames, PointConvertible, PointMeta};
+use crate::{MetaNames, Point, PointConvertible};
 
+/// Pack an RGB color into a single f32 value as used in ROS with PCL for RViz usage.
 #[inline]
 fn pack_rgb(r: u8, g: u8, b: u8) -> f32 {
     let packed = ((r as u32) << 16) + ((g as u32) << 8) + (b as u32);
     f32::from_bits(packed)
 }
 
+/// Unpack an RGB color from a single f32 value as used in ROS with PCL for RViz usage.
 #[inline]
 fn unpack_rgb(rgb: f32) -> [u8; 3] {
     let packed: u32 = rgb.to_bits();
@@ -24,33 +26,32 @@ pub struct PointXYZ {
     pub z: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 0])> for PointXYZ {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 0]), Self::Error> {
-        Ok(([self.x, self.y, self.z], []))
+impl From<Point<f32, 3, 0>> for PointXYZ {
+    fn from(point: Point<f32, 3, 0>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 0])> for PointXYZ {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 0])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-        })
+impl From<PointXYZ> for Point<f32, 3, 0> {
+    fn from(point: PointXYZ) -> Self {
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [],
+        }
     }
 }
 
 impl MetaNames<0> for PointXYZ {
-    fn meta_names() -> [String; 0] {
+    fn meta_names() -> [&'static str; 0] {
         []
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 0> for PointXYZ {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 0> for PointXYZ {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an intensity value.
@@ -62,34 +63,33 @@ pub struct PointXYZI {
     pub intensity: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 1])> for PointXYZI {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 1]), Self::Error> {
-        Ok(([self.x, self.y, self.z], [PointMeta::new(self.intensity)]))
+impl From<PointXYZI> for Point<f32, 3, 1> {
+    fn from(point: PointXYZI) -> Self {
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [point.intensity.into()],
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 1])> for PointXYZI {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 1])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-            intensity: data.1[0].get()?,
-        })
+impl From<Point<f32, 3, 1>> for PointXYZI {
+    fn from(point: Point<f32, 3, 1>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+            intensity: point.meta[0].get(),
+        }
     }
 }
 
 impl MetaNames<1> for PointXYZI {
-    fn meta_names() -> [String; 1] {
-        ["intensity"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 1] {
+        ["intensity"]
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 1> for PointXYZI {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 1> for PointXYZI {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an RGB color value.
@@ -103,39 +103,37 @@ pub struct PointXYZRGB {
     pub b: u8,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 1])> for PointXYZRGB {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 1]), Self::Error> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
-        Ok(([self.x, self.y, self.z], [PointMeta::new(rgb)]))
-    }
-}
-
-impl TryFrom<([f32; 3], [PointMeta; 1])> for PointXYZRGB {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 1])) -> Result<Self, Self::Error> {
-        let rgb = data.1[0].get::<f32>()?;
+impl From<Point<f32, 3, 1>> for PointXYZRGB {
+    fn from(point: Point<f32, 3, 1>) -> Self {
+        let rgb = point.meta[0].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-        })
+        }
+    }
+}
+
+impl From<PointXYZRGB> for Point<f32, 3, 1> {
+    fn from(point: PointXYZRGB) -> Self {
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [pack_rgb(point.r, point.g, point.b).into()],
+        }
     }
 }
 
 impl MetaNames<1> for PointXYZRGB {
-    fn meta_names() -> [String; 1] {
-        ["rgb"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 1] {
+        ["rgb"]
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 1> for PointXYZRGB {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 1> for PointXYZRGB {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an RGBA color value.
@@ -151,43 +149,39 @@ pub struct PointXYZRGBA {
     pub a: u8,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 2])> for PointXYZRGBA {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 2]), Self::Error> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
-        Ok((
-            [self.x, self.y, self.z],
-            [PointMeta::new(rgb), PointMeta::new(self.a)],
-        ))
-    }
-}
-
-impl TryFrom<([f32; 3], [PointMeta; 2])> for PointXYZRGBA {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 2])) -> Result<Self, Self::Error> {
-        let rgb = data.1[0].get::<f32>()?;
+impl From<Point<f32, 3, 2>> for PointXYZRGBA {
+    fn from(point: Point<f32, 3, 2>) -> Self {
+        let rgb = point.meta[0].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-            a: data.1[1].get()?,
-        })
+            a: point.meta[1].get(),
+        }
+    }
+}
+
+impl From<PointXYZRGBA> for Point<f32, 3, 2> {
+    fn from(point: PointXYZRGBA) -> Self {
+        let rgb = pack_rgb(point.r, point.g, point.b);
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [rgb.into(), point.a.into()],
+        }
     }
 }
 
 impl MetaNames<2> for PointXYZRGBA {
-    fn meta_names() -> [String; 2] {
-        ["rgb", "a"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 2] {
+        ["rgb", "a"]
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 2> for PointXYZRGBA {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 2> for PointXYZRGBA {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an RGB color value and a normal vector.
@@ -204,50 +198,46 @@ pub struct PointXYZRGBNormal {
     pub normal_z: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 4])> for PointXYZRGBNormal {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 4]), Self::Error> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
-        Ok((
-            [self.x, self.y, self.z],
-            [
-                PointMeta::new(rgb),
-                PointMeta::new(self.normal_x),
-                PointMeta::new(self.normal_y),
-                PointMeta::new(self.normal_z),
-            ],
-        ))
-    }
-}
-
-impl TryFrom<([f32; 3], [PointMeta; 4])> for PointXYZRGBNormal {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 4])) -> Result<Self, Self::Error> {
-        let rgb = data.1[0].get::<f32>()?;
+impl From<Point<f32, 3, 4>> for PointXYZRGBNormal {
+    fn from(point: Point<f32, 3, 4>) -> Self {
+        let rgb = point.meta[0].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-            normal_x: data.1[1].get()?,
-            normal_y: data.1[2].get()?,
-            normal_z: data.1[3].get()?,
-        })
+            normal_x: point.meta[1].get(),
+            normal_y: point.meta[2].get(),
+            normal_z: point.meta[3].get(),
+        }
+    }
+}
+
+impl From<PointXYZRGBNormal> for Point<f32, 3, 4> {
+    fn from(point: PointXYZRGBNormal) -> Self {
+        let rgb = pack_rgb(point.r, point.g, point.b);
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [
+                rgb.into(),
+                point.normal_x.into(),
+                point.normal_y.into(),
+                point.normal_z.into(),
+            ],
+        }
     }
 }
 
 impl MetaNames<4> for PointXYZRGBNormal {
-    fn meta_names() -> [String; 4] {
-        ["rgb", "normal_x", "normal_y", "normal_z"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 4] {
+        ["rgb", "normal_x", "normal_y", "normal_z"]
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 4> for PointXYZRGBNormal {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 4> for PointXYZRGBNormal {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an intensity value and a normal vector.
@@ -262,45 +252,41 @@ pub struct PointXYZINormal {
     pub normal_z: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 4])> for PointXYZINormal {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 4]), Self::Error> {
-        Ok((
-            [self.x, self.y, self.z],
-            [
-                PointMeta::new(self.intensity),
-                PointMeta::new(self.normal_x),
-                PointMeta::new(self.normal_y),
-                PointMeta::new(self.normal_z),
+impl From<PointXYZINormal> for Point<f32, 3, 4> {
+    fn from(point: PointXYZINormal) -> Self {
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [
+                point.intensity.into(),
+                point.normal_x.into(),
+                point.normal_y.into(),
+                point.normal_z.into(),
             ],
-        ))
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 4])> for PointXYZINormal {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 4])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-            intensity: data.1[0].get()?,
-            normal_x: data.1[1].get()?,
-            normal_y: data.1[2].get()?,
-            normal_z: data.1[3].get()?,
-        })
+impl From<Point<f32, 3, 4>> for PointXYZINormal {
+    fn from(point: Point<f32, 3, 4>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+            intensity: point.meta[0].get(),
+            normal_x: point.meta[1].get(),
+            normal_y: point.meta[2].get(),
+            normal_z: point.meta[3].get(),
+        }
     }
 }
 
 impl MetaNames<4> for PointXYZINormal {
-    fn meta_names() -> [String; 4] {
-        ["intensity", "normal_x", "normal_y", "normal_z"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 4] {
+        ["intensity", "normal_x", "normal_y", "normal_z"]
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 4> for PointXYZINormal {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 4> for PointXYZINormal {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
@@ -312,34 +298,33 @@ pub struct PointXYZL {
     pub label: u32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 1])> for PointXYZL {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 1]), Self::Error> {
-        Ok(([self.x, self.y, self.z], [PointMeta::new(self.label)]))
+impl From<Point<f32, 3, 1>> for PointXYZL {
+    fn from(point: Point<f32, 3, 1>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+            label: point.meta[0].get(),
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 1])> for PointXYZL {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 1])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-            label: data.1[0].get()?,
-        })
+impl From<PointXYZL> for Point<f32, 3, 1> {
+    fn from(point: PointXYZL) -> Self {
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [point.label.into()],
+        }
     }
 }
 
 impl MetaNames<1> for PointXYZL {
-    fn meta_names() -> [String; 1] {
-        ["label".to_string()]
+    fn meta_names() -> [&'static str; 1] {
+        ["label"]
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 1> for PointXYZL {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 1> for PointXYZL {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
@@ -354,43 +339,41 @@ pub struct PointXYZRGBL {
     pub label: u32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 2])> for PointXYZRGBL {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 2]), Self::Error> {
-        let rgb = pack_rgb(self.r, self.g, self.b);
-        Ok((
-            [self.x, self.y, self.z],
-            [PointMeta::new(rgb), PointMeta::new(self.label)],
-        ))
-    }
-}
-
-impl TryFrom<([f32; 3], [PointMeta; 2])> for PointXYZRGBL {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 2])) -> Result<Self, Self::Error> {
-        let rgb = data.1[0].get::<f32>()?;
+impl From<Point<f32, 3, 2>> for PointXYZRGBL {
+    fn from(point: Point<f32, 3, 2>) -> Self {
+        let rgb = point.meta[0].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-            label: data.1[1].get()?,
-        })
+            label: point.meta[1].get(),
+        }
+    }
+}
+
+impl From<PointXYZRGBL> for Point<f32, 3, 2> {
+    fn from(point: PointXYZRGBL) -> Self {
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [
+                pack_rgb(point.r, point.g, point.b).into(),
+                point.label.into(),
+            ],
+        }
     }
 }
 
 impl MetaNames<2> for PointXYZRGBL {
-    fn meta_names() -> [String; 2] {
-        ["rgb", "label"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 2] {
+        ["rgb", "label"]
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 2> for PointXYZRGBL {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 2> for PointXYZRGBL {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a normal vector.
@@ -404,40 +387,36 @@ pub struct PointXYZNormal {
     pub normal_z: f32,
 }
 
-impl TryInto<([f32; 3], [PointMeta; 3])> for PointXYZNormal {
-    type Error = ConversionError;
-
-    fn try_into(self) -> Result<([f32; 3], [PointMeta; 3]), Self::Error> {
-        Ok((
-            [self.x, self.y, self.z],
-            [
-                PointMeta::new(self.normal_x),
-                PointMeta::new(self.normal_y),
-                PointMeta::new(self.normal_z),
-            ],
-        ))
+impl From<Point<f32, 3, 3>> for PointXYZNormal {
+    fn from(point: Point<f32, 3, 3>) -> Self {
+        Self {
+            x: point.coords[0],
+            y: point.coords[1],
+            z: point.coords[2],
+            normal_x: point.meta[0].get(),
+            normal_y: point.meta[1].get(),
+            normal_z: point.meta[2].get(),
+        }
     }
 }
 
-impl TryFrom<([f32; 3], [PointMeta; 3])> for PointXYZNormal {
-    type Error = ConversionError;
-
-    fn try_from(data: ([f32; 3], [PointMeta; 3])) -> Result<Self, Self::Error> {
-        Ok(Self {
-            x: data.0[0],
-            y: data.0[1],
-            z: data.0[2],
-            normal_x: data.1[0].get()?,
-            normal_y: data.1[1].get()?,
-            normal_z: data.1[2].get()?,
-        })
+impl From<PointXYZNormal> for Point<f32, 3, 3> {
+    fn from(point: PointXYZNormal) -> Self {
+        Point {
+            coords: [point.x, point.y, point.z],
+            meta: [
+                point.normal_x.into(),
+                point.normal_y.into(),
+                point.normal_z.into(),
+            ],
+        }
     }
 }
 
 impl MetaNames<3> for PointXYZNormal {
-    fn meta_names() -> [String; 3] {
-        ["normal_x", "normal_y", "normal_z"].map(|s| s.to_string())
+    fn meta_names() -> [&'static str; 3] {
+        ["normal_x", "normal_y", "normal_z"]
     }
 }
 
-impl PointConvertible<f32, { size_of!(f32) }, 3, 3> for PointXYZNormal {}
+impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 3> for PointXYZNormal {}
