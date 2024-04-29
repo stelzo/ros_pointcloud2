@@ -29,6 +29,6 @@ fn convertxyz_r2r_msg() {
     let r2r_msg_cloud: PointCloud2 = internal_cloud.into();
     let convert_back_internal: PointCloud2Msg = r2r_msg_cloud.into();
     let to_convert = ReaderXYZ::try_from(convert_back_internal).unwrap();
-    let back_to_type = to_convert.map(|point| Ok(point)).collect::<Vec<PointXYZ>>();
-    assert_eq!(copy, back_to_type.unwrap());
+    let back_to_type = to_convert.collect::<Vec<PointXYZ>>();
+    assert_eq!(copy, back_to_type);
 }
