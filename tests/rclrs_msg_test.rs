@@ -30,5 +30,5 @@ fn convertxyz_rclrs_msg() {
     let convert_back_internal: PointCloud2Msg = rclrs_msg_cloud.into();
     let to_convert = ReaderXYZ::try_from(convert_back_internal).unwrap();
     let back_to_type = to_convert.collect::<Vec<PointXYZ>>();
-    assert_eq!(copy, back_to_type.unwrap());
+    assert_eq!(copy, back_to_type);
 }
