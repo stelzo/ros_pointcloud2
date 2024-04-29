@@ -65,7 +65,7 @@ fn custom_xyz_f32() {
         }
     }
 
-    impl convert::MetaNames<METADIM> for CustomPoint {
+    impl MetaNames<METADIM> for CustomPoint {
         fn meta_names() -> [&'static str; METADIM] {
             []
         }
@@ -130,7 +130,7 @@ fn custom_xyzi_f32() {
         }
     }
 
-    impl convert::MetaNames<METADIM> for CustomPoint {
+    impl MetaNames<METADIM> for CustomPoint {
         fn meta_names() -> [&'static str; METADIM] {
             ["intensity"]
         }
@@ -215,7 +215,7 @@ fn custom_rgba_f32() {
         }
     }
 
-    impl convert::MetaNames<METADIM> for CustomPoint {
+    impl MetaNames<METADIM> for CustomPoint {
         fn meta_names() -> [&'static str; METADIM] {
             ["r", "g", "b", "a"]
         }
@@ -741,7 +741,7 @@ fn write_less_than_available() {
         }
     }
 
-    impl convert::MetaNames<METADIM> for CustomPoint {
+    impl MetaNames<METADIM> for CustomPoint {
         fn meta_names() -> [&'static str; METADIM] {
             []
         }

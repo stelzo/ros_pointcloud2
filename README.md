@@ -10,8 +10,6 @@ Providing an easy to use, generics defined, point-wise iterator abstraction over
 To keep the crate a general purpose library for the problem and support ROS1 and ROS2, it uses its own type for the message `PointCloud2Msg`.
 
 ## Examples
-
-Using a `Vec<>`.
 ```rust
 use ros_pointcloud2::{
   pcl_utils::PointXYZ, reader::ReaderXYZ, writer::WriterXYZ, PointCloud2Msg,
@@ -19,24 +17,15 @@ use ros_pointcloud2::{
 
 // Your points (here using the predefined type PointXYZ).
 let cloud_points = vec![
-  PointXYZ {
-    x: 91.486,
-    y: -4.1,
-    z: 42.0001,
-  },
-
-  PointXYZ {
-    x: f32::MAX,
-    y: f32::MIN,
-    z: f32::MAX,
-  },
+  PointXYZ {x: 91.486, y: -4.1, z: 42.0001,},
+  PointXYZ {x: f32::MAX, y: f32::MIN, z: f32::MAX,},
 ];
 
 // For equality test later
 let cloud_copy = cloud_points.clone();
 
 // Vector -> Writer -> Message.
-// You can also just give the Vec or anything that implements `IntoIter`.
+// You can also just give the Vec or anything that implements `IntoIterator`.
 let internal_msg: PointCloud2Msg = WriterXYZ::from(cloud_points.into_iter())
   .try_into() // iterating points here O(n)
   .unwrap();
@@ -49,7 +38,7 @@ let internal_msg: PointCloud2Msg = WriterXYZ::from(cloud_points.into_iter())
 // ... now incoming from a topic.
 // let internal_msg: PointCloud2Msg = msg.into();
 
-// Message -> Reader. The Reader implements the Iterator trait.
+// Message -> Reader -> your pipeline. The Reader implements the Iterator trait.
 let reader = ReaderXYZ::try_from(internal_msg).unwrap();
 let new_cloud_points = reader
   .map(|point: PointXYZ| {

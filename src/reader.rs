@@ -1,4 +1,19 @@
-use crate::*;
+use crate::{
+    pcl_utils::*,
+    Point,
+    PointCloud2Msg,
+    PointConvertible,
+    ConversionError,
+    MetaNames,
+    PointMeta,
+    convert::{
+        FromBytes,
+        FieldDatatype,
+        load_loadable,
+        Endianness,
+        check_coord,
+    },
+};
 
 /// Convenience type for a Reader that reads coordinates as f32. Specify the number of dimensions, metadata dimensions and C, the point type.
 pub type ReaderF32<const DIM: usize, const METADIM: usize, C> =
@@ -124,7 +139,7 @@ pub type ReaderXYZL = ReaderF32<3, 1, PointXYZL>;
 /// ## Example
 /// ```
 /// use ros_pointcloud2::{
-///     reader::Reader, writer::Writer, PointConvertible, Point, size_of, convert::MetaNames, PointMeta,
+///     reader::Reader, writer::Writer, PointConvertible, Point, size_of, MetaNames, PointMeta,
 /// };
 ///
 /// type Xyz = f32; // coordinate type

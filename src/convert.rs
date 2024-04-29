@@ -8,10 +8,8 @@ pub enum FieldDatatype {
     I32,
     U8,
     U16,
-
     #[default]
     U32,
-
     I8,
     I16,
 }
@@ -135,39 +133,30 @@ pub(crate) fn check_coord(
 }
 
 /// Matching field names from each meta data per point to the PointField name.
-/// Always make sure to use the same order as in your Into<> implementation to have a correct mapping.
+/// Always make sure to use the same order as in your conversion implementation to have a correct mapping.
+///
+/// This trait is needed to implement the `PointConvertible` trait.
+///
+/// # Example for full point conversion.
+/// ```
+/// use ros_pointcloud2::{Point, PointConvertible, MetaNames, size_of};
+///
+/// #[derive(Clone, Debug, PartialEq, Copy)]
+/// pub struct MyPointXYZI {
+///     pub x: f32,
+///     pub y: f32,
+///     pub z: f32,
+///     pub intensity: f32,
+/// }
+///
+/// impl MetaNames<1> for MyPointXYZI {
+///    fn meta_names() -> [&'static str; 1] {
+///       ["intensity"]
+///   }
+/// }
+/// ```
 pub trait MetaNames<const METADIM: usize> {
     fn meta_names() -> [&'static str; METADIM];
-}
-
-#[inline(always)]
-pub(crate) fn add_point_to_byte_buffer<
-    T: FromBytes,
-    const SIZE: usize,
-    const DIM: usize,
-    const METADIM: usize,
-    C: PointConvertible<T, SIZE, DIM, METADIM>,
->(
-    coords: C,
-    cloud: &mut PointCloud2Msg,
-) -> Result<bool, ConversionError> {
-    let point: Point<T, DIM, METADIM> = coords.into();
-
-    // (x, y, z...)
-    point
-        .coords
-        .iter()
-        .for_each(|x| cloud.data.extend_from_slice(T::bytes(x).as_slice()));
-
-    // meta data description
-    point.meta.iter().for_each(|meta| {
-        let truncated_bytes = &meta.bytes[0..meta.datatype.size()];
-        cloud.data.extend_from_slice(truncated_bytes);
-    });
-
-    cloud.width += 1;
-
-    Ok(true)
 }
 
 /// This trait is used to convert a byte slice to a primitive type.

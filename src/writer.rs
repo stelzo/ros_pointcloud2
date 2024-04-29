@@ -1,4 +1,15 @@
-use crate::*;
+use crate::{
+    pcl_utils::*,
+    Point,
+    PointCloud2Msg,
+    PointConvertible,
+    ConversionError,
+    ros_types::PointFieldMsg,
+    convert::{
+        FromBytes,
+        FieldDatatype,
+    },
+};
 
 /// Convenience type for a Writer that reads coordinates as f32. Specify the number of dimensions, metadata dimensions and C, the point type.
 pub type WriterF32<const DIM: usize, const METADIM: usize, C> =
@@ -105,7 +116,7 @@ pub type WriterXYZL = WriterF32<3, 1, PointXYZL>;
 /// ## Example
 /// ```
 /// use ros_pointcloud2::{
-///     reader::Reader, writer::Writer, PointConvertible, Point, size_of, convert::MetaNames, PointMeta,
+///     reader::Reader, writer::Writer, PointConvertible, Point, size_of, MetaNames, PointMeta,
 /// };
 ///
 /// type Xyz = f32; // coordinate type
@@ -302,4 +313,34 @@ where
             phantom_t: std::marker::PhantomData,
         }
     }
+}
+
+#[inline(always)]
+fn add_point_to_byte_buffer<
+    T: FromBytes,
+    const SIZE: usize,
+    const DIM: usize,
+    const METADIM: usize,
+    C: PointConvertible<T, SIZE, DIM, METADIM>,
+>(
+    coords: C,
+    cloud: &mut PointCloud2Msg,
+) -> Result<bool, ConversionError> {
+    let point: Point<T, DIM, METADIM> = coords.into();
+
+    // (x, y, z...)
+    point
+        .coords
+        .iter()
+        .for_each(|x| cloud.data.extend_from_slice(T::bytes(x).as_slice()));
+
+    // meta data description
+    point.meta.iter().for_each(|meta| {
+        let truncated_bytes = &meta.bytes[0..meta.datatype.size()];
+        cloud.data.extend_from_slice(truncated_bytes);
+    });
+
+    cloud.width += 1;
+
+    Ok(true)
 }
