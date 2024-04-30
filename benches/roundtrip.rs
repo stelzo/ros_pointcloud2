@@ -3,6 +3,9 @@ use ros_pointcloud2::{pcl_utils::PointXYZ, PointCloud2Msg};
 
 use rand::Rng;
 
+#[cfg(feature = "rayon")]
+use rayon::prelude::*;
+
 pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<PointXYZ> {
     let mut rng = rand::thread_rng();
     let mut pointcloud = Vec::with_capacity(num_points);
@@ -27,6 +30,17 @@ fn roundtrip(cloud: Vec<PointXYZ>) -> bool {
     orig_len == total.len()
 }
 
+#[cfg(feature = "rayon")]
+fn roundtrip_par(cloud: Vec<PointXYZ>) -> bool {
+    let orig_len = cloud.len();
+    let internal_msg = PointCloud2Msg::try_from_iterable(cloud).unwrap();
+    let total = internal_msg
+        .try_into_par_iter()
+        .unwrap()
+        .collect::<Vec<PointXYZ>>();
+    orig_len == total.len()
+}
+
 fn roundtrip_benchmark(c: &mut Criterion) {
     let cloud_points_10k = generate_random_pointcloud(10_000, f32::MIN / 2.0, f32::MAX / 2.0);
     let cloud_points_100k = generate_random_pointcloud(100_000, f32::MIN / 2.0, f32::MAX / 2.0);
@@ -38,15 +52,36 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
+    #[cfg(feature = "rayon")]
+    c.bench_function("roundtrip_par 10k", |b| {
+        b.iter(|| {
+            black_box(roundtrip_par(cloud_points_10k.clone()));
+        })
+    });
+
     c.bench_function("roundtrip 100k", |b| {
         b.iter(|| {
             black_box(roundtrip(cloud_points_100k.clone()));
         })
     });
 
+    #[cfg(feature = "rayon")]
+    c.bench_function("roundtrip_par 100k", |b| {
+        b.iter(|| {
+            black_box(roundtrip_par(cloud_points_100k.clone()));
+        })
+    });
+
     c.bench_function("roundtrip 1m", |b| {
         b.iter(|| {
             black_box(roundtrip(cloud_points_1m.clone()));
+        })
+    });
+
+    #[cfg(feature = "rayon")]
+    c.bench_function("roundtrip_par 1m", |b| {
+        b.iter(|| {
+            black_box(roundtrip_par(cloud_points_1m.clone()));
         })
     });
 }

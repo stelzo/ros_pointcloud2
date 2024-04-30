@@ -306,7 +306,7 @@ impl FromBytes for u8 {
 }
 
 #[derive(Default, Clone, Debug, PartialEq)]
-pub(crate) enum Endianness {
+pub enum Endianness {
     Big,
 
     #[default]
@@ -331,7 +331,12 @@ fn load_bytes<const S: usize>(start_idx: usize, data: &[u8]) -> [u8; S] {
     let mut target = [u8::default(); S];
 
     debug_assert!(target.len() == S);
-    debug_assert!(data.len() >= start_idx + S);
+    debug_assert!(
+        data.len() >= start_idx + S,
+        "[ERR] byte read out of bounds: Data len: {}, read_idx: {}",
+        data.len(),
+        start_idx + S
+    );
 
     let source = unsafe { data.get_unchecked(start_idx..start_idx + S) };
     target

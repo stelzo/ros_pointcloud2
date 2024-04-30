@@ -31,6 +31,7 @@ pub struct PointCloudIterator<
     C: MetaNames<METADIM>,
 {
     iteration: usize,
+    iteration_back: usize,
     data: Vec<u8>,
     point_step_size: usize,
     cloud_length: usize,
@@ -39,6 +40,125 @@ pub struct PointCloudIterator<
     endianness: Endianness,
     phantom_t: std::marker::PhantomData<T>, // internally used for byte and datatype conversions
     phantom_c: std::marker::PhantomData<C>, // internally used for meta names array
+}
+
+#[cfg(feature = "rayon")]
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> ExactSizeIterator
+    for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes + Send + Sync,
+    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+{
+    fn len(&self) -> usize {
+        self.cloud_length
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> DoubleEndedIterator
+    for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes + Send + Sync,
+    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.iteration_back < self.iteration {
+            return None; // iteration finished
+        }
+
+        let p = self.point_at(self.iteration_back);
+        Some(C::from(p))
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> rayon::iter::ParallelIterator
+    for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes + Send + Sync,
+    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+{
+    type Item = C;
+
+    fn drive_unindexed<Co>(self, consumer: Co) -> Co::Result
+    where
+        Co: rayon::iter::plumbing::UnindexedConsumer<Self::Item>,
+    {
+        rayon::iter::plumbing::bridge(self, consumer)
+    }
+
+    fn opt_len(&self) -> Option<usize> {
+        Some(self.cloud_length)
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
+    rayon::iter::IndexedParallelIterator for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes + Send + Sync,
+    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+{
+    fn len(&self) -> usize {
+        self.cloud_length
+    }
+
+    fn drive<Co>(self, consumer: Co) -> Co::Result
+    where
+        Co: rayon::iter::plumbing::Consumer<Self::Item>,
+    {
+        rayon::iter::plumbing::bridge(self, consumer)
+    }
+
+    fn with_producer<CB: rayon::iter::plumbing::ProducerCallback<Self::Item>>(
+        self,
+        callback: CB,
+    ) -> CB::Output {
+        callback.callback(RayonProducer::from(self))
+    }
+}
+
+#[cfg(feature = "rayon")]
+struct RayonProducer<
+    T: FromBytes,
+    const SIZE: usize,
+    const DIM: usize,
+    const METADIM: usize,
+    C: PointConvertible<T, SIZE, DIM, METADIM>,
+> {
+    iter: PointCloudIterator<T, SIZE, DIM, METADIM, C>,
+}
+
+#[cfg(feature = "rayon")]
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
+    rayon::iter::plumbing::Producer for RayonProducer<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes + Send + Sync,
+    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+{
+    type Item = C;
+    type IntoIter = PointCloudIterator<T, SIZE, DIM, METADIM, C>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter
+    }
+
+    fn split_at(self, index: usize) -> (Self, Self) {
+        let (left, right) = self.iter.split_at(index);
+        (RayonProducer { iter: left }, RayonProducer { iter: right })
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
+    From<PointCloudIterator<T, SIZE, DIM, METADIM, C>> for RayonProducer<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes + Send + Sync,
+    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+{
+    fn from(iterator: PointCloudIterator<T, SIZE, DIM, METADIM, C>) -> Self {
+        Self { iter: iterator }
+    }
 }
 
 /// Implementation of the iterator trait.
@@ -67,35 +187,11 @@ where
             return None; // iteration finished
         }
 
-        let mut xyz = [T::default(); DIM];
-        xyz.iter_mut()
-            .zip(self.offsets.iter())
-            .for_each(|(p_xyz, in_point_offset)| {
-                *p_xyz = load_loadable::<T, SIZE>(
-                    (self.iteration * self.point_step_size) + in_point_offset,
-                    &self.data,
-                    &self.endianness,
-                );
-            });
-
-        debug_assert!(self.meta.len() == METADIM, "Meta data length mismatch");
-        debug_assert!(
-            self.offsets.len() == DIM + METADIM,
-            "Offset length mismatch"
-        );
-
-        let mut meta = [PointMeta::default(); METADIM];
-        meta.iter_mut()
-            .zip(self.offsets.iter().skip(DIM))
-            .zip(self.meta.iter())
-            .for_each(|((p_meta, in_point_offset), (_, meta_type))| {
-                let start = (self.iteration * self.point_step_size) + in_point_offset;
-                *p_meta = PointMeta::from_buffer(&self.data, start, meta_type);
-            });
+        let p = self.point_at(self.iteration);
 
         self.iteration += 1;
 
-        Some(C::from(Point { coords: xyz, meta }))
+        Some(C::from(p))
     }
 }
 
@@ -223,16 +319,114 @@ where
             return Err(ConversionError::DataLengthMismatch);
         }
 
+        let cloud_length = cloud.width as usize * cloud.height as usize;
+
         Ok(Self {
             iteration: 0,
+            iteration_back: cloud_length - 1,
             data: cloud.data,
             point_step_size,
-            cloud_length: cloud.width as usize * cloud.height as usize,
+            cloud_length,
             offsets,
             meta,
             endianness: endian,
             phantom_t: std::marker::PhantomData,
             phantom_c: std::marker::PhantomData,
         })
+    }
+}
+
+impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
+    PointCloudIterator<T, SIZE, DIM, METADIM, C>
+where
+    T: FromBytes,
+    C: MetaNames<METADIM>,
+{
+    #[inline(always)]
+    fn point_at(&self, offset: usize) -> Point<T, DIM, METADIM> {
+        let mut xyz = [T::default(); DIM];
+        xyz.iter_mut()
+            .zip(self.offsets.iter())
+            .for_each(|(p_xyz, in_point_offset)| {
+                *p_xyz = load_loadable::<T, SIZE>(
+                    (offset * self.point_step_size) + in_point_offset,
+                    &self.data,
+                    &self.endianness,
+                );
+            });
+
+        debug_assert!(self.meta.len() == METADIM, "Meta data length mismatch");
+        debug_assert!(
+            self.offsets.len() == DIM + METADIM,
+            "Offset length mismatch"
+        );
+
+        let mut meta = [PointMeta::default(); METADIM];
+        meta.iter_mut()
+            .zip(self.offsets.iter().skip(DIM))
+            .zip(self.meta.iter())
+            .for_each(|((p_meta, in_point_offset), (_, meta_type))| {
+                let start = (offset * self.point_step_size) + in_point_offset;
+                *p_meta = PointMeta::from_buffer(&self.data, start, meta_type);
+            });
+
+        Point { coords: xyz, meta }
+    }
+
+    pub fn split_at(self, index: usize) -> (Self, Self) {
+        let data_idx = index * self.point_step_size;
+        let (left, right) = self.data.split_at(data_idx);
+        let left_iteration = self.iteration;
+        let right_iteration = self.iteration + index;
+        let right_iteration_back = self.iteration_back;
+        (
+            Self {
+                iteration: left_iteration,
+                iteration_back: right_iteration,
+                data: left.into(), // TODO richtig mist hier
+                point_step_size: self.point_step_size.clone(),
+                cloud_length: right_iteration - left_iteration,
+                offsets: self.offsets.clone(),
+                meta: self.meta.clone(),
+                endianness: self.endianness.clone(),
+                phantom_t: std::marker::PhantomData,
+                phantom_c: std::marker::PhantomData,
+            },
+            Self {
+                iteration: right_iteration,
+                iteration_back: right_iteration_back,
+                data: right.into(), // TODO richtig mist hier
+                point_step_size: self.point_step_size,
+                cloud_length: right_iteration_back - right_iteration,
+                offsets: self.offsets.clone(),
+                meta: self.meta.clone(),
+                endianness: self.endianness.clone(),
+                phantom_t: std::marker::PhantomData,
+                phantom_c: std::marker::PhantomData,
+            },
+        )
+    }
+
+    /// Split the iterator at the given index.#
+    pub fn from_subslice(
+        data: Vec<u8>,
+        start: usize,
+        end: usize,
+        offsets: Vec<usize>,
+        meta: Vec<(String, FieldDatatype)>,
+        endianness: Endianness,
+    ) -> Self {
+        Self {
+            iteration: start,
+            iteration_back: end,
+            data: data,
+            point_step_size: 0,
+            cloud_length: end - start,
+            offsets: offsets,
+            meta: meta,
+            endianness: endianness,
+            phantom_t: std::marker::PhantomData,
+            phantom_c: std::marker::PhantomData,
+        }
     }
 }

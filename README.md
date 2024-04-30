@@ -28,7 +28,7 @@ let in_msg = PointCloud2Msg::try_from_iterable(cloud_points).unwrap();
 // ... now incoming from a topic.
 // let in_msg: PointCloud2Msg = msg.into();
 
-let new_pcl = in_msg.try_into_iterable().unwrap()
+let new_pcl = in_msg.try_into_iter().unwrap()
   .map(|point: PointXYZ| { // Define the type of point here.
     // Some logic here ...
 

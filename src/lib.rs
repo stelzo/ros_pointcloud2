@@ -246,6 +246,17 @@ impl PointCloud2Msg {
     {
         iterator::PointCloudIterator::try_from(self)
     }
+
+    #[cfg(feature = "rayon")]
+    pub fn try_into_par_iter<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>(
+        self,
+    ) -> Result<impl rayon::iter::ParallelIterator<Item = C>, ConversionError>
+    where
+        C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+        T: FromBytes + Send + Sync,
+    {
+        iterator::PointCloudIterator::try_from(self)
+    }
 }
 
 /// Internal point representation. It is used to store the coordinates and meta data of a point.
