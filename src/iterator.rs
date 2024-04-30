@@ -384,7 +384,7 @@ where
                 iteration: left_iteration,
                 iteration_back: right_iteration,
                 data: left.into(), // TODO richtig mist hier
-                point_step_size: self.point_step_size.clone(),
+                point_step_size: self.point_step_size,
                 cloud_length: right_iteration - left_iteration,
                 offsets: self.offsets.clone(),
                 meta: self.meta.clone(),
@@ -419,12 +419,12 @@ where
         Self {
             iteration: start,
             iteration_back: end,
-            data: data,
+            data,
             point_step_size: 0,
             cloud_length: end - start,
-            offsets: offsets,
-            meta: meta,
-            endianness: endianness,
+            offsets,
+            meta,
+            endianness,
             phantom_t: std::marker::PhantomData,
             phantom_c: std::marker::PhantomData,
         }
