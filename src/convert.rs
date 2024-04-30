@@ -137,7 +137,7 @@ pub(crate) fn check_coord(
 ///
 /// This trait is needed to implement the `PointConvertible` trait.
 ///
-/// # Example for full point conversion.
+/// # Example
 /// ```
 /// use ros_pointcloud2::{Point, PointConvertible, MetaNames, size_of};
 ///

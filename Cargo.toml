@@ -18,6 +18,14 @@ rosrust_msg = { version = "0.1", optional = true }
 rosrust = { version = "0.9.11", optional = true }
 r2r = { version = "0.8.4", optional = true }
 
+[dev-dependencies]
+rand = "0.8"
+criterion = { version = "0.4", features = ["html_reports"] }
+
+[[bench]]
+name = "roundtrip"
+harness = false
+
 [features]
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]

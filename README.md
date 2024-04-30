@@ -7,48 +7,34 @@
 
 Providing an easy to use, generics defined, point-wise iterator abstraction over the byte buffer in `PointCloud2` to minimize iterations in your processing pipeline.
 
-To keep the crate a general purpose library for the problem and support ROS1 and ROS2, it uses its own type for the message `PointCloud2Msg`.
+To keep the crate a general purpose library for the problem, it uses its own type for the message `PointCloud2Msg`. ROS1 and ROS2 support is added with feature flags.
 
-## Examples
+## Quickstart
 ```rust
-use ros_pointcloud2::{
-  pcl_utils::PointXYZ, reader::ReaderXYZ, writer::WriterXYZ, PointCloud2Msg,
-};
+use ros_pointcloud2::{PointCloud2Msg, pcl_utils::PointXYZ};
 
-// Your points (here using the predefined type PointXYZ).
+// Your points (here using a predefined type PointXYZ).
 let cloud_points = vec![
   PointXYZ {x: 91.486, y: -4.1, z: 42.0001,},
   PointXYZ {x: f32::MAX, y: f32::MIN, z: f32::MAX,},
 ];
 
-// For equality test later
-let cloud_copy = cloud_points.clone();
+// Give the Vec or anything that implements `IntoIterator`.
+let in_msg = PointCloud2Msg::try_from_iterable(cloud_points).unwrap();
 
-// Vector -> Writer -> Message.
-// You can also just give the Vec or anything that implements `IntoIterator`.
-let internal_msg: PointCloud2Msg = WriterXYZ::from(cloud_points.into_iter())
-  .try_into() // iterating points here O(n)
-  .unwrap();
-
-// Convert to your ROS crate message type, we will use r2r here.
-// let msg: r2r::sensor_msgs::msg::PointCloud2 = internal_msg.into();
-
+// Convert the ROS crate message type, we will use r2r here.
+// let msg: r2r::sensor_msgs::msg::PointCloud2 = in_msg.into();
 // Publish ...
-
 // ... now incoming from a topic.
-// let internal_msg: PointCloud2Msg = msg.into();
+// let in_msg: PointCloud2Msg = msg.into();
 
-// Message -> Reader -> your pipeline. The Reader implements the Iterator trait.
-let reader = ReaderXYZ::try_from(internal_msg).unwrap();
-let new_cloud_points = reader
-  .map(|point: PointXYZ| {
-    // Some logic here
+let new_pcl = in_msg.try_into_iterable().unwrap()
+  .map(|point: PointXYZ| { // Define the type of point here.
+    // Some logic here ...
 
-    point
-  })
-  .collect::<Vec<PointXYZ>>(); // iterating points here O(n)
-
-assert_eq!(new_cloud_points, cloud_copy);
+      point
+    })
+    .collect::<Vec<_>>();
 ```
 
 ## Integrations
@@ -86,12 +72,6 @@ Also, indicate the following dependencies to your linker inside the `package.xml
 ```
 
 Please open an issue or PR if you want to see support for other crates.
-
-## Future Work
-- Benchmark vs PCL
-- Add more predefined types
-- Optional derive macros for custom point implementations
-
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)

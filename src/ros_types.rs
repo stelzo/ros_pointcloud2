@@ -23,19 +23,6 @@ pub struct PointFieldMsg {
     pub count: u32,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct PointCloud2Msg {
-    pub header: HeaderMsg,
-    pub height: u32,
-    pub width: u32,
-    pub fields: Vec<PointFieldMsg>,
-    pub is_bigendian: bool,
-    pub point_step: u32,
-    pub row_step: u32,
-    pub data: Vec<u8>,
-    pub is_dense: bool,
-}
-
 #[cfg(feature = "r2r_msg")]
 impl From<r2r::sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
     fn from(msg: r2r::sensor_msgs::msg::PointCloud2) -> Self {
