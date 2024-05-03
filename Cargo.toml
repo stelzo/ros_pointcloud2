@@ -18,6 +18,10 @@ rosrust_msg = { version = "0.1", optional = true }
 rosrust = { version = "0.9.11", optional = true }
 r2r = { version = "0.8.4", optional = true }
 rayon = { version = "1.10", optional = true }
+nalgebra = { version = "0.32.5", optional = true }
+rpcl2_derive = { path = "./rpcl2_derive", optional = true }
+bytemuck = "1.15"
+type-layout = "0.2.0"
 
 [dev-dependencies]
 rand = "0.8"
@@ -31,3 +35,6 @@ harness = false
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
+derive = ["dep:rpcl2_derive"]
+
+default = ["derive"]

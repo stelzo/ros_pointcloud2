@@ -9,9 +9,29 @@ macro_rules! convert_from_into {
     };
 }
 
+macro_rules! convert_from_into_vec {
+    ($point:ty, $cloud:expr) => {
+        convert_from_into_in_out_cloud_vec!($cloud, $point, $cloud, $point);
+    };
+}
+
 macro_rules! convert_from_into_in_out_cloud {
     ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
-        let msg = PointCloud2Msg::try_from_iterable($in_cloud.clone());
+        let msg = PointCloud2Msg::try_from_iter($in_cloud.clone().into_iter());
+        assert!(msg.is_ok());
+        let msg = msg.unwrap();
+        let to_p_type = msg.try_into_iter();
+        assert!(to_p_type.is_ok());
+        let to_p_type = to_p_type.unwrap();
+        let back_to_type = to_p_type.collect::<Vec<$out_point>>();
+        let orig_cloud: Vec<$out_point> = $out_cloud.iter().cloned().collect();
+        assert_eq!(orig_cloud, back_to_type);
+    };
+}
+
+macro_rules! convert_from_into_in_out_cloud_vec {
+    ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
+        let msg = PointCloud2Msg::try_from_vec($in_cloud.clone());
         assert!(msg.is_ok());
         let msg = msg.unwrap();
         let to_p_type = msg.try_into_iter();
@@ -24,42 +44,74 @@ macro_rules! convert_from_into_in_out_cloud {
 }
 
 #[test]
-fn custom_xyz_f32() {
-    const DIM: usize = 3;
-    const METADIM: usize = 0;
+fn write_cloud() {
+    let cloud = vec![
+        PointXYZ {
+            x: 0.0,
+            y: 1.0,
+            z: 5.0,
+        },
+        PointXYZ {
+            x: 1.0,
+            y: 1.5,
+            z: 5.0,
+        },
+        PointXYZ {
+            x: 1.3,
+            y: 1.6,
+            z: 5.7,
+        },
+        PointXYZ {
+            x: f32::MAX,
+            y: f32::MIN,
+            z: f32::MAX,
+        },
+    ];
 
-    #[derive(Debug, PartialEq, Clone)]
+    let msg = PointCloud2Msg::try_from_iter(cloud.into_iter());
+    assert!(msg.is_ok());
+}
+
+#[test]
+fn write_cloud_from_vec() {
+    let cloud = vec![
+        PointXYZ {
+            x: 0.0,
+            y: 1.0,
+            z: 5.0,
+        },
+        PointXYZ {
+            x: 1.0,
+            y: 1.5,
+            z: 5.0,
+        },
+        PointXYZ {
+            x: 1.3,
+            y: 1.6,
+            z: 5.7,
+        },
+        PointXYZ {
+            x: f32::MAX,
+            y: f32::MIN,
+            z: f32::MAX,
+        },
+    ];
+
+    let msg = PointCloud2Msg::try_from_vec(cloud);
+    assert!(msg.is_ok());
+
+    let msg = msg.unwrap();
+    println!("{:?}", msg);
+}
+
+#[test]
+fn custom_xyz_f32() {
+    #[derive(Debug, PartialEq, Clone, Default, RosFull)]
     struct CustomPoint {
         x: f32,
         y: f32,
         z: f32,
     }
-
-    impl From<CustomPoint> for Point<f32, DIM, METADIM> {
-        fn from(point: CustomPoint) -> Self {
-            Point {
-                coords: [point.x, point.y, point.z],
-                meta: [],
-            }
-        }
-    }
-
-    impl From<Point<f32, DIM, METADIM>> for CustomPoint {
-        fn from(point: Point<f32, 3, 0>) -> Self {
-            Self {
-                x: point.coords[0],
-                y: point.coords[1],
-                z: point.coords[2],
-            }
-        }
-    }
-
-    impl MetaNames<METADIM> for CustomPoint {
-        fn meta_names() -> [&'static str; METADIM] {
-            []
-        }
-    }
-    impl PointConvertible<f32, { std::mem::size_of::<f32>() }, DIM, METADIM> for CustomPoint {}
 
     convert_from_into!(
         CustomPoint,
@@ -112,7 +164,7 @@ fn custom_xyzi_f32() {
         },
     ];
 
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone, Default, RosFull)]
     struct CustomPointXYZI {
         x: f32,
         y: f32,
@@ -120,40 +172,12 @@ fn custom_xyzi_f32() {
         i: u8,
     }
 
-    impl From<CustomPointXYZI> for Point<f32, 3, 1> {
-        fn from(point: CustomPointXYZI) -> Self {
-            Point {
-                coords: [point.x, point.y, point.z],
-                meta: [point.i.into()],
-            }
-        }
-    }
-
-    impl From<Point<f32, 3, 1>> for CustomPointXYZI {
-        fn from(point: Point<f32, 3, 1>) -> Self {
-            Self {
-                x: point.coords[0],
-                y: point.coords[1],
-                z: point.coords[2],
-                i: point.meta[0].get(),
-            }
-        }
-    }
-
-    impl MetaNames<1> for CustomPointXYZI {
-        fn meta_names() -> [&'static str; 1] {
-            ["intensity"]
-        }
-    }
-
-    impl PointConvertible<f32, { size_of!(f32) }, 3, 1> for CustomPointXYZI {}
-
     convert_from_into!(CustomPointXYZI, cloud);
 }
 
 #[test]
 fn custom_rgba_f32() {
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone, Default, RosFull)]
     struct CustomPoint {
         x: f32,
         y: f32,
@@ -164,40 +188,6 @@ fn custom_rgba_f32() {
         a: u8,
     }
 
-    impl From<Point<f32, 3, 4>> for CustomPoint {
-        fn from(point: Point<f32, 3, 4>) -> Self {
-            Self {
-                x: point.coords[0],
-                y: point.coords[1],
-                z: point.coords[2],
-                r: point.meta[0].get(),
-                g: point.meta[1].get(),
-                b: point.meta[2].get(),
-                a: point.meta[3].get(),
-            }
-        }
-    }
-
-    impl From<CustomPoint> for Point<f32, 3, 4> {
-        fn from(point: CustomPoint) -> Self {
-            Point {
-                coords: [point.x, point.y, point.z],
-                meta: [
-                    point.r.into(),
-                    point.g.into(),
-                    point.b.into(),
-                    point.a.into(),
-                ],
-            }
-        }
-    }
-
-    impl MetaNames<4> for CustomPoint {
-        fn meta_names() -> [&'static str; 4] {
-            ["r", "g", "b", "a"]
-        }
-    }
-    impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 4> for CustomPoint {}
     let cloud = vec![
         CustomPoint {
             x: 0.0,
@@ -538,6 +528,47 @@ fn converterxyzrgb() {
 }
 
 #[test]
+fn converterxyzrgb_from_vec() {
+    convert_from_into_vec!(
+        PointXYZRGB,
+        vec![
+            PointXYZRGB {
+                x: 0.0,
+                y: 1.0,
+                z: 5.0,
+                r: 0,
+                g: 0,
+                b: 0,
+            },
+            PointXYZRGB {
+                x: 1.0,
+                y: 1.5,
+                z: 5.0,
+                r: 1,
+                g: 1,
+                b: 1,
+            },
+            PointXYZRGB {
+                x: 1.3,
+                y: 1.6,
+                z: 5.7,
+                r: 2,
+                g: 2,
+                b: 2,
+            },
+            PointXYZRGB {
+                x: f32::MAX,
+                y: f32::MIN,
+                z: f32::MAX,
+                r: u8::MAX,
+                g: u8::MAX,
+                b: u8::MAX,
+            },
+        ]
+    );
+}
+
+#[test]
 fn converterxyzl() {
     convert_from_into!(
         PointXYZL,
@@ -660,7 +691,7 @@ fn write_xyzi_read_xyz() {
 
 #[test]
 fn write_less_than_available() {
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone, Default)]
     struct CustomPoint {
         x: f32,
         y: f32,
@@ -668,32 +699,32 @@ fn write_less_than_available() {
         dummy: f32,
     }
 
-    impl From<Point<f32, 3, 0>> for CustomPoint {
-        fn from(point: Point<f32, 3, 0>) -> Self {
+    impl From<Point<3>> for CustomPoint {
+        fn from(point: Point<3>) -> Self {
             Self {
-                x: point.coords[0],
-                y: point.coords[1],
-                z: point.coords[2],
+                x: point.fields[0].get(),
+                y: point.fields[1].get(),
+                z: point.fields[2].get(),
                 dummy: 0.0,
             }
         }
     }
 
-    impl From<CustomPoint> for Point<f32, 3, 0> {
+    impl From<CustomPoint> for Point<3> {
         fn from(point: CustomPoint) -> Self {
             Point {
-                coords: [point.x, point.y, point.z],
-                meta: [],
+                fields: [point.x.into(), point.y.into(), point.z.into()],
             }
         }
     }
 
-    impl MetaNames<0> for CustomPoint {
-        fn meta_names() -> [&'static str; 0] {
-            []
+    impl Fields<3> for CustomPoint {
+        fn field_names_ordered() -> [&'static str; 3] {
+            ["x", "y", "z"]
         }
     }
-    impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 0> for CustomPoint {}
+
+    impl PointConvertible<3> for CustomPoint {}
 
     let write_cloud = vec![
         CustomPoint {

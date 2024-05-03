@@ -1,6 +1,6 @@
 use crate::{
-    convert::{check_coord, load_loadable, Endianness, FieldDatatype, FromBytes},
-    ConversionError, MetaNames, Point, PointCloud2Msg, PointConvertible, PointMeta,
+    convert::{Endianness, FieldDatatype},
+    ConversionError, Fields, Point, PointCloud2Msg, PointConvertible, PointMeta,
 };
 
 /// The PointCloudIterator provides a an iterator abstraction of the PointCloud2Msg.
@@ -20,25 +20,13 @@ use crate::{
 ///
 /// ros_pointcloud2 supports r2r, rclrs and rosrust as conversion targets out of the box via feature flags.
 ///
-pub struct PointCloudIterator<
-    T: FromBytes,
-    const SIZE: usize,
-    const DIM: usize,
-    const METADIM: usize,
-    C,
-> where
-    T: FromBytes,
-    C: MetaNames<METADIM>,
+pub struct PointCloudIterator<const N: usize, C>
+where
+    C: Fields<N>,
 {
     iteration: usize,
     iteration_back: usize,
-    data: Vec<u8>,
-    point_step_size: usize,
-    cloud_length: usize,
-    offsets: Vec<usize>,
-    meta: Vec<(String, FieldDatatype)>,
-    endianness: Endianness,
-    phantom_t: std::marker::PhantomData<T>, // internally used for byte and datatype conversions
+    data: ByteBufferView<N>,
     phantom_c: std::marker::PhantomData<C>, // internally used for meta names array
 }
 
@@ -50,7 +38,7 @@ where
     C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
 {
     fn len(&self) -> usize {
-        self.cloud_length
+        self.data.len()
     }
 }
 
@@ -66,7 +54,8 @@ where
             return None; // iteration finished
         }
 
-        let p = self.point_at(self.iteration_back);
+        let p = self.data.point_at(self.iteration_back);
+        self.iteration_back -= 1;
         Some(C::from(p))
     }
 }
@@ -88,7 +77,7 @@ where
     }
 
     fn opt_len(&self) -> Option<usize> {
-        Some(self.cloud_length)
+        Some(self.data.len())
     }
 }
 
@@ -100,7 +89,7 @@ where
     C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
 {
     fn len(&self) -> usize {
-        self.cloud_length
+        self.data.len()
     }
 
     fn drive<Co>(self, consumer: Co) -> Co::Result
@@ -143,8 +132,8 @@ where
         self.iter
     }
 
-    fn split_at(self, index: usize) -> (Self, Self) {
-        let (left, right) = self.iter.split_at(index);
+    fn split_at(self, point_index: usize) -> (Self, Self) {
+        let (left, right) = self.iter.split_at(point_index);
         (RayonProducer { iter: left }, RayonProducer { iter: right })
     }
 }
@@ -162,44 +151,116 @@ where
 }
 
 /// Implementation of the iterator trait.
-impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> Iterator
-    for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+impl<const N: usize, C> Iterator for PointCloudIterator<N, C>
 where
-    T: FromBytes,
-    C: PointConvertible<T, SIZE, DIM, METADIM>,
+    C: PointConvertible<N>,
 {
     type Item = C;
 
-    /// The size_hint is the length of the remaining elements and the maximum length of the iterator.
-    ///
-    /// PointCloud2 messages contain the length of the cloud, so we can prepare coming operations.
-    /// This hint is used inside common iterator functions like `collect<Vec<_>>`, for example.
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.cloud_length - self.iteration, Some(self.cloud_length))
+        let buf_len = self.data.len();
+        (buf_len, Some(buf_len))
     }
 
-    /// Get the data from the byte buffer and convert it to the predefined point.
-    /// It must keep track of the current iteration and the length of the cloud so it has to mutate self.
-    ///
-    /// The current point is then converted into the custom type. If the conversion fails, an error is returned.
     fn next(&mut self) -> Option<Self::Item> {
-        if self.iteration >= self.cloud_length {
+        if self.iteration >= self.data.len() || self.iteration_back < self.iteration {
             return None; // iteration finished
         }
 
-        let p = self.point_at(self.iteration);
-
+        let p = self.data.point_at(self.iteration);
         self.iteration += 1;
-
         Some(C::from(p))
     }
 }
 
-impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> TryFrom<PointCloud2Msg>
-    for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+struct ByteBufferView<const N: usize> {
+    data: std::sync::Arc<[u8]>,
+    start_point_idx: usize,
+    end_point_idx: usize,
+    point_step_size: usize,
+    offsets: [usize; N],
+    meta: Vec<(String, FieldDatatype)>,
+    endianness: Endianness,
+}
+
+impl<const N: usize> ByteBufferView<N> {
+    fn new(
+        data: Vec<u8>,
+        point_step_size: usize,
+        start_point_idx: usize,
+        end_point_idx: usize,
+        offsets: [usize; N],
+        meta: Vec<(String, FieldDatatype)>,
+        endianness: Endianness,
+    ) -> Self {
+        Self {
+            data: std::sync::Arc::<[u8]>::from(data),
+            start_point_idx,
+            end_point_idx,
+            point_step_size,
+            offsets,
+            meta,
+            endianness,
+        }
+    }
+
+    #[inline]
+    fn len(&self) -> usize {
+        self.end_point_idx - self.start_point_idx + 1
+    }
+
+    #[inline(always)]
+    fn point_at(&self, idx: usize) -> Point<N> {
+        let offset = (self.start_point_idx + idx) * self.point_step_size;
+
+        // TODO memcpy entire point at once, then extract fields?
+        let mut meta = [PointMeta::default(); N];
+        meta.iter_mut()
+            .zip(self.offsets.iter())
+            .zip(self.meta.iter())
+            .for_each(|((p_meta, in_point_offset), (_, meta_type))| {
+                *p_meta = PointMeta::from_buffer(
+                    &self.data,
+                    offset + in_point_offset,
+                    *meta_type,
+                    self.endianness,
+                );
+            });
+
+        Point { fields: meta }
+    }
+
+    #[inline]
+    fn clone_with_bounds(&self, start: usize, size: usize) -> Self {
+        Self {
+            data: self.data.clone(),
+            start_point_idx: start,
+            end_point_idx: start + size - 1,
+            point_step_size: self.point_step_size,
+            offsets: self.offsets,
+            meta: self.meta.clone(),
+            endianness: self.endianness,
+        }
+    }
+
+    #[inline]
+    pub fn split_at(self, point_index: usize) -> (Self, Self) {
+        let left_start = self.start_point_idx;
+        let left_size = point_index;
+
+        let right_start = point_index;
+        let right_size = self.len() - point_index;
+
+        (
+            self.clone_with_bounds(left_start, left_size),
+            self.clone_with_bounds(right_start, right_size),
+        )
+    }
+}
+
+impl<const N: usize, C> TryFrom<PointCloud2Msg> for PointCloudIterator<N, C>
 where
-    T: FromBytes,
-    C: MetaNames<METADIM>,
+    C: Fields<N>,
 {
     type Error = ConversionError;
 
@@ -209,98 +270,62 @@ where
     /// The theoretical time complexity is O(n) where n is the number of fields defined in the message for a single point which is typically small.
     /// It therefore has a constant time complexity O(1) for practical purposes.
     fn try_from(cloud: PointCloud2Msg) -> Result<Self, Self::Error> {
-        if cloud.fields.len() < DIM {
-            return Err(ConversionError::NotEnoughFields);
+        let mut meta_with_offsets = vec![(String::default(), FieldDatatype::default(), 0); N];
+
+        let not_found_fieldnames = C::field_names_ordered()
+            .into_iter()
+            .map(|name| {
+                let found = cloud.fields.iter().any(|field| field.name == *name);
+                (name, found)
+            })
+            .filter(|(_, found)| !*found)
+            .collect::<Vec<_>>();
+
+        if !not_found_fieldnames.is_empty() {
+            let names_not_found = not_found_fieldnames
+                .into_iter()
+                .map(|(name, _)| (*name).to_owned())
+                .collect::<Vec<String>>();
+            return Err(ConversionError::FieldNotFound(names_not_found));
         }
 
-        let xyz_field_type = T::field_datatype();
-
-        let mut has_x: Option<usize> = None;
-        let mut has_y: Option<usize> = None;
-        let mut has_z: Option<usize> = None;
-
-        let mut meta_with_offsets = vec![(String::default(), FieldDatatype::default(), 0); METADIM];
-
-        let lower_meta_names = C::meta_names()
-            .iter()
-            .map(|x| x.to_lowercase())
-            .collect::<Vec<String>>();
-
-        for (idx, field) in cloud.fields.iter().enumerate() {
-            let lower_field_name = field.name.to_lowercase();
-            match lower_field_name.as_str() {
-                "x" => has_x = Some(idx),
-                "y" => has_y = Some(idx),
-                "z" => has_z = Some(idx),
-                _ => {
-                    if lower_meta_names.contains(&lower_field_name) {
-                        let meta_idx = idx - DIM;
-                        debug_assert!(
-                            meta_idx < meta_with_offsets.len(),
-                            "Meta data length mismatch"
-                        );
-                        meta_with_offsets[meta_idx].0.clone_from(&field.name);
-                        meta_with_offsets[meta_idx].1 = field.datatype.try_into()?;
-                        meta_with_offsets[meta_idx].2 = field.offset as usize;
-                    }
-                }
+        let ordered_fieldnames = C::field_names_ordered();
+        for (field, with_offset) in cloud.fields.iter().zip(meta_with_offsets.iter_mut()) {
+            if ordered_fieldnames.contains(&field.name.as_str()) {
+                *with_offset = (
+                    field.name.clone(),
+                    field.datatype.try_into()?,
+                    field.offset as usize,
+                );
             }
         }
 
         meta_with_offsets.sort_unstable_by(|(_, _, offset1), (_, _, offset2)| offset1.cmp(offset2));
 
         debug_assert!(
-            meta_with_offsets.len() == METADIM,
-            "Meta data length mismatch"
+            meta_with_offsets.len() == N,
+            "Not all fields were found in the message. Expected {} but found {}.",
+            N,
+            meta_with_offsets.len()
         );
 
-        let mut meta_offsets = [usize::default(); METADIM];
-        let mut meta = vec![(String::default(), FieldDatatype::default()); METADIM];
+        let mut offsets = [usize::default(); N];
+        let mut meta = vec![(String::default(), FieldDatatype::default()); N];
 
         meta_with_offsets
             .into_iter()
             .zip(meta.iter_mut())
-            .zip(meta_offsets.iter_mut())
+            .zip(offsets.iter_mut())
             .for_each(|(((name, datatype, offset), meta), meta_offset)| {
                 *meta = (name, datatype);
                 *meta_offset = offset;
             });
-
-        let x_field = check_coord(has_x, &cloud.fields, &xyz_field_type)?;
-        let y_field = check_coord(has_y, &cloud.fields, &xyz_field_type)?;
-
-        let mut offsets = vec![x_field.offset as usize, y_field.offset as usize];
-
-        let z_field = check_coord(has_z, &cloud.fields, &xyz_field_type);
-        match z_field {
-            Ok(z_field) => {
-                offsets.push(z_field.offset as usize);
-            }
-            Err(err) => match err {
-                ConversionError::NotEnoughFields => {
-                    if DIM == 3 {
-                        return Err(ConversionError::NotEnoughFields);
-                    }
-                }
-                _ => return Err(err),
-            },
-        }
 
         let endian = if cloud.is_bigendian {
             Endianness::Big
         } else {
             Endianness::Little
         };
-
-        if offsets.len() != DIM {
-            return Err(ConversionError::NotEnoughFields);
-        }
-
-        offsets.extend(meta_offsets);
-
-        if offsets.len() != DIM + METADIM {
-            return Err(ConversionError::NotEnoughFields);
-        }
 
         let point_step_size = cloud.point_step as usize;
         let cloud_length = cloud.width as usize * cloud.height as usize;
@@ -310,123 +335,176 @@ where
 
         let last_offset = offsets.last().expect("Dimensionality is 0.");
 
-        if let Some(last_meta) = meta.last() {
-            let size_with_last_meta = last_offset + last_meta.1.size();
-            if size_with_last_meta > point_step_size {
-                return Err(ConversionError::DataLengthMismatch);
-            }
-        } else if last_offset + xyz_field_type.size() > point_step_size {
+        let last_meta = meta.last().expect("Dimensionality is 0.");
+        let size_with_last_meta = last_offset + last_meta.1.size();
+        if size_with_last_meta > point_step_size {
             return Err(ConversionError::DataLengthMismatch);
         }
 
         let cloud_length = cloud.width as usize * cloud.height as usize;
 
+        let data = ByteBufferView::new(
+            cloud.data,
+            point_step_size,
+            0,
+            cloud_length - 1,
+            offsets,
+            meta,
+            endian,
+        );
+
         Ok(Self {
             iteration: 0,
             iteration_back: cloud_length - 1,
-            data: cloud.data,
-            point_step_size,
-            cloud_length,
-            offsets,
-            meta,
-            endianness: endian,
-            phantom_t: std::marker::PhantomData,
+            data,
             phantom_c: std::marker::PhantomData,
         })
     }
 }
 
-impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
-    PointCloudIterator<T, SIZE, DIM, METADIM, C>
+impl<const N: usize, C> PointCloudIterator<N, C>
 where
-    T: FromBytes,
-    C: MetaNames<METADIM>,
+    C: Fields<N>,
 {
-    #[inline(always)]
-    fn point_at(&self, offset: usize) -> Point<T, DIM, METADIM> {
-        let mut xyz = [T::default(); DIM];
-        xyz.iter_mut()
-            .zip(self.offsets.iter())
-            .for_each(|(p_xyz, in_point_offset)| {
-                *p_xyz = load_loadable::<T, SIZE>(
-                    (offset * self.point_step_size) + in_point_offset,
-                    &self.data,
-                    &self.endianness,
-                );
-            });
-
-        debug_assert!(self.meta.len() == METADIM, "Meta data length mismatch");
-        debug_assert!(
-            self.offsets.len() == DIM + METADIM,
-            "Offset length mismatch"
-        );
-
-        let mut meta = [PointMeta::default(); METADIM];
-        meta.iter_mut()
-            .zip(self.offsets.iter().skip(DIM))
-            .zip(self.meta.iter())
-            .for_each(|((p_meta, in_point_offset), (_, meta_type))| {
-                let start = (offset * self.point_step_size) + in_point_offset;
-                *p_meta = PointMeta::from_buffer(&self.data, start, meta_type);
-            });
-
-        Point { coords: xyz, meta }
-    }
-
-    pub fn split_at(self, index: usize) -> (Self, Self) {
-        let data_idx = index * self.point_step_size;
-        let (left, right) = self.data.split_at(data_idx);
-        let left_iteration = self.iteration;
-        let right_iteration = self.iteration + index;
-        let right_iteration_back = self.iteration_back;
-        (
-            Self {
-                iteration: left_iteration,
-                iteration_back: right_iteration,
-                data: left.into(), // TODO richtig mist hier
-                point_step_size: self.point_step_size,
-                cloud_length: right_iteration - left_iteration,
-                offsets: self.offsets.clone(),
-                meta: self.meta.clone(),
-                endianness: self.endianness.clone(),
-                phantom_t: std::marker::PhantomData,
-                phantom_c: std::marker::PhantomData,
-            },
-            Self {
-                iteration: right_iteration,
-                iteration_back: right_iteration_back,
-                data: right.into(), // TODO richtig mist hier
-                point_step_size: self.point_step_size,
-                cloud_length: right_iteration_back - right_iteration,
-                offsets: self.offsets.clone(),
-                meta: self.meta.clone(),
-                endianness: self.endianness.clone(),
-                phantom_t: std::marker::PhantomData,
-                phantom_c: std::marker::PhantomData,
-            },
-        )
-    }
-
-    /// Split the iterator at the given index.#
-    pub fn from_subslice(
-        data: Vec<u8>,
-        start: usize,
-        end: usize,
-        offsets: Vec<usize>,
-        meta: Vec<(String, FieldDatatype)>,
-        endianness: Endianness,
-    ) -> Self {
+    #[inline]
+    fn from_byte_buffer_view(data: ByteBufferView<N>) -> Self {
         Self {
-            iteration: start,
-            iteration_back: end,
+            iteration: 0,
+            iteration_back: data.len() - 1,
             data,
-            point_step_size: 0,
-            cloud_length: end - start,
-            offsets,
-            meta,
-            endianness,
-            phantom_t: std::marker::PhantomData,
             phantom_c: std::marker::PhantomData,
         }
+    }
+
+    #[inline]
+    pub fn split_at(self, point_index: usize) -> (Self, Self) {
+        let (left_data, right_data) = self.data.split_at(point_index);
+        (
+            Self::from_byte_buffer_view(left_data),
+            Self::from_byte_buffer_view(right_data),
+        )
+    }
+}
+
+#[cfg(feature = "rayon")]
+mod test {
+
+    #[test]
+    fn test_double_ended_iter() {
+        let cloud = vec![
+            crate::pcl_utils::PointXYZ {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0,
+            },
+            crate::pcl_utils::PointXYZ {
+                x: 2.0,
+                y: 2.0,
+                z: 2.0,
+            },
+            crate::pcl_utils::PointXYZ {
+                x: 3.0,
+                y: 3.0,
+                z: 3.0,
+            },
+        ];
+
+        let internal_msg = crate::PointCloud2Msg::try_from_iterable(cloud).unwrap();
+        let mut iter = crate::iterator::PointCloudIterator::try_from(internal_msg).unwrap();
+        let last_p = iter.next_back();
+
+        assert!(last_p.is_some());
+        let last_p: crate::pcl_utils::PointXYZ = last_p.unwrap();
+
+        assert_eq!(last_p.x, 3.0);
+        assert_eq!(last_p.y, 3.0);
+        assert_eq!(last_p.z, 3.0);
+
+        let first_p = iter.next();
+        assert!(first_p.is_some());
+        let first_p: crate::pcl_utils::PointXYZ = first_p.unwrap();
+
+        assert_eq!(first_p.x, 1.0);
+        assert_eq!(first_p.y, 1.0);
+        assert_eq!(first_p.z, 1.0);
+
+        let last_p = iter.next_back();
+        assert!(last_p.is_some());
+        let last_p: crate::pcl_utils::PointXYZ = last_p.unwrap();
+
+        assert_eq!(last_p.x, 2.0);
+        assert_eq!(last_p.y, 2.0);
+        assert_eq!(last_p.z, 2.0);
+
+        let last_p = iter.next_back();
+        assert!(last_p.is_none());
+
+        let first_p = iter.next();
+        assert!(first_p.is_none());
+    }
+
+    #[test]
+    fn test_split_at() {
+        let cloud = vec![
+            crate::pcl_utils::PointXYZ {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0,
+            },
+            crate::pcl_utils::PointXYZ {
+                x: 2.0,
+                y: 2.0,
+                z: 2.0,
+            },
+            crate::pcl_utils::PointXYZ {
+                x: 3.0,
+                y: 3.0,
+                z: 3.0,
+            },
+        ];
+
+        let internal_msg = crate::PointCloud2Msg::try_from_iterable(cloud).unwrap();
+        let iter = crate::iterator::PointCloudIterator::try_from(internal_msg).unwrap();
+
+        let (mut left, mut right) = iter.split_at(1);
+
+        assert_eq!(left.size_hint(), (1, Some(1)));
+        assert_eq!(right.size_hint(), (2, Some(2)));
+
+        let first_left = left.next();
+        assert!(first_left.is_some());
+        let first_left: crate::pcl_utils::PointXYZ = first_left.unwrap();
+
+        assert_eq!(first_left.x, 1.0);
+        assert_eq!(first_left.y, 1.0);
+        assert_eq!(first_left.z, 1.0);
+
+        let first_right = right.next();
+        assert!(first_right.is_some());
+        let first_right: crate::pcl_utils::PointXYZ = first_right.unwrap();
+
+        assert_eq!(first_right.x, 2.0);
+        assert_eq!(first_right.y, 2.0);
+        assert_eq!(first_right.z, 2.0);
+
+        let last_right = right.next_back();
+        assert!(last_right.is_some());
+
+        let last_right: crate::pcl_utils::PointXYZ = last_right.unwrap();
+        assert_eq!(last_right.x, 3.0);
+        assert_eq!(last_right.y, 3.0);
+        assert_eq!(last_right.z, 3.0);
+
+        let last_left = left.next_back();
+        assert!(last_left.is_none());
+
+        let last_right = right.next_back();
+        assert!(last_right.is_none());
+
+        let first_left = left.next();
+        assert!(first_left.is_none());
+
+        let first_right = right.next();
+        assert!(first_right.is_none());
     }
 }

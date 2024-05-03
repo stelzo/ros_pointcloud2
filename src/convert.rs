@@ -29,6 +29,24 @@ impl FieldDatatype {
     }
 }
 
+impl TryFrom<String> for FieldDatatype {
+    type Error = ConversionError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "f32" => Ok(FieldDatatype::F32),
+            "f64" => Ok(FieldDatatype::F64),
+            "i32" => Ok(FieldDatatype::I32),
+            "u8" => Ok(FieldDatatype::U8),
+            "u16" => Ok(FieldDatatype::U16),
+            "u32" => Ok(FieldDatatype::U32),
+            "i8" => Ok(FieldDatatype::I8),
+            "i16" => Ok(FieldDatatype::I16),
+            _ => Err(ConversionError::UnsupportedFieldType),
+        }
+    }
+}
+
 /// Getter trait for the datatype of a field value.
 pub trait GetFieldDatatype {
     fn field_datatype() -> FieldDatatype;
@@ -115,23 +133,6 @@ impl From<FieldDatatype> for u8 {
     }
 }
 
-pub(crate) fn check_coord(
-    coord: Option<usize>,
-    fields: &[PointFieldMsg],
-    xyz_field_type: &FieldDatatype,
-) -> Result<PointFieldMsg, ConversionError> {
-    match coord {
-        Some(y_idx) => {
-            let field = &fields[y_idx];
-            if field.datatype != u8::from(*xyz_field_type) {
-                return Err(ConversionError::InvalidFieldFormat);
-            }
-            Ok(field.clone())
-        }
-        None => Err(ConversionError::NotEnoughFields),
-    }
-}
-
 /// Matching field names from each meta data per point to the PointField name.
 /// Always make sure to use the same order as in your conversion implementation to have a correct mapping.
 ///
@@ -155,8 +156,8 @@ pub(crate) fn check_coord(
 ///   }
 /// }
 /// ```
-pub trait MetaNames<const METADIM: usize> {
-    fn meta_names() -> [&'static str; METADIM];
+pub trait Fields<const N: usize> {
+    fn field_names_ordered() -> [&'static str; N];
 }
 
 /// This trait is used to convert a byte slice to a primitive type.
@@ -305,47 +306,12 @@ impl FromBytes for u8 {
     }
 }
 
-#[derive(Default, Clone, Debug, PartialEq)]
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
 pub enum Endianness {
     Big,
 
     #[default]
     Little,
-}
-
-#[inline(always)]
-pub(crate) fn load_loadable<T: FromBytes, const SIZE: usize>(
-    start_idx: usize,
-    data: &[u8],
-    endian: &Endianness,
-) -> T {
-    match endian {
-        Endianness::Big => T::from_be_bytes(load_bytes::<SIZE>(start_idx, data).as_slice()),
-        Endianness::Little => T::from_le_bytes(load_bytes::<SIZE>(start_idx, data).as_slice()),
-    }
-}
-
-/// Note: check if the data slice is long enough to load the bytes beforehand! Uses unsafe indexing.
-#[inline(always)]
-fn load_bytes<const S: usize>(start_idx: usize, data: &[u8]) -> [u8; S] {
-    let mut target = [u8::default(); S];
-
-    debug_assert!(target.len() == S);
-    debug_assert!(
-        data.len() >= start_idx + S,
-        "[ERR] byte read out of bounds: Data len: {}, read_idx: {}",
-        data.len(),
-        start_idx + S
-    );
-
-    let source = unsafe { data.get_unchecked(start_idx..start_idx + S) };
-    target
-        .iter_mut()
-        .zip(source.iter())
-        .for_each(|(target, source)| {
-            *target = *source;
-        });
-    target
 }
 
 #[cfg(test)]

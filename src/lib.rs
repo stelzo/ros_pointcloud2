@@ -56,19 +56,17 @@ pub mod convert;
 pub mod pcl_utils;
 pub mod ros_types;
 
-/// Macro to get the size of a type at compile time. This is a convenience macro to avoid writing out the full std::mem::size_of::<T>().
-/// Use it for your custom point conversion implementations with the [`ros_pointcloud2::PointConvertible`] trait.
-#[macro_export]
-macro_rules! size_of {
-    ($t:ty) => {
-        std::mem::size_of::<$t>()
-    };
-}
-
 pub mod iterator;
+
 use crate::convert::{FieldDatatype, FromBytes};
 use crate::ros_types::{HeaderMsg, PointFieldMsg};
-pub use convert::MetaNames;
+use convert::Endianness;
+pub use convert::Fields;
+
+use type_layout::TypeLayout;
+
+#[cfg(feature = "derive")]
+pub use rpcl2_derive::*;
 
 /// All errors that can occur while converting to or from the PointCloud2 message.
 #[derive(Debug)]
@@ -90,37 +88,12 @@ pub enum ConversionError {
 
     /// The length of the byte buffer in the message does not match the expected length computed from the fields.
     DataLengthMismatch,
+
+    /// There are fields missing in the message.
+    FieldNotFound(Vec<String>),
 }
 
-#[inline(always)]
-fn add_point_to_byte_buffer<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>(
-    coords: C,
-    cloud: &mut PointCloud2Msg,
-) -> Result<bool, ConversionError>
-where
-    C: PointConvertible<T, SIZE, DIM, METADIM>,
-    T: FromBytes,
-{
-    let point: Point<T, DIM, METADIM> = coords.into();
-
-    // (x, y, z...)
-    point
-        .coords
-        .iter()
-        .for_each(|x| cloud.data.extend_from_slice(T::bytes(x).as_slice()));
-
-    // meta data description
-    point.meta.iter().for_each(|meta| {
-        let truncated_bytes = &meta.bytes[0..meta.datatype.size()];
-        cloud.data.extend_from_slice(truncated_bytes);
-    });
-
-    cloud.width += 1;
-
-    Ok(true)
-}
-
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct PointCloud2Msg {
     pub header: HeaderMsg,
     pub height: u32,
@@ -133,7 +106,107 @@ pub struct PointCloud2Msg {
     pub is_dense: bool,
 }
 
+impl Default for PointCloud2Msg {
+    fn default() -> Self {
+        Self {
+            header: HeaderMsg::default(),
+            height: 1, // everything is in one row (unstructured)
+            width: 0,
+            fields: Vec::new(),
+            is_bigendian: false, // ROS default
+            point_step: 0,
+            row_step: 0,
+            data: Vec::new(),
+            is_dense: false, // ROS default
+        }
+    }
+}
+
 impl PointCloud2Msg {
+    fn prepare_direct_copy<const N: usize, C>() -> Result<Self, ConversionError>
+    where
+        C: PointConvertible<N>,
+    {
+        let point: Point<N> = C::default().into();
+        debug_assert!(point.fields.len() == N);
+
+        let meta_names = C::field_names_ordered();
+        debug_assert!(meta_names.len() == N);
+
+        let mut offset: u32 = 0;
+        let layout = C::layout();
+        let mut fields: Vec<PointFieldMsg> = Vec::with_capacity(layout.fields.len());
+        for f in layout.fields.into_iter() {
+            match f {
+                PointField::Field {
+                    name,
+                    datatype,
+                    size,
+                } => {
+                    fields.push(PointFieldMsg {
+                        name,
+                        offset,
+                        datatype,
+                        ..Default::default()
+                    });
+                    offset += size; // assume field_count 1
+                }
+                PointField::Padding(size) => {
+                    offset += size; // assume field_count 1
+                }
+            }
+        }
+
+        Ok(PointCloud2Msg {
+            point_step: offset,
+            fields,
+            ..Default::default()
+        })
+    }
+
+    #[inline(always)]
+    fn prepare<const N: usize, C>() -> Result<Self, ConversionError>
+    where
+        C: PointConvertible<N>,
+    {
+        let point: Point<N> = C::default().into();
+        debug_assert!(point.fields.len() == N);
+
+        let meta_names = C::field_names_ordered();
+        debug_assert!(meta_names.len() == N);
+
+        let mut meta_offsets_acc = 0;
+        let mut fields = vec![PointFieldMsg::default(); N];
+        for ((meta_value, meta_name), field_val) in point
+            .fields
+            .into_iter()
+            .zip(meta_names.into_iter())
+            .zip(fields.iter_mut())
+        {
+            let datatype_code = meta_value.datatype.into();
+            if FieldDatatype::try_from(datatype_code).is_err() {
+                return Err(ConversionError::UnsupportedFieldType);
+            }
+
+            let field_count = 1;
+
+            *field_val = PointFieldMsg {
+                name: meta_name.into(),
+                offset: meta_offsets_acc,
+                datatype: datatype_code,
+                count: 1,
+            };
+
+            meta_offsets_acc += field_count * meta_value.datatype.size() as u32
+        }
+
+        Ok(PointCloud2Msg {
+            point_step: meta_offsets_acc,
+            fields,
+            ..Default::default()
+        })
+    }
+
     /// Create a PointCloud2Msg from any iterable type.
     ///
     /// The operation is O(n) in time complexity where n is the number of points in the point cloud.
@@ -151,98 +224,60 @@ impl PointCloud2Msg {
     ///
     // let msg_out = PointCloud2Msg::try_from_iterable(cloud_points).unwrap();
     /// ```
-    pub fn try_from_iterable<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>(
-        iterable: impl IntoIterator<Item = C>,
+    pub fn try_from_iter<const N: usize, C>(
+        iterable: impl Iterator<Item = C>,
     ) -> Result<Self, ConversionError>
     where
-        C: PointConvertible<T, SIZE, DIM, METADIM>,
-        T: FromBytes,
+        C: PointConvertible<N>,
     {
-        if DIM > 3 {
-            return Err(ConversionError::TooManyDimensions); // maybe can be checked at compile time?
-        }
+        let mut cloud = Self::prepare::<N, C>()?;
 
-        let mut iter = iterable.into_iter();
-        let mut fields = Vec::with_capacity(METADIM + DIM); // TODO check if we can preallocate the size on the stack
+        iterable.into_iter().for_each(|coords| {
+            let point: Point<N> = coords.into();
 
-        if DIM > 1 {
-            fields.push(PointFieldMsg {
-                name: "x".into(),
-                offset: 0,
-                datatype: T::field_datatype().into(),
-                count: 1,
+            point.fields.iter().for_each(|meta| {
+                let truncated_bytes = unsafe {
+                    std::slice::from_raw_parts(meta.bytes.as_ptr(), meta.datatype.size())
+                };
+                cloud.data.extend_from_slice(truncated_bytes);
             });
 
-            fields.push(PointFieldMsg {
-                name: "y".into(),
-                offset: SIZE as u32,
-                datatype: T::field_datatype().into(),
-                count: 1,
-            });
-        }
+            cloud.width += 1;
+        });
 
-        if DIM == 3 {
-            fields.push(PointFieldMsg {
-                name: "z".into(),
-                offset: 2 * SIZE as u32,
-                datatype: T::field_datatype().into(),
-                count: 1,
-            });
-        }
-
-        let first_point = iter.next().ok_or(ConversionError::NoPoints)?;
-        let point: Point<T, DIM, METADIM> = first_point.clone().into();
-        let meta_names = C::meta_names();
-
-        let mut meta_offsets_acc = DIM as u32 * SIZE as u32;
-        for (meta_value, meta_name) in point.meta.into_iter().zip(meta_names.into_iter()) {
-            let datatype_code = meta_value.datatype.into();
-            if FieldDatatype::try_from(datatype_code).is_err() {
-                return Err(ConversionError::UnsupportedFieldType);
-            }
-
-            fields.push(PointFieldMsg {
-                name: meta_name.into(),
-                offset: meta_offsets_acc,
-                datatype: datatype_code,
-                count: 1,
-            });
-            meta_offsets_acc += meta_value.datatype.size() as u32
-        }
-
-        let mut cloud = PointCloud2Msg {
-            point_step: fields.iter().fold(Default::default(), |acc, field| {
-                let field_type: FieldDatatype = field
-                    .datatype
-                    .try_into()
-                    .expect("Unsupported field but checked before.");
-                let field_size = field_type.size();
-                acc + field.count * field_size as u32
-            }),
-            ..Default::default()
-        };
-
-        // actual point -> byte conversion -- O(n)
-        add_point_to_byte_buffer(first_point, &mut cloud)?;
-        for coords in iter {
-            add_point_to_byte_buffer(coords, &mut cloud)?;
-        }
-
-        cloud.fields = fields;
-        cloud.height = 1; // everything is in one row (unstructured)
-        cloud.is_bigendian = false; // ROS default
-        cloud.is_dense = true; // ROS default
-        cloud.row_step = cloud.width * cloud.point_step; // Note: redundant but defined in PointCloud2 message
+        cloud.row_step = cloud.width * cloud.point_step;
 
         Ok(cloud)
     }
 
-    pub fn try_into_iter<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>(
+    pub fn try_from_vec<const N: usize, C>(vec: Vec<C>) -> Result<Self, ConversionError>
+    where
+        C: PointConvertible<N>,
+    {
+        let mut cloud = Self::prepare_direct_copy::<N, C>()?;
+
+        let bytes_total = vec.len() * cloud.point_step as usize;
+        cloud.data.resize(bytes_total, u8::default());
+        let raw_data: *mut C = cloud.data.as_ptr() as *mut C;
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                vec.as_ptr() as *const u8,
+                raw_data as *mut u8,
+                bytes_total,
+            );
+        }
+
+        cloud.width = vec.len() as u32;
+        cloud.row_step = cloud.width * cloud.point_step;
+
+        Ok(cloud)
+    }
+
+    pub fn try_into_iter<const N: usize, C>(
         self,
     ) -> Result<impl Iterator<Item = C>, ConversionError>
     where
-        C: PointConvertible<T, SIZE, DIM, METADIM>,
-        T: FromBytes,
+        C: PointConvertible<N>,
     {
         iterator::PointCloudIterator::try_from(self)
     }
@@ -264,9 +299,8 @@ impl PointCloud2Msg {
 /// Implement the `From` traits for your point type to use the conversion.
 ///
 /// See the [`ros_pointcloud2::PointConvertible`] trait for more information.
-pub struct Point<T, const DIM: usize, const METADIM: usize> {
-    pub coords: [T; DIM],
-    pub meta: [PointMeta; METADIM],
+pub struct Point<const N: usize> {
+    pub fields: [PointMeta; N],
 }
 
 /// Trait to enable point conversions on the fly while iterating.
@@ -313,11 +347,58 @@ pub struct Point<T, const DIM: usize, const METADIM: usize> {
 ///
 /// impl PointConvertible<f32, {size_of!(f32)}, 3, 1> for MyPointXYZI {}
 /// ```
-pub trait PointConvertible<T, const SIZE: usize, const DIM: usize, const METADIM: usize>:
-    From<Point<T, DIM, METADIM>> + Into<Point<T, DIM, METADIM>> + MetaNames<METADIM> + Clone + 'static
-where
-    T: FromBytes,
+pub trait PointConvertible<const N: usize>:
+    KnownLayout + From<Point<N>> + Into<Point<N>> + Fields<N> + Clone + 'static + Default
 {
+}
+
+enum PointField {
+    Padding(u32),
+    Field {
+        name: String,
+        size: u32,
+        datatype: u8,
+    },
+}
+
+impl TryFrom<type_layout::Field> for PointField {
+    type Error = ConversionError;
+
+    fn try_from(f: type_layout::Field) -> Result<Self, Self::Error> {
+        match f {
+            type_layout::Field::Field { name, ty, size } => {
+                let typename: String = ty.to_owned().into();
+                let datatype = FieldDatatype::try_from(typename)?;
+                Ok(Self::Field {
+                    name: name.to_owned().into(),
+                    size: size as u32,
+                    datatype: datatype.into(),
+                })
+            }
+            type_layout::Field::Padding { size } => Ok(Self::Padding(size as u32)),
+        }
+    }
+}
+
+struct TypeLayoutInfo {
+    fields: Vec<PointField>,
+}
+
+impl TryFrom<type_layout::TypeLayoutInfo> for TypeLayoutInfo {
+    type Error = ConversionError;
+
+    fn try_from(t: type_layout::TypeLayoutInfo) -> Result<Self, Self::Error> {
+        let fields: Vec<PointField> = t
+            .fields
+            .into_iter()
+            .map(PointField::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self { fields })
+    }
+}
+
+trait KnownLayout {
+    fn layout() -> TypeLayoutInfo;
 }
 
 /// Metadata representation for a point.
@@ -336,6 +417,7 @@ where
 #[derive(Debug, Clone, Copy)]
 pub struct PointMeta {
     bytes: [u8; std::mem::size_of::<f64>()],
+    endianness: Endianness,
     datatype: FieldDatatype,
 }
 
@@ -344,6 +426,7 @@ impl Default for PointMeta {
         Self {
             bytes: [u8::default(); std::mem::size_of::<f64>()],
             datatype: FieldDatatype::F32,
+            endianness: Endianness::default(),
         }
     }
 }
@@ -366,22 +449,29 @@ impl PointMeta {
         Self {
             bytes,
             datatype: T::field_datatype(),
+            ..Default::default()
         }
     }
 
     #[inline(always)]
-    fn from_buffer(data: &[u8], offset: usize, datatype: &FieldDatatype) -> Self {
+    fn from_buffer(
+        data: &[u8],
+        offset: usize,
+        datatype: FieldDatatype,
+        endianness: Endianness,
+    ) -> Self {
         debug_assert!(data.len() >= offset + datatype.size());
-
-        let bytes = unsafe { data.get_unchecked(offset..offset + datatype.size()) };
-        let mut bytes_array = [0; std::mem::size_of::<f64>()]; // 8 bytes as f64 is the largest type
-        for (byte, save_byte) in bytes.iter().zip(bytes_array.iter_mut()) {
-            *save_byte = *byte;
+        let bytes = [u8::default(); std::mem::size_of::<f64>()];
+        unsafe {
+            let data_ptr = data.as_ptr().add(offset);
+            let bytes_ptr = bytes.as_ptr() as *mut u8;
+            std::ptr::copy_nonoverlapping(data_ptr, bytes_ptr, datatype.size());
         }
 
         Self {
-            bytes: bytes_array,
-            datatype: *datatype,
+            bytes,
+            datatype,
+            endianness,
         }
     }
 
@@ -399,7 +489,11 @@ impl PointMeta {
             .bytes
             .get(0..size)
             .expect("Exceeds bounds of f64, which is the largest type");
-        T::from_le_bytes(bytes)
+
+        match self.endianness {
+            Endianness::Big => T::from_be_bytes(bytes),
+            Endianness::Little => T::from_le_bytes(bytes),
+        }
     }
 }
 

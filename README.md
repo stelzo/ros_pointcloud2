@@ -5,11 +5,21 @@
   </p>
 </p>
 
+A complete implementation of `sensor_msgs/PointCloud2` conversions with focus on ease of use and maximum throughput.
+
 Providing an easy to use, generics defined, point-wise iterator abstraction over the byte buffer in `PointCloud2` to minimize iterations in your processing pipeline.
 
 To keep the crate a general purpose library for the problem, it uses its own type for the message `PointCloud2Msg`. ROS1 and ROS2 support is added with feature flags.
 
-## Quickstart
+## Performance
+
+The library compares the similarity of the ROS message point type with your given Point, allowing it to select the fastest strategy.
+
+Since PCL is the most used library for this work in C++, the predefined types in ros_pointcloud2 use C padding to be exact copies for maximum performance between C++ and Rust nodes at the cost of a slightly larger message sizes.
+
+Since ros_pointcloud2 optimizes the performance dynamically, it typically outperforms PCL conversions in all tasks.
+
+## Quickstart (Iterator)
 ```rust
 use ros_pointcloud2::{PointCloud2Msg, pcl_utils::PointXYZ};
 

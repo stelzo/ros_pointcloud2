@@ -1,4 +1,4 @@
-use crate::{MetaNames, Point, PointConvertible};
+use crate::{Fields, Point, PointConvertible};
 
 /// Pack an RGB color into a single f32 value as used in ROS with PCL for RViz usage.
 #[inline]
@@ -19,43 +19,44 @@ fn unpack_rgb(rgb: f32) -> [u8; 3] {
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates.
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C)]
 pub struct PointXYZ {
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
 
-impl From<Point<f32, 3, 0>> for PointXYZ {
-    fn from(point: Point<f32, 3, 0>) -> Self {
+impl Fields<3> for PointXYZ {
+    fn field_names_ordered() -> [&'static str; 3] {
+        ["x", "y", "z"]
+    }
+}
+
+impl From<Point<3>> for PointXYZ {
+    fn from(point: Point<3>) -> Self {
         Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
         }
     }
 }
 
-impl From<PointXYZ> for Point<f32, 3, 0> {
+impl From<PointXYZ> for Point<3> {
     fn from(point: PointXYZ) -> Self {
         Point {
-            coords: [point.x, point.y, point.z],
-            meta: [],
+            fields: [point.x.into(), point.y.into(), point.z.into()],
         }
     }
 }
 
-impl MetaNames<0> for PointXYZ {
-    fn meta_names() -> [&'static str; 0] {
-        []
-    }
-}
-
-impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 0> for PointXYZ {}
+impl PointConvertible<3> for PointXYZ {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an intensity value.
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C)]
 pub struct PointXYZI {
     pub x: f32,
     pub y: f32,
@@ -63,37 +64,85 @@ pub struct PointXYZI {
     pub intensity: f32,
 }
 
-impl From<PointXYZI> for Point<f32, 3, 1> {
+impl Fields<4> for PointXYZI {
+    fn field_names_ordered() -> [&'static str; 4] {
+        ["x", "y", "z", "intensity"]
+    }
+}
+
+impl From<Point<4>> for PointXYZI {
+    fn from(point: Point<4>) -> Self {
+        Self {
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
+            intensity: point.fields[3].get(),
+        }
+    }
+}
+
+impl From<PointXYZI> for Point<4> {
     fn from(point: PointXYZI) -> Self {
         Point {
-            coords: [point.x, point.y, point.z],
-            meta: [point.intensity.into()],
+            fields: [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                point.intensity.into(),
+            ],
         }
     }
 }
 
-impl From<Point<f32, 3, 1>> for PointXYZI {
-    fn from(point: Point<f32, 3, 1>) -> Self {
+impl PointConvertible<4> for PointXYZI {}
+
+/// Predefined point type commonly used in ROS with PCL.
+/// This is a 3D point with x, y, z coordinates and a label.
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C)]
+pub struct PointXYZL {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub label: u32,
+}
+
+impl Fields<4> for PointXYZL {
+    fn field_names_ordered() -> [&'static str; 4] {
+        ["x", "y", "z", "label"]
+    }
+}
+
+impl From<Point<4>> for PointXYZL {
+    fn from(point: Point<4>) -> Self {
         Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
-            intensity: point.meta[0].get(),
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
+            label: point.fields[3].get(),
         }
     }
 }
 
-impl MetaNames<1> for PointXYZI {
-    fn meta_names() -> [&'static str; 1] {
-        ["intensity"]
+impl From<PointXYZL> for Point<4> {
+    fn from(point: PointXYZL) -> Self {
+        Point {
+            fields: [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                point.label.into(),
+            ],
+        }
     }
 }
 
-impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 1> for PointXYZI {}
+impl PointConvertible<4> for PointXYZL {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an RGB color value.
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C)]
 pub struct PointXYZRGB {
     pub x: f32,
     pub y: f32,
@@ -103,14 +152,20 @@ pub struct PointXYZRGB {
     pub b: u8,
 }
 
-impl From<Point<f32, 3, 1>> for PointXYZRGB {
-    fn from(point: Point<f32, 3, 1>) -> Self {
-        let rgb = point.meta[0].get::<f32>();
+impl Fields<4> for PointXYZRGB {
+    fn field_names_ordered() -> [&'static str; 4] {
+        ["x", "y", "z", "rgb"]
+    }
+}
+
+impl From<Point<4>> for PointXYZRGB {
+    fn from(point: Point<4>) -> Self {
+        let rgb = point.fields[3].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
         Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
@@ -118,27 +173,22 @@ impl From<Point<f32, 3, 1>> for PointXYZRGB {
     }
 }
 
-impl From<PointXYZRGB> for Point<f32, 3, 1> {
+impl From<PointXYZRGB> for Point<4> {
     fn from(point: PointXYZRGB) -> Self {
+        let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
-            coords: [point.x, point.y, point.z],
-            meta: [pack_rgb(point.r, point.g, point.b).into()],
+            fields: [point.x.into(), point.y.into(), point.z.into(), rgb.into()],
         }
     }
 }
 
-impl MetaNames<1> for PointXYZRGB {
-    fn meta_names() -> [&'static str; 1] {
-        ["rgb"]
-    }
-}
-
-impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 1> for PointXYZRGB {}
+impl PointConvertible<4> for PointXYZRGB {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an RGBA color value.
 /// The alpha channel is commonly used as padding but this crate uses every channel and no padding.
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C)]
 pub struct PointXYZRGBA {
     pub x: f32,
     pub y: f32,
@@ -149,43 +199,49 @@ pub struct PointXYZRGBA {
     pub a: u8,
 }
 
-impl From<Point<f32, 3, 2>> for PointXYZRGBA {
-    fn from(point: Point<f32, 3, 2>) -> Self {
-        let rgb = point.meta[0].get::<f32>();
+impl Fields<5> for PointXYZRGBA {
+    fn field_names_ordered() -> [&'static str; 5] {
+        ["x", "y", "z", "rgb", "a"]
+    }
+}
+
+impl From<Point<5>> for PointXYZRGBA {
+    fn from(point: Point<5>) -> Self {
+        let rgb = point.fields[3].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
         Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-            a: point.meta[1].get(),
+            a: point.fields[4].get(),
         }
     }
 }
 
-impl From<PointXYZRGBA> for Point<f32, 3, 2> {
+impl From<PointXYZRGBA> for Point<5> {
     fn from(point: PointXYZRGBA) -> Self {
         let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
-            coords: [point.x, point.y, point.z],
-            meta: [rgb.into(), point.a.into()],
+            fields: [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                rgb.into(),
+                point.a.into(),
+            ],
         }
     }
 }
 
-impl MetaNames<2> for PointXYZRGBA {
-    fn meta_names() -> [&'static str; 2] {
-        ["rgb", "a"]
-    }
-}
-
-impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 2> for PointXYZRGBA {}
+impl PointConvertible<5> for PointXYZRGBA {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an RGB color value and a normal vector.
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C)]
 pub struct PointXYZRGBNormal {
     pub x: f32,
     pub y: f32,
@@ -198,30 +254,38 @@ pub struct PointXYZRGBNormal {
     pub normal_z: f32,
 }
 
-impl From<Point<f32, 3, 4>> for PointXYZRGBNormal {
-    fn from(point: Point<f32, 3, 4>) -> Self {
-        let rgb = point.meta[0].get::<f32>();
+impl Fields<7> for PointXYZRGBNormal {
+    fn field_names_ordered() -> [&'static str; 7] {
+        ["x", "y", "z", "rgb", "normal_x", "normal_y", "normal_z"]
+    }
+}
+
+impl From<Point<7>> for PointXYZRGBNormal {
+    fn from(point: Point<7>) -> Self {
+        let rgb = point.fields[3].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
         Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-            normal_x: point.meta[1].get(),
-            normal_y: point.meta[2].get(),
-            normal_z: point.meta[3].get(),
+            normal_x: point.fields[4].get(),
+            normal_y: point.fields[5].get(),
+            normal_z: point.fields[6].get(),
         }
     }
 }
 
-impl From<PointXYZRGBNormal> for Point<f32, 3, 4> {
+impl From<PointXYZRGBNormal> for Point<7> {
     fn from(point: PointXYZRGBNormal) -> Self {
         let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
-            coords: [point.x, point.y, point.z],
-            meta: [
+            fields: [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
                 rgb.into(),
                 point.normal_x.into(),
                 point.normal_y.into(),
@@ -231,17 +295,12 @@ impl From<PointXYZRGBNormal> for Point<f32, 3, 4> {
     }
 }
 
-impl MetaNames<4> for PointXYZRGBNormal {
-    fn meta_names() -> [&'static str; 4] {
-        ["rgb", "normal_x", "normal_y", "normal_z"]
-    }
-}
-
-impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 4> for PointXYZRGBNormal {}
+impl PointConvertible<7> for PointXYZRGBNormal {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an intensity value and a normal vector.
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C)]
 pub struct PointXYZINormal {
     pub x: f32,
     pub y: f32,
@@ -252,11 +311,33 @@ pub struct PointXYZINormal {
     pub normal_z: f32,
 }
 
-impl From<PointXYZINormal> for Point<f32, 3, 4> {
+impl Fields<7> for PointXYZINormal {
+    fn field_names_ordered() -> [&'static str; 7] {
+        ["x", "y", "z", "i", "normal_x", "normal_y", "normal_z"]
+    }
+}
+
+impl From<Point<7>> for PointXYZINormal {
+    fn from(point: Point<7>) -> Self {
+        Self {
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
+            intensity: point.fields[3].get(),
+            normal_x: point.fields[4].get(),
+            normal_y: point.fields[5].get(),
+            normal_z: point.fields[6].get(),
+        }
+    }
+}
+
+impl From<PointXYZINormal> for Point<7> {
     fn from(point: PointXYZINormal) -> Self {
         Point {
-            coords: [point.x, point.y, point.z],
-            meta: [
+            fields: [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
                 point.intensity.into(),
                 point.normal_x.into(),
                 point.normal_y.into(),
@@ -266,69 +347,12 @@ impl From<PointXYZINormal> for Point<f32, 3, 4> {
     }
 }
 
-impl From<Point<f32, 3, 4>> for PointXYZINormal {
-    fn from(point: Point<f32, 3, 4>) -> Self {
-        Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
-            intensity: point.meta[0].get(),
-            normal_x: point.meta[1].get(),
-            normal_y: point.meta[2].get(),
-            normal_z: point.meta[3].get(),
-        }
-    }
-}
-
-impl MetaNames<4> for PointXYZINormal {
-    fn meta_names() -> [&'static str; 4] {
-        ["intensity", "normal_x", "normal_y", "normal_z"]
-    }
-}
-
-impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 4> for PointXYZINormal {}
+impl PointConvertible<7> for PointXYZINormal {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
-#[derive(Clone, Debug, PartialEq, Copy)]
-pub struct PointXYZL {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub label: u32,
-}
-
-impl From<Point<f32, 3, 1>> for PointXYZL {
-    fn from(point: Point<f32, 3, 1>) -> Self {
-        Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
-            label: point.meta[0].get(),
-        }
-    }
-}
-
-impl From<PointXYZL> for Point<f32, 3, 1> {
-    fn from(point: PointXYZL) -> Self {
-        Point {
-            coords: [point.x, point.y, point.z],
-            meta: [point.label.into()],
-        }
-    }
-}
-
-impl MetaNames<1> for PointXYZL {
-    fn meta_names() -> [&'static str; 1] {
-        ["label"]
-    }
-}
-
-impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 1> for PointXYZL {}
-
-/// Predefined point type commonly used in ROS with PCL.
-/// This is a 3D point with x, y, z coordinates and a label.
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C)]
 pub struct PointXYZRGBL {
     pub x: f32,
     pub y: f32,
@@ -339,45 +363,49 @@ pub struct PointXYZRGBL {
     pub label: u32,
 }
 
-impl From<Point<f32, 3, 2>> for PointXYZRGBL {
-    fn from(point: Point<f32, 3, 2>) -> Self {
-        let rgb = point.meta[0].get::<f32>();
+impl Fields<5> for PointXYZRGBL {
+    fn field_names_ordered() -> [&'static str; 5] {
+        ["x", "y", "z", "rgb", "label"]
+    }
+}
+
+impl From<Point<5>> for PointXYZRGBL {
+    fn from(point: Point<5>) -> Self {
+        let rgb = point.fields[3].get::<f32>();
         let rgb_unpacked = unpack_rgb(rgb);
         Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
             r: rgb_unpacked[0],
             g: rgb_unpacked[1],
             b: rgb_unpacked[2],
-            label: point.meta[1].get(),
+            label: point.fields[4].get(),
         }
     }
 }
 
-impl From<PointXYZRGBL> for Point<f32, 3, 2> {
+impl From<PointXYZRGBL> for Point<5> {
     fn from(point: PointXYZRGBL) -> Self {
+        let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
-            coords: [point.x, point.y, point.z],
-            meta: [
-                pack_rgb(point.r, point.g, point.b).into(),
+            fields: [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                rgb.into(),
                 point.label.into(),
             ],
         }
     }
 }
 
-impl MetaNames<2> for PointXYZRGBL {
-    fn meta_names() -> [&'static str; 2] {
-        ["rgb", "label"]
-    }
-}
-
-impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 2> for PointXYZRGBL {}
+impl PointConvertible<5> for PointXYZRGBL {}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a normal vector.
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C)]
 pub struct PointXYZNormal {
     pub x: f32,
     pub y: f32,
@@ -387,24 +415,32 @@ pub struct PointXYZNormal {
     pub normal_z: f32,
 }
 
-impl From<Point<f32, 3, 3>> for PointXYZNormal {
-    fn from(point: Point<f32, 3, 3>) -> Self {
+impl Fields<6> for PointXYZNormal {
+    fn field_names_ordered() -> [&'static str; 6] {
+        ["x", "y", "z", "normal_x", "normal_y", "normal_z"]
+    }
+}
+
+impl From<Point<6>> for PointXYZNormal {
+    fn from(point: Point<6>) -> Self {
         Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
-            normal_x: point.meta[0].get(),
-            normal_y: point.meta[1].get(),
-            normal_z: point.meta[2].get(),
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
+            normal_x: point.fields[3].get(),
+            normal_y: point.fields[4].get(),
+            normal_z: point.fields[5].get(),
         }
     }
 }
 
-impl From<PointXYZNormal> for Point<f32, 3, 3> {
+impl From<PointXYZNormal> for Point<6> {
     fn from(point: PointXYZNormal) -> Self {
         Point {
-            coords: [point.x, point.y, point.z],
-            meta: [
+            fields: [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
                 point.normal_x.into(),
                 point.normal_y.into(),
                 point.normal_z.into(),
@@ -413,10 +449,4 @@ impl From<PointXYZNormal> for Point<f32, 3, 3> {
     }
 }
 
-impl MetaNames<3> for PointXYZNormal {
-    fn meta_names() -> [&'static str; 3] {
-        ["normal_x", "normal_y", "normal_z"]
-    }
-}
-
-impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 3> for PointXYZNormal {}
+impl PointConvertible<6> for PointXYZNormal {}

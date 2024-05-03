@@ -2,10 +2,11 @@
 // The use case is a segmentation point cloud where each point holds a label
 // with a custom enum type we want to filter.
 
-use ros_pointcloud2::{size_of, MetaNames, Point, PointCloud2Msg, PointConvertible};
+use ros_pointcloud2::{Fields, Point, PointCloud2Msg, PointConvertible};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 enum Label {
+    #[default]
     Human,
     Deer,
     Car,
@@ -33,7 +34,7 @@ impl From<u8> for Label {
 }
 
 // Custom point type with custom metadata
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 struct CustomPoint {
     x: f32,
     y: f32,
@@ -48,39 +49,41 @@ struct CustomPoint {
 // - coordinate type
 // - dimension (xyz = 3)
 // - metadata dimension (intensity + my_custom_label = 2)
-impl From<CustomPoint> for Point<f32, 3, 2> {
+impl From<CustomPoint> for Point<5> {
     fn from(point: CustomPoint) -> Self {
         Point {
-            coords: [point.x, point.y, point.z],
-            meta: [
+            fields: [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
                 point.intensity.into(),
-                u8::from(point.my_custom_label).into(), // encoding the label as u8
+                u8::from(point.my_custom_label).into(),
             ],
         }
     }
 }
 
-impl From<Point<f32, 3, 2>> for CustomPoint {
-    fn from(point: Point<f32, 3, 2>) -> Self {
-        let label_raw: u8 = point.meta[1].get();
+impl From<Point<5>> for CustomPoint {
+    fn from(point: Point<5>) -> Self {
+        let label_raw: u8 = point.fields[1].get();
         Self {
-            x: point.coords[0],
-            y: point.coords[1],
-            z: point.coords[2],
-            intensity: point.meta[0].get(),
+            x: point.fields[0].get(),
+            y: point.fields[1].get(),
+            z: point.fields[2].get(),
+            intensity: point.fields[3].get(),
             my_custom_label: Label::from(label_raw), // decoding the label from u8
         }
     }
 }
 
-impl MetaNames<2> for CustomPoint {
-    fn meta_names() -> [&'static str; 2] {
-        ["intensity", "my_custom_label"] // how we want to name the metadata in the message
+impl Fields<5> for CustomPoint {
+    fn field_names_ordered() -> [&'static str; 5] {
+        ["x", "y", "z", "intensity", "my_custom_label"] // how we want to name the metadata in the message
     }
 }
 
 // We implemented everything that is needed so we declare it as a PointConvertible
-impl PointConvertible<f32, { size_of!(f32) }, 3, 2> for CustomPoint {}
+impl PointConvertible<5> for CustomPoint {}
 
 fn main() {
     let cloud = vec![
@@ -109,7 +112,7 @@ fn main() {
 
     println!("Original cloud: {:?}", cloud);
 
-    let msg = PointCloud2Msg::try_from_iterable(cloud.clone()).unwrap();
+    let msg = PointCloud2Msg::try_from_iter(cloud.clone().into_iter()).unwrap();
 
     println!("filtering by label == Deer");
     let out = msg

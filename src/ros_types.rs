@@ -15,12 +15,23 @@ pub struct HeaderMsg {
     pub frame_id: String,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct PointFieldMsg {
     pub name: String,
     pub offset: u32,
     pub datatype: u8,
     pub count: u32,
+}
+
+impl Default for PointFieldMsg {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            offset: 0,
+            datatype: 0,
+            count: 1,
+        }
+    }
 }
 
 #[cfg(feature = "r2r_msg")]

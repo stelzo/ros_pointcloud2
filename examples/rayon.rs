@@ -1,4 +1,10 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+// This example demonstrates a very simple distance filter with predefined point types.
+// Note that this example is a simplified version of the custom_filter.rs example.
+// Also, it effectively demonstrates a typesafe byte-to-byte buffer filter with a single iteration.
+
+use std::time::Duration;
+
+use criterion::black_box;
 use ros_pointcloud2::{pcl_utils::PointXYZ, PointCloud2Msg};
 
 use rand::Rng;
@@ -22,7 +28,7 @@ pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<
 
 fn roundtrip(cloud: Vec<PointXYZ>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(cloud.into_iter()).unwrap();
     let total = internal_msg
         .try_into_iter()
         .unwrap()
@@ -32,7 +38,7 @@ fn roundtrip(cloud: Vec<PointXYZ>) -> bool {
 
 fn roundtrip_filter(cloud: Vec<PointXYZ>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(cloud.into_iter()).unwrap();
     let total = internal_msg
         .try_into_iter()
         .unwrap()
@@ -79,49 +85,60 @@ fn roundtrip_filter_par(cloud: Vec<PointXYZ>) -> bool {
     orig_len == total.x as usize
 }
 
-fn roundtrip_benchmark(c: &mut Criterion) {
-    let cloud_points_500k = generate_random_pointcloud(500_000, f32::MIN / 2.0, f32::MAX / 2.0);
-    let cloud_points_1_5m = generate_random_pointcloud(1_500_000, f32::MIN / 2.0, f32::MAX / 2.0);
-
-    c.bench_function("roundtrip 500k", |b| {
-        b.iter(|| {
-            black_box(roundtrip(cloud_points_500k.clone()));
-        })
-    });
-
-    #[cfg(feature = "rayon")]
-    c.bench_function("roundtrip_par 500k", |b| {
-        b.iter(|| {
-            black_box(roundtrip_par(cloud_points_500k.clone()));
-        })
-    });
-
-    c.bench_function("roundtrip_filter 500k", |b| {
-        b.iter(|| {
-            roundtrip_filter(black_box(cloud_points_500k.clone()));
-        })
-    });
-
-    #[cfg(feature = "rayon")]
-    c.bench_function("roundtrip_filter_par 500k", |b| {
-        b.iter(|| {
-            roundtrip_filter_par(black_box(cloud_points_500k.clone()));
-        })
-    });
-
-    c.bench_function("roundtrip_filter 1.5m", |b| {
-        b.iter(|| {
-            roundtrip_filter(black_box(cloud_points_1_5m.clone()));
-        })
-    });
-
-    #[cfg(feature = "rayon")]
-    c.bench_function("roundtrip_filter_par 1.5m", |b| {
-        b.iter(|| {
-            black_box(roundtrip_filter_par(cloud_points_1_5m.clone()));
-        })
-    });
+// call measure_func X times and print the average time
+fn measure_func_avg(
+    num_iterations: u32,
+    pcl_size: usize,
+    func: fn(Vec<PointXYZ>) -> bool,
+) -> Duration {
+    let mut total_time = Duration::new(0, 0);
+    for _ in 0..num_iterations {
+        total_time += measure_func(pcl_size, func);
+    }
+    total_time / num_iterations
 }
 
-criterion_group!(benches, roundtrip_benchmark);
-criterion_main!(benches);
+fn measure_func<F>(pcl_size: usize, func: F) -> Duration
+where
+    F: Fn(Vec<PointXYZ>) -> bool,
+{
+    let cloud_points = generate_random_pointcloud(pcl_size, f32::MIN / 2.0, f32::MAX / 2.0);
+    let start = std::time::Instant::now();
+    black_box(func(cloud_points));
+    start.elapsed()
+}
+
+fn main() {
+    println!("100k");
+    let how_many = 10_000;
+    let how_often = 1_000;
+
+    let dur = measure_func_avg(how_often, how_many, roundtrip);
+    println!("roundtrip: {:?}", dur);
+
+    #[cfg(feature = "rayon")]
+    let dur = measure_func_avg(how_often, how_many, roundtrip_par);
+    println!("roundtrip_par: {:?}", dur);
+
+    println!("200k");
+    let how_many = 200_000;
+    let how_often = 100;
+
+    let dur = measure_func_avg(how_often, how_many, roundtrip_filter);
+    println!("roundtrip_filter: {:?}", dur);
+
+    #[cfg(feature = "rayon")]
+    let dur = measure_func_avg(how_often, how_many, roundtrip_filter_par);
+    println!("roundtrip_filter_par: {:?}", dur);
+
+    println!("10m");
+    let how_many = 10_000_000;
+    let how_often = 10;
+
+    let dur = measure_func_avg(how_often, how_many, roundtrip_filter);
+    println!("roundtrip_filter: {:?}", dur);
+
+    #[cfg(feature = "rayon")]
+    let dur = measure_func_avg(how_often, how_many, roundtrip_filter_par);
+    println!("roundtrip_filter_par: {:?}", dur);
+}
