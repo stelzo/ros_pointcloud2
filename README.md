@@ -20,8 +20,9 @@ Since PCL is the most used library for this work in C++, the predefined types in
 Since ros_pointcloud2 optimizes the performance dynamically, it typically outperforms PCL conversions in all tasks.
 
 ## Quickstart (Iterator)
+
 ```rust
-use ros_pointcloud2::{PointCloud2Msg, pcl_utils::PointXYZ};
+use ros_pointcloud2::prelude::*;
 
 // Your points (here using a predefined type PointXYZ).
 let cloud_points = vec![
@@ -30,7 +31,7 @@ let cloud_points = vec![
 ];
 
 // Give the Vec or anything that implements `IntoIterator`.
-let in_msg = PointCloud2Msg::try_from_iterable(cloud_points).unwrap();
+let in_msg = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
 
 // Convert the ROS crate message type, we will use r2r here.
 // let msg: r2r::sensor_msgs::msg::PointCloud2 = in_msg.into();
@@ -50,6 +51,7 @@ let new_pcl = in_msg.try_into_iter().unwrap()
 ## Integrations
 
 There are currently 3 integrations for common ROS crates.
+
 - [rosrust_msg](https://github.com/adnanademovic/rosrust)
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rosrust_noetic.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rosrust_noetic.yml)
 - [r2r_msg](https://github.com/sequenceplanner/r2r)
@@ -61,6 +63,7 @@ There are currently 3 integrations for common ROS crates.
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_iron.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_iron.yml)
 
 You can use `rosrust` and `r2r` by enabling the respective feature:
+
 ```toml
 [dependencies]
 ros_pointcloud2 = { version = "*", features = ["r2r_msg"]}
@@ -69,12 +72,16 @@ ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]}
 ```
 
 ### rclrs (ros2_rust)
+
 Features do not work properly with `rcrls` because the messages are linked externally. You need to use tags instead:
+
 ```toml
 [dependencies]
 ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.4.0_rclrs" }
 ```
+
 Also, indicate the following dependencies to your linker inside the `package.xml` of your package.
+
 ```xml
 <depend>std_msgs</depend>
 <depend>sensor_msgs</depend>
@@ -84,4 +91,5 @@ Also, indicate the following dependencies to your linker inside the `package.xml
 Please open an issue or PR if you want to see support for other crates.
 
 ## License
+
 [MIT](https://choosealicense.com/licenses/mit/)

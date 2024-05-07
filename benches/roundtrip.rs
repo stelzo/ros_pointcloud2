@@ -1,12 +1,9 @@
 #![cfg(feature = "derive")]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use ros_pointcloud2::{pcl_utils::PointXYZ, PointCloud2Msg};
+use ros_pointcloud2::prelude::*;
 
 use rand::Rng;
-
-#[cfg(feature = "rayon")]
-use rayon::prelude::*;
 
 pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<PointXYZ> {
     let mut rng = rand::thread_rng();
@@ -52,7 +49,7 @@ fn roundtrip_filter(cloud: Vec<PointXYZ>) -> bool {
 #[cfg(feature = "rayon")]
 fn roundtrip_par(cloud: Vec<PointXYZ>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iterable(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
         .try_into_par_iter()
         .unwrap()
@@ -63,7 +60,7 @@ fn roundtrip_par(cloud: Vec<PointXYZ>) -> bool {
 #[cfg(feature = "rayon")]
 fn roundtrip_filter_par(cloud: Vec<PointXYZ>) -> bool {
     let orig_len: usize = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iterable(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
         .try_into_par_iter()
         .unwrap()

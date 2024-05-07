@@ -1,6 +1,6 @@
 use crate::{
     convert::{Endianness, FieldDatatype},
-    ConversionError, Fields, Point, PointCloud2Msg, PointConvertible, PointMeta,
+    Fields, MsgConversionError, Point, PointCloud2Msg, PointConvertible, PointMeta,
 };
 
 /// The PointCloudIterator provides a an iterator abstraction of the PointCloud2Msg.
@@ -31,11 +31,9 @@ where
 }
 
 #[cfg(feature = "rayon")]
-impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> ExactSizeIterator
-    for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+impl<const N: usize, C> ExactSizeIterator for PointCloudIterator<N, C>
 where
-    T: FromBytes + Send + Sync,
-    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+    C: PointConvertible<N> + Send + Sync,
 {
     fn len(&self) -> usize {
         self.data.len()
@@ -43,11 +41,9 @@ where
 }
 
 #[cfg(feature = "rayon")]
-impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> DoubleEndedIterator
-    for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+impl<const N: usize, C> DoubleEndedIterator for PointCloudIterator<N, C>
 where
-    T: FromBytes + Send + Sync,
-    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+    C: PointConvertible<N> + Send + Sync,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.iteration_back < self.iteration {
@@ -61,11 +57,9 @@ where
 }
 
 #[cfg(feature = "rayon")]
-impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C> rayon::iter::ParallelIterator
-    for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+impl<const N: usize, C> rayon::iter::ParallelIterator for PointCloudIterator<N, C>
 where
-    T: FromBytes + Send + Sync,
-    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+    C: PointConvertible<N> + Send + Sync,
 {
     type Item = C;
 
@@ -82,11 +76,9 @@ where
 }
 
 #[cfg(feature = "rayon")]
-impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
-    rayon::iter::IndexedParallelIterator for PointCloudIterator<T, SIZE, DIM, METADIM, C>
+impl<const N: usize, C> rayon::iter::IndexedParallelIterator for PointCloudIterator<N, C>
 where
-    T: FromBytes + Send + Sync,
-    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+    C: PointConvertible<N> + Send + Sync,
 {
     fn len(&self) -> usize {
         self.data.len()
@@ -108,25 +100,17 @@ where
 }
 
 #[cfg(feature = "rayon")]
-struct RayonProducer<
-    T: FromBytes,
-    const SIZE: usize,
-    const DIM: usize,
-    const METADIM: usize,
-    C: PointConvertible<T, SIZE, DIM, METADIM>,
-> {
-    iter: PointCloudIterator<T, SIZE, DIM, METADIM, C>,
+struct RayonProducer<const N: usize, C: PointConvertible<N>> {
+    iter: PointCloudIterator<N, C>,
 }
 
 #[cfg(feature = "rayon")]
-impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
-    rayon::iter::plumbing::Producer for RayonProducer<T, SIZE, DIM, METADIM, C>
+impl<const N: usize, C> rayon::iter::plumbing::Producer for RayonProducer<N, C>
 where
-    T: FromBytes + Send + Sync,
-    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+    C: PointConvertible<N> + Send + Sync,
 {
     type Item = C;
-    type IntoIter = PointCloudIterator<T, SIZE, DIM, METADIM, C>;
+    type IntoIter = PointCloudIterator<N, C>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter
@@ -139,13 +123,11 @@ where
 }
 
 #[cfg(feature = "rayon")]
-impl<T, const SIZE: usize, const DIM: usize, const METADIM: usize, C>
-    From<PointCloudIterator<T, SIZE, DIM, METADIM, C>> for RayonProducer<T, SIZE, DIM, METADIM, C>
+impl<const N: usize, C> From<PointCloudIterator<N, C>> for RayonProducer<N, C>
 where
-    T: FromBytes + Send + Sync,
-    C: PointConvertible<T, SIZE, DIM, METADIM> + Send + Sync,
+    C: PointConvertible<N> + Send + Sync,
 {
-    fn from(iterator: PointCloudIterator<T, SIZE, DIM, METADIM, C>) -> Self {
+    fn from(iterator: PointCloudIterator<N, C>) -> Self {
         Self { iter: iterator }
     }
 }
@@ -262,7 +244,7 @@ impl<const N: usize, C> TryFrom<PointCloud2Msg> for PointCloudIterator<N, C>
 where
     C: Fields<N>,
 {
-    type Error = ConversionError;
+    type Error = MsgConversionError;
 
     /// Convert a PointCloud2Msg into an iterator.
     /// Converting a PointCloud2Msg into an iterator is a fallible operation since the message can contain only a subset of the required fields.
@@ -286,7 +268,7 @@ where
                 .into_iter()
                 .map(|(name, _)| (*name).to_owned())
                 .collect::<Vec<String>>();
-            return Err(ConversionError::FieldNotFound(names_not_found));
+            return Err(MsgConversionError::FieldNotFound(names_not_found));
         }
 
         let ordered_fieldnames = C::field_names_ordered();
@@ -330,7 +312,7 @@ where
         let point_step_size = cloud.point_step as usize;
         let cloud_length = cloud.width as usize * cloud.height as usize;
         if point_step_size * cloud_length != cloud.data.len() {
-            return Err(ConversionError::DataLengthMismatch);
+            return Err(MsgConversionError::DataLengthMismatch);
         }
 
         let last_offset = offsets.last().expect("Dimensionality is 0.");
@@ -338,7 +320,7 @@ where
         let last_meta = meta.last().expect("Dimensionality is 0.");
         let size_with_last_meta = last_offset + last_meta.1.size();
         if size_with_last_meta > point_step_size {
-            return Err(ConversionError::DataLengthMismatch);
+            return Err(MsgConversionError::DataLengthMismatch);
         }
 
         let cloud_length = cloud.width as usize * cloud.height as usize;
@@ -392,29 +374,29 @@ mod test {
     #[test]
     fn test_double_ended_iter() {
         let cloud = vec![
-            crate::pcl_utils::PointXYZ {
+            crate::points::PointXYZ {
                 x: 1.0,
                 y: 1.0,
                 z: 1.0,
             },
-            crate::pcl_utils::PointXYZ {
+            crate::points::PointXYZ {
                 x: 2.0,
                 y: 2.0,
                 z: 2.0,
             },
-            crate::pcl_utils::PointXYZ {
+            crate::points::PointXYZ {
                 x: 3.0,
                 y: 3.0,
                 z: 3.0,
             },
         ];
 
-        let internal_msg = crate::PointCloud2Msg::try_from_iterable(cloud).unwrap();
+        let internal_msg = crate::PointCloud2Msg::try_from_iter(cloud).unwrap();
         let mut iter = crate::iterator::PointCloudIterator::try_from(internal_msg).unwrap();
         let last_p = iter.next_back();
 
         assert!(last_p.is_some());
-        let last_p: crate::pcl_utils::PointXYZ = last_p.unwrap();
+        let last_p: crate::points::PointXYZ = last_p.unwrap();
 
         assert_eq!(last_p.x, 3.0);
         assert_eq!(last_p.y, 3.0);
@@ -422,7 +404,7 @@ mod test {
 
         let first_p = iter.next();
         assert!(first_p.is_some());
-        let first_p: crate::pcl_utils::PointXYZ = first_p.unwrap();
+        let first_p: crate::points::PointXYZ = first_p.unwrap();
 
         assert_eq!(first_p.x, 1.0);
         assert_eq!(first_p.y, 1.0);
@@ -430,7 +412,7 @@ mod test {
 
         let last_p = iter.next_back();
         assert!(last_p.is_some());
-        let last_p: crate::pcl_utils::PointXYZ = last_p.unwrap();
+        let last_p: crate::points::PointXYZ = last_p.unwrap();
 
         assert_eq!(last_p.x, 2.0);
         assert_eq!(last_p.y, 2.0);
@@ -446,24 +428,24 @@ mod test {
     #[test]
     fn test_split_at() {
         let cloud = vec![
-            crate::pcl_utils::PointXYZ {
+            crate::points::PointXYZ {
                 x: 1.0,
                 y: 1.0,
                 z: 1.0,
             },
-            crate::pcl_utils::PointXYZ {
+            crate::points::PointXYZ {
                 x: 2.0,
                 y: 2.0,
                 z: 2.0,
             },
-            crate::pcl_utils::PointXYZ {
+            crate::points::PointXYZ {
                 x: 3.0,
                 y: 3.0,
                 z: 3.0,
             },
         ];
 
-        let internal_msg = crate::PointCloud2Msg::try_from_iterable(cloud).unwrap();
+        let internal_msg = crate::PointCloud2Msg::try_from_iter(cloud).unwrap();
         let iter = crate::iterator::PointCloudIterator::try_from(internal_msg).unwrap();
 
         let (mut left, mut right) = iter.split_at(1);
@@ -473,7 +455,7 @@ mod test {
 
         let first_left = left.next();
         assert!(first_left.is_some());
-        let first_left: crate::pcl_utils::PointXYZ = first_left.unwrap();
+        let first_left: crate::points::PointXYZ = first_left.unwrap();
 
         assert_eq!(first_left.x, 1.0);
         assert_eq!(first_left.y, 1.0);
@@ -481,7 +463,7 @@ mod test {
 
         let first_right = right.next();
         assert!(first_right.is_some());
-        let first_right: crate::pcl_utils::PointXYZ = first_right.unwrap();
+        let first_right: crate::points::PointXYZ = first_right.unwrap();
 
         assert_eq!(first_right.x, 2.0);
         assert_eq!(first_right.y, 2.0);
@@ -490,7 +472,7 @@ mod test {
         let last_right = right.next_back();
         assert!(last_right.is_some());
 
-        let last_right: crate::pcl_utils::PointXYZ = last_right.unwrap();
+        let last_right: crate::points::PointXYZ = last_right.unwrap();
         assert_eq!(last_right.x, 3.0);
         assert_eq!(last_right.y, 3.0);
         assert_eq!(last_right.z, 3.0);

@@ -1,16 +1,12 @@
-// This example demonstrates a very simple distance filter with predefined point types.
-// Note that this example is a simplified version of the custom_filter.rs example.
-// Also, it effectively demonstrates a typesafe byte-to-byte buffer filter with a single iteration.
-
+/// This example implements a naive benchmark for the library so you can evaluate the use of rayon for parallel processing.
+/// It generates a random point cloud and measures the time it takes to iterate over it.
+/// The code works mainly as a showcase. For real benchmarks, check the `benches` directory.
+/// It also implements the same benchmark shown here.
 use std::time::Duration;
 
-use criterion::black_box;
-use ros_pointcloud2::{pcl_utils::PointXYZ, PointCloud2Msg};
+use ros_pointcloud2::prelude::*;
 
 use rand::Rng;
-
-#[cfg(feature = "rayon")]
-use rayon::prelude::*;
 
 pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<PointXYZ> {
     let mut rng = rand::thread_rng();
@@ -56,7 +52,7 @@ fn roundtrip_filter(cloud: Vec<PointXYZ>) -> bool {
 #[cfg(feature = "rayon")]
 fn roundtrip_par(cloud: Vec<PointXYZ>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iterable(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
         .try_into_par_iter()
         .unwrap()
@@ -67,7 +63,7 @@ fn roundtrip_par(cloud: Vec<PointXYZ>) -> bool {
 #[cfg(feature = "rayon")]
 fn roundtrip_filter_par(cloud: Vec<PointXYZ>) -> bool {
     let orig_len: usize = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iterable(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
         .try_into_par_iter()
         .unwrap()
@@ -104,7 +100,7 @@ where
 {
     let cloud_points = generate_random_pointcloud(pcl_size, f32::MIN / 2.0, f32::MAX / 2.0);
     let start = std::time::Instant::now();
-    black_box(func(cloud_points));
+    let _ = func(cloud_points);
     start.elapsed()
 }
 

@@ -1,6 +1,6 @@
-use ros_pointcloud2::pcl_utils::*;
-use ros_pointcloud2::PointCloud2Msg;
-use ros_pointcloud2::*;
+use ros_pointcloud2::prelude::*;
+
+#[cfg(feature = "derive")]
 use std::fmt::Debug;
 
 macro_rules! convert_from_into {
@@ -19,7 +19,7 @@ macro_rules! convert_from_into_vec {
 macro_rules! convert_from_into_in_out_cloud {
     ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
         let msg = PointCloud2Msg::try_from_iter($in_cloud.clone().into_iter());
-        assert!(msg.is_ok());
+        assert!(msg.is_ok(), "{:?}", msg);
         let msg = msg.unwrap();
         let to_p_type = msg.try_into_iter();
         assert!(to_p_type.is_ok());
@@ -34,7 +34,7 @@ macro_rules! convert_from_into_in_out_cloud {
 macro_rules! convert_from_into_in_out_cloud_vec {
     ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
         let msg = PointCloud2Msg::try_from_vec($in_cloud.clone());
-        assert!(msg.is_ok());
+        assert!(msg.is_ok(), "{:?}", msg);
         let msg = msg.unwrap();
         let to_p_type = msg.try_into_iter();
         assert!(to_p_type.is_ok());
@@ -48,26 +48,10 @@ macro_rules! convert_from_into_in_out_cloud_vec {
 #[test]
 fn write_cloud() {
     let cloud = vec![
-        PointXYZ {
-            x: 0.0,
-            y: 1.0,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.0,
-            y: 1.5,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.3,
-            y: 1.6,
-            z: 5.7,
-        },
-        PointXYZ {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-        },
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
     let msg = PointCloud2Msg::try_from_iter(cloud.into_iter());
@@ -78,26 +62,10 @@ fn write_cloud() {
 #[cfg(feature = "derive")]
 fn write_cloud_from_vec() {
     let cloud = vec![
-        PointXYZ {
-            x: 0.0,
-            y: 1.0,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.0,
-            y: 1.5,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.3,
-            y: 1.6,
-            z: 5.7,
-        },
-        PointXYZ {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-        },
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
     let msg = PointCloud2Msg::try_from_vec(cloud);
@@ -241,26 +209,10 @@ fn custom_rgba_f32() {
 #[test]
 fn converterxyz() {
     let cloud = vec![
-        PointXYZ {
-            x: 0.0,
-            y: 1.0,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.0,
-            y: 1.5,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.3,
-            y: 1.6,
-            z: 5.7,
-        },
-        PointXYZ {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-        },
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
     convert_from_into!(PointXYZ, cloud);
@@ -271,42 +223,18 @@ fn converterxyzrgba() {
     convert_from_into!(
         PointXYZRGBA,
         vec![
-            PointXYZRGBA {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 0,
-            },
-            PointXYZRGBA {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                r: 1,
-                g: 1,
-                b: 1,
-                a: 1,
-            },
-            PointXYZRGBA {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                r: 2,
-                g: 2,
-                b: 2,
-                a: 2,
-            },
-            PointXYZRGBA {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                r: u8::MAX,
-                g: u8::MAX,
-                b: u8::MAX,
-                a: u8::MAX,
-            },
+            PointXYZRGBA::new(0.0, 1.0, 5.0, 0, 0, 0, 0),
+            PointXYZRGBA::new(1.0, 1.5, 5.0, 1, 1, 1, 1),
+            PointXYZRGBA::new(1.3, 1.6, 5.7, 2, 2, 2, 2),
+            PointXYZRGBA::new(
+                f32::MAX,
+                f32::MIN,
+                f32::MAX,
+                u8::MAX,
+                u8::MAX,
+                u8::MAX,
+                u8::MAX
+            ),
         ]
     );
 }
@@ -316,42 +244,9 @@ fn converterxyzinormal() {
     convert_from_into!(
         PointXYZINormal,
         vec![
-            PointXYZINormal {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                intensity: 0.0,
-                normal_x: 0.0,
-                normal_y: 0.0,
-                normal_z: 0.0,
-            },
-            PointXYZINormal {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                intensity: 1.0,
-                normal_x: 1.0,
-                normal_y: 1.0,
-                normal_z: 1.0,
-            },
-            PointXYZINormal {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                intensity: 2.0,
-                normal_x: 2.0,
-                normal_y: 2.0,
-                normal_z: 2.0,
-            },
-            PointXYZINormal {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                intensity: f32::MAX,
-                normal_x: f32::MAX,
-                normal_y: f32::MAX,
-                normal_z: f32::MAX,
-            },
+            PointXYZINormal::new(0.0, 1.0, 5.0, 0.0, 0.0, 0.0, 0.0),
+            PointXYZINormal::new(1.0, 1.5, 5.0, 1.0, 1.0, 1.0, 1.0),
+            PointXYZINormal::new(1.3, 1.6, 5.7, 2.0, 2.0, 2.0, 2.0),
         ]
     );
 }
@@ -361,50 +256,20 @@ fn converterxyzrgbnormal() {
     convert_from_into!(
         PointXYZRGBNormal,
         vec![
-            PointXYZRGBNormal {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                r: 0,
-                g: 0,
-                b: 0,
-                normal_x: 0.0,
-                normal_y: 0.0,
-                normal_z: 0.0,
-            },
-            PointXYZRGBNormal {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                r: 1,
-                g: 1,
-                b: 1,
-                normal_x: 1.0,
-                normal_y: 1.0,
-                normal_z: 1.0,
-            },
-            PointXYZRGBNormal {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                r: 2,
-                g: 2,
-                b: 2,
-                normal_x: 2.0,
-                normal_y: 2.0,
-                normal_z: 2.0,
-            },
-            PointXYZRGBNormal {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                r: u8::MAX,
-                g: u8::MAX,
-                b: u8::MAX,
-                normal_x: f32::MAX,
-                normal_y: f32::MAX,
-                normal_z: f32::MAX,
-            },
+            PointXYZRGBNormal::new(0.0, 1.0, 5.0, 0, 0, 0, 0.0, 0.0, 0.0),
+            PointXYZRGBNormal::new(1.0, 1.5, 5.0, 1, 1, 1, 1.0, 1.0, 1.0),
+            PointXYZRGBNormal::new(1.3, 1.6, 5.7, 2, 2, 2, 2.0, 2.0, 2.0),
+            PointXYZRGBNormal::new(
+                f32::MAX,
+                f32::MIN,
+                f32::MAX,
+                u8::MAX,
+                u8::MAX,
+                u8::MAX,
+                f32::MAX,
+                f32::MAX,
+                f32::MAX,
+            ),
         ]
     );
 }
@@ -414,38 +279,10 @@ fn converterxyznormal() {
     convert_from_into!(
         PointXYZNormal,
         vec![
-            PointXYZNormal {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                normal_x: 0.0,
-                normal_y: 0.0,
-                normal_z: 0.0,
-            },
-            PointXYZNormal {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                normal_x: 1.0,
-                normal_y: 1.0,
-                normal_z: 1.0,
-            },
-            PointXYZNormal {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                normal_x: 2.0,
-                normal_y: 2.0,
-                normal_z: 2.0,
-            },
-            PointXYZNormal {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                normal_x: f32::MAX,
-                normal_y: f32::MAX,
-                normal_z: f32::MAX,
-            },
+            PointXYZNormal::new(0.0, 1.0, 5.0, 0.0, 0.0, 0.0),
+            PointXYZNormal::new(1.0, 1.5, 5.0, 1.0, 1.0, 1.0),
+            PointXYZNormal::new(1.3, 1.6, 5.7, 2.0, 2.0, 2.0),
+            PointXYZNormal::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX, f32::MAX, f32::MAX),
         ]
     );
 }
@@ -455,42 +292,18 @@ fn converterxyzrgbl() {
     convert_from_into!(
         PointXYZRGBL,
         vec![
-            PointXYZRGBL {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                r: 0,
-                g: 0,
-                b: 0,
-                label: 0,
-            },
-            PointXYZRGBL {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                r: 1,
-                g: 1,
-                b: 1,
-                label: 1,
-            },
-            PointXYZRGBL {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                r: 2,
-                g: 2,
-                b: 2,
-                label: 2,
-            },
-            PointXYZRGBL {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                r: u8::MAX,
-                g: u8::MAX,
-                b: u8::MAX,
-                label: u32::MAX,
-            },
+            PointXYZRGBL::new(0.0, 1.0, 5.0, 0, 0, 0, 0),
+            PointXYZRGBL::new(1.0, 1.5, 5.0, 1, 1, 1, 1),
+            PointXYZRGBL::new(1.3, 1.6, 5.7, 2, 2, 2, 2),
+            PointXYZRGBL::new(
+                f32::MAX,
+                f32::MIN,
+                f32::MAX,
+                u8::MAX,
+                u8::MAX,
+                u8::MAX,
+                u32::MAX
+            ),
         ]
     );
 }
@@ -500,38 +313,10 @@ fn converterxyzrgb() {
     convert_from_into!(
         PointXYZRGB,
         vec![
-            PointXYZRGB {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                r: 0,
-                g: 0,
-                b: 0,
-            },
-            PointXYZRGB {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                r: 1,
-                g: 1,
-                b: 1,
-            },
-            PointXYZRGB {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                r: 2,
-                g: 2,
-                b: 2,
-            },
-            PointXYZRGB {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                r: u8::MAX,
-                g: u8::MAX,
-                b: u8::MAX,
-            },
+            PointXYZRGB::new(0.0, 1.0, 5.0, 0, 0, 0),
+            PointXYZRGB::new(1.0, 1.5, 5.0, 1, 1, 1),
+            PointXYZRGB::new(1.3, 1.6, 5.7, 2, 2, 2),
+            PointXYZRGB::new(f32::MAX, f32::MIN, f32::MAX, u8::MAX, u8::MAX, u8::MAX),
         ]
     );
 }
@@ -542,38 +327,9 @@ fn converterxyzrgb_from_vec() {
     convert_from_into_vec!(
         PointXYZRGB,
         vec![
-            PointXYZRGB {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                r: 0,
-                g: 0,
-                b: 0,
-            },
-            PointXYZRGB {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                r: 1,
-                g: 1,
-                b: 1,
-            },
-            PointXYZRGB {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                r: 2,
-                g: 2,
-                b: 2,
-            },
-            PointXYZRGB {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                r: u8::MAX,
-                g: u8::MAX,
-                b: u8::MAX,
-            },
+            PointXYZRGB::new(0.0, 1.0, 5.0, 0, 0, 0),
+            PointXYZRGB::new(1.3, 1.6, 5.7, 2, 2, 2),
+            PointXYZRGB::new(f32::MAX, f32::MIN, f32::MAX, u8::MAX, u8::MAX, u8::MAX),
         ]
     );
 }
@@ -583,30 +339,10 @@ fn converterxyzl() {
     convert_from_into!(
         PointXYZL,
         vec![
-            PointXYZL {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                label: 0,
-            },
-            PointXYZL {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                label: 1,
-            },
-            PointXYZL {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                label: 2,
-            },
-            PointXYZL {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                label: u32::MAX,
-            },
+            PointXYZL::new(0.0, 1.0, 5.0, 0.0),
+            PointXYZL::new(1.0, 1.5, 5.0, 1.0),
+            PointXYZL::new(1.3, 1.6, 5.7, 2.0),
+            PointXYZL::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX),
         ]
     );
 }
@@ -616,30 +352,10 @@ fn converterxyzi() {
     convert_from_into!(
         PointXYZI,
         vec![
-            PointXYZI {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                intensity: 0.0,
-            },
-            PointXYZI {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                intensity: 1.0,
-            },
-            PointXYZI {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                intensity: 2.0,
-            },
-            PointXYZI {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                intensity: f32::MAX,
-            },
+            PointXYZI::new(0.0, 1.0, 5.0, 0.0),
+            PointXYZI::new(1.0, 1.5, 5.0, 1.0),
+            PointXYZI::new(1.3, 1.6, 5.7, 2.0),
+            PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX),
         ]
     );
 }
@@ -647,58 +363,23 @@ fn converterxyzi() {
 #[test]
 fn write_xyzi_read_xyz() {
     let write_cloud = vec![
-        PointXYZI {
-            x: 0.0,
-            y: 1.0,
-            z: 5.0,
-            intensity: 0.0,
-        },
-        PointXYZI {
-            x: 1.0,
-            y: 1.5,
-            z: 5.0,
-            intensity: 1.0,
-        },
-        PointXYZI {
-            x: 1.3,
-            y: 1.6,
-            z: 5.7,
-            intensity: 2.0,
-        },
-        PointXYZI {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-            intensity: f32::MAX,
-        },
+        PointXYZI::new(0.0, 1.0, 5.0, 0.0),
+        PointXYZI::new(1.0, 1.5, 5.0, 1.0),
+        PointXYZI::new(1.3, 1.6, 5.7, 2.0),
+        PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX),
     ];
 
     let read_cloud = [
-        PointXYZ {
-            x: 0.0,
-            y: 1.0,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.0,
-            y: 1.5,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.3,
-            y: 1.6,
-            z: 5.7,
-        },
-        PointXYZ {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-        },
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
     convert_from_into_in_out_cloud!(write_cloud, PointXYZI, read_cloud, PointXYZ);
 }
 
+#[cfg(feature = "derive")]
 #[test]
 fn write_less_than_available() {
     #[derive(Debug, PartialEq, Clone, Default, TypeLayout)]

@@ -1,23 +1,101 @@
-use crate::{ConversionError, Fields, Point, PointConvertible};
+use crate::{Fields, Point, PointConvertible};
 
 #[cfg(feature = "derive")]
-use crate::TypeLayout;
+use type_layout::TypeLayout;
 
-/// Pack an RGB color into a single f32 value as used in ROS with PCL for RViz usage.
-#[inline]
-fn pack_rgb(r: u8, g: u8, b: u8) -> f32 {
-    let packed = ((r as u32) << 16) + ((g as u32) << 8) + (b as u32);
-    f32::from_bits(packed)
+/// A packed RGB color encoding as used in ROS tools.
+#[derive(Clone, Copy)]
+#[repr(C)]
+pub union RGB {
+    packed: f32,
+    unpacked: [u8; 4], // 1 byte padding
 }
 
-/// Unpack an RGB color from a single f32 value as used in ROS with PCL for RViz usage.
-#[inline]
-fn unpack_rgb(rgb: f32) -> [u8; 3] {
-    let packed: u32 = rgb.to_bits();
-    let r: u8 = (packed >> 16) as u8;
-    let g: u8 = (packed >> 8) as u8;
-    let b: u8 = packed as u8;
-    [r, g, b]
+unsafe impl Send for RGB {}
+unsafe impl Sync for RGB {}
+
+impl Default for RGB {
+    fn default() -> Self {
+        Self { packed: 0.0 }
+    }
+}
+
+impl PartialEq for RGB {
+    fn eq(&self, other: &Self) -> bool {
+        self.r() == other.r() && self.g() == other.g() && self.b() == other.b()
+    }
+}
+
+impl core::fmt::Display for RGB {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "#{:02X}{:02X}{:02X}", self.r(), self.g(), self.b())
+    }
+}
+
+impl core::fmt::Debug for RGB {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RGB")
+            .field("r", &self.r())
+            .field("g", &self.g())
+            .field("b", &self.b())
+            .finish()
+    }
+}
+
+impl RGB {
+    pub fn new(r: u8, g: u8, b: u8) -> Self {
+        Self {
+            unpacked: [r, g, b, 0],
+        }
+    }
+
+    pub fn new_from_packed_f32(packed: f32) -> Self {
+        Self { packed }
+    }
+
+    pub fn new_from_packed(packed: u32) -> Self {
+        Self::new_from_packed_f32(f32::from_bits(packed))
+    }
+
+    pub fn raw(&self) -> f32 {
+        unsafe { self.packed }
+    }
+
+    pub fn r(&self) -> u8 {
+        unsafe { self.unpacked[0] }
+    }
+
+    pub fn g(&self) -> u8 {
+        unsafe { self.unpacked[1] }
+    }
+
+    pub fn b(&self) -> u8 {
+        unsafe { self.unpacked[2] }
+    }
+
+    pub fn set_r(&mut self, r: u8) {
+        unsafe { self.unpacked[0] = r }
+    }
+
+    pub fn set_g(&mut self, g: u8) {
+        unsafe { self.unpacked[1] = g }
+    }
+
+    pub fn set_b(&mut self, b: u8) {
+        unsafe { self.unpacked[2] = b }
+    }
+}
+
+impl From<RGB> for f32 {
+    fn from(rgb: RGB) -> Self {
+        unsafe { rgb.packed }
+    }
+}
+
+impl From<f32> for RGB {
+    fn from(packed: f32) -> Self {
+        RGB::new_from_packed_f32(packed)
+    }
 }
 
 /// Predefined point type commonly used in ROS with PCL.
@@ -30,6 +108,38 @@ pub struct PointXYZ {
     pub y: f32,
     pub z: f32,
 }
+
+#[cfg(feature = "nalgebra")]
+impl From<nalgebra::Point3<f32>> for PointXYZ {
+    fn from(point: nalgebra::Point3<f32>) -> Self {
+        Self {
+            x: point.x,
+            y: point.y,
+            z: point.z,
+        }
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+impl From<PointXYZ> for nalgebra::Point3<f32> {
+    fn from(point: PointXYZ) -> Self {
+        nalgebra::Point3::new(point.x, point.y, point.z)
+    }
+}
+
+impl PointXYZ {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self { x, y, z }
+    }
+
+    #[cfg(feature = "nalgebra")]
+    pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+}
+
+unsafe impl Send for PointXYZ {}
+unsafe impl Sync for PointXYZ {}
 
 impl Fields<3> for PointXYZ {
     fn field_names_ordered() -> [&'static str; 3] {
@@ -68,6 +178,20 @@ pub struct PointXYZI {
     pub z: f32,
     pub intensity: f32,
 }
+
+impl PointXYZI {
+    pub fn new(x: f32, y: f32, z: f32, intensity: f32) -> Self {
+        Self { x, y, z, intensity }
+    }
+
+    #[cfg(feature = "nalgebra")]
+    pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+}
+
+unsafe impl Send for PointXYZI {}
+unsafe impl Sync for PointXYZI {}
 
 impl Fields<4> for PointXYZI {
     fn field_names_ordered() -> [&'static str; 4] {
@@ -113,6 +237,25 @@ pub struct PointXYZL {
     pub label: u32,
 }
 
+impl PointXYZL {
+    pub fn new(x: f32, y: f32, z: f32, intensity: f32) -> Self {
+        Self {
+            x,
+            y,
+            z,
+            label: intensity as u32,
+        }
+    }
+
+    #[cfg(feature = "nalgebra")]
+    pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+}
+
+unsafe impl Send for PointXYZL {}
+unsafe impl Sync for PointXYZL {}
+
 impl Fields<4> for PointXYZL {
     fn field_names_ordered() -> [&'static str; 4] {
         ["x", "y", "z", "label"]
@@ -154,10 +297,35 @@ pub struct PointXYZRGB {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
+    pub rgb: RGB,
 }
+
+impl PointXYZRGB {
+    pub fn new(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8) -> Self {
+        let rgb = RGB::new(r, g, b);
+        Self { x, y, z, rgb }
+    }
+
+    pub fn r(&self) -> u8 {
+        self.rgb.r()
+    }
+
+    pub fn g(&self) -> u8 {
+        self.rgb.g()
+    }
+
+    pub fn b(&self) -> u8 {
+        self.rgb.b()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+}
+
+unsafe impl Send for PointXYZRGB {}
+unsafe impl Sync for PointXYZRGB {}
 
 impl Fields<4> for PointXYZRGB {
     fn field_names_ordered() -> [&'static str; 4] {
@@ -167,24 +335,24 @@ impl Fields<4> for PointXYZRGB {
 
 impl From<Point<4>> for PointXYZRGB {
     fn from(point: Point<4>) -> Self {
-        let rgb = point.fields[3].get::<f32>();
-        let rgb_unpacked = unpack_rgb(rgb);
         Self {
             x: point.fields[0].get(),
             y: point.fields[1].get(),
             z: point.fields[2].get(),
-            r: rgb_unpacked[0],
-            g: rgb_unpacked[1],
-            b: rgb_unpacked[2],
+            rgb: point.fields[3].get(),
         }
     }
 }
 
 impl From<PointXYZRGB> for Point<4> {
     fn from(point: PointXYZRGB) -> Self {
-        let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
-            fields: [point.x.into(), point.y.into(), point.z.into(), rgb.into()],
+            fields: [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                f32::from(point.rgb).into(),
+            ],
         }
     }
 }
@@ -201,11 +369,36 @@ pub struct PointXYZRGBA {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
+    pub rgb: RGB,
     pub a: u8,
 }
+
+impl PointXYZRGBA {
+    pub fn new(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8, a: u8) -> Self {
+        let rgb = RGB::new(r, g, b);
+        Self { x, y, z, rgb, a }
+    }
+
+    pub fn r(&self) -> u8 {
+        self.rgb.r()
+    }
+
+    pub fn g(&self) -> u8 {
+        self.rgb.g()
+    }
+
+    pub fn b(&self) -> u8 {
+        self.rgb.b()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+}
+
+unsafe impl Send for PointXYZRGBA {}
+unsafe impl Sync for PointXYZRGBA {}
 
 impl Fields<5> for PointXYZRGBA {
     fn field_names_ordered() -> [&'static str; 5] {
@@ -215,15 +408,11 @@ impl Fields<5> for PointXYZRGBA {
 
 impl From<Point<5>> for PointXYZRGBA {
     fn from(point: Point<5>) -> Self {
-        let rgb = point.fields[3].get::<f32>();
-        let rgb_unpacked = unpack_rgb(rgb);
         Self {
             x: point.fields[0].get(),
             y: point.fields[1].get(),
             z: point.fields[2].get(),
-            r: rgb_unpacked[0],
-            g: rgb_unpacked[1],
-            b: rgb_unpacked[2],
+            rgb: point.fields[3].get::<f32>().into(),
             a: point.fields[4].get(),
         }
     }
@@ -231,13 +420,12 @@ impl From<Point<5>> for PointXYZRGBA {
 
 impl From<PointXYZRGBA> for Point<5> {
     fn from(point: PointXYZRGBA) -> Self {
-        let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
             fields: [
                 point.x.into(),
                 point.y.into(),
                 point.z.into(),
-                rgb.into(),
+                f32::from(point.rgb).into(),
                 point.a.into(),
             ],
         }
@@ -255,13 +443,56 @@ pub struct PointXYZRGBNormal {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
+    pub rgb: RGB,
     pub normal_x: f32,
     pub normal_y: f32,
     pub normal_z: f32,
 }
+
+impl PointXYZRGBNormal {
+    pub fn new(
+        x: f32,
+        y: f32,
+        z: f32,
+        r: u8,
+        g: u8,
+        b: u8,
+        normal_x: f32,
+        normal_y: f32,
+        normal_z: f32,
+    ) -> Self {
+        let rgb = RGB::new(r, g, b);
+        Self {
+            x,
+            y,
+            z,
+            rgb,
+            normal_x,
+            normal_y,
+            normal_z,
+        }
+    }
+
+    pub fn r(&self) -> u8 {
+        self.rgb.r()
+    }
+
+    pub fn g(&self) -> u8 {
+        self.rgb.g()
+    }
+
+    pub fn b(&self) -> u8 {
+        self.rgb.b()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+}
+
+unsafe impl Send for PointXYZRGBNormal {}
+unsafe impl Sync for PointXYZRGBNormal {}
 
 impl Fields<7> for PointXYZRGBNormal {
     fn field_names_ordered() -> [&'static str; 7] {
@@ -271,15 +502,11 @@ impl Fields<7> for PointXYZRGBNormal {
 
 impl From<Point<7>> for PointXYZRGBNormal {
     fn from(point: Point<7>) -> Self {
-        let rgb = point.fields[3].get::<f32>();
-        let rgb_unpacked = unpack_rgb(rgb);
         Self {
             x: point.fields[0].get(),
             y: point.fields[1].get(),
             z: point.fields[2].get(),
-            r: rgb_unpacked[0],
-            g: rgb_unpacked[1],
-            b: rgb_unpacked[2],
+            rgb: point.fields[3].get::<f32>().into(),
             normal_x: point.fields[4].get(),
             normal_y: point.fields[5].get(),
             normal_z: point.fields[6].get(),
@@ -289,13 +516,12 @@ impl From<Point<7>> for PointXYZRGBNormal {
 
 impl From<PointXYZRGBNormal> for Point<7> {
     fn from(point: PointXYZRGBNormal) -> Self {
-        let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
             fields: [
                 point.x.into(),
                 point.y.into(),
                 point.z.into(),
-                rgb.into(),
+                f32::from(point.rgb).into(),
                 point.normal_x.into(),
                 point.normal_y.into(),
                 point.normal_z.into(),
@@ -320,6 +546,36 @@ pub struct PointXYZINormal {
     pub normal_y: f32,
     pub normal_z: f32,
 }
+
+impl PointXYZINormal {
+    pub fn new(
+        x: f32,
+        y: f32,
+        z: f32,
+        intensity: f32,
+        normal_x: f32,
+        normal_y: f32,
+        normal_z: f32,
+    ) -> Self {
+        Self {
+            x,
+            y,
+            z,
+            intensity,
+            normal_x,
+            normal_y,
+            normal_z,
+        }
+    }
+
+    #[cfg(feature = "nalgebra")]
+    pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+}
+
+unsafe impl Send for PointXYZINormal {}
+unsafe impl Sync for PointXYZINormal {}
 
 impl Fields<7> for PointXYZINormal {
     fn field_names_ordered() -> [&'static str; 7] {
@@ -368,10 +624,41 @@ pub struct PointXYZRGBL {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
+    pub rgb: RGB,
     pub label: u32,
+}
+
+unsafe impl Send for PointXYZRGBL {}
+unsafe impl Sync for PointXYZRGBL {}
+
+impl PointXYZRGBL {
+    pub fn new(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8, label: u32) -> Self {
+        let rgb = RGB::new(r, g, b);
+        Self {
+            x,
+            y,
+            z,
+            rgb,
+            label,
+        }
+    }
+
+    pub fn r(&self) -> u8 {
+        self.rgb.r()
+    }
+
+    pub fn g(&self) -> u8 {
+        self.rgb.g()
+    }
+
+    pub fn b(&self) -> u8 {
+        self.rgb.b()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
 }
 
 impl Fields<5> for PointXYZRGBL {
@@ -382,15 +669,11 @@ impl Fields<5> for PointXYZRGBL {
 
 impl From<Point<5>> for PointXYZRGBL {
     fn from(point: Point<5>) -> Self {
-        let rgb = point.fields[3].get::<f32>();
-        let rgb_unpacked = unpack_rgb(rgb);
         Self {
             x: point.fields[0].get(),
             y: point.fields[1].get(),
             z: point.fields[2].get(),
-            r: rgb_unpacked[0],
-            g: rgb_unpacked[1],
-            b: rgb_unpacked[2],
+            rgb: point.fields[3].get::<f32>().into(),
             label: point.fields[4].get(),
         }
     }
@@ -398,13 +681,12 @@ impl From<Point<5>> for PointXYZRGBL {
 
 impl From<PointXYZRGBL> for Point<5> {
     fn from(point: PointXYZRGBL) -> Self {
-        let rgb = pack_rgb(point.r, point.g, point.b);
         Point {
             fields: [
                 point.x.into(),
                 point.y.into(),
                 point.z.into(),
-                rgb.into(),
+                f32::from(point.rgb).into(),
                 point.label.into(),
             ],
         }
@@ -426,6 +708,27 @@ pub struct PointXYZNormal {
     pub normal_y: f32,
     pub normal_z: f32,
 }
+
+impl PointXYZNormal {
+    pub fn new(x: f32, y: f32, z: f32, normal_x: f32, normal_y: f32, normal_z: f32) -> Self {
+        Self {
+            x,
+            y,
+            z,
+            normal_x,
+            normal_y,
+            normal_z,
+        }
+    }
+
+    #[cfg(feature = "nalgebra")]
+    pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+}
+
+unsafe impl Send for PointXYZNormal {}
+unsafe impl Sync for PointXYZNormal {}
 
 impl Fields<6> for PointXYZNormal {
     fn field_names_ordered() -> [&'static str; 6] {

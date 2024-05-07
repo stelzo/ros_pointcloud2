@@ -12,28 +12,34 @@ pub enum FieldDatatype {
     U32,
     I8,
     I16,
+
+    /// While RGB is not officially supported by ROS, it is used in practice as a packed f32.
+    /// To make it easier to work with and avoid packing code, the
+    /// [`ros_pointcloud2::points::RGB`] union is supported here and handled like a f32.
+    RGB,
 }
 
 impl FieldDatatype {
     pub fn size(&self) -> usize {
         match self {
-            FieldDatatype::U8 => 1,
-            FieldDatatype::U16 => 2,
-            FieldDatatype::U32 => 4,
-            FieldDatatype::I8 => 1,
-            FieldDatatype::I16 => 2,
-            FieldDatatype::I32 => 4,
-            FieldDatatype::F32 => 4,
-            FieldDatatype::F64 => 8,
+            FieldDatatype::U8 => std::mem::size_of::<u8>(),
+            FieldDatatype::U16 => std::mem::size_of::<u16>(),
+            FieldDatatype::U32 => std::mem::size_of::<u32>(),
+            FieldDatatype::I8 => std::mem::size_of::<i8>(),
+            FieldDatatype::I16 => std::mem::size_of::<i16>(),
+            FieldDatatype::I32 => std::mem::size_of::<i32>(),
+            FieldDatatype::F32 => std::mem::size_of::<f32>(),
+            FieldDatatype::F64 => std::mem::size_of::<f64>(),
+            FieldDatatype::RGB => std::mem::size_of::<f32>(), // packed in f32
         }
     }
 }
 
 impl TryFrom<String> for FieldDatatype {
-    type Error = ConversionError;
+    type Error = MsgConversionError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.as_str() {
+        match value.to_lowercase().as_str() {
             "f32" => Ok(FieldDatatype::F32),
             "f64" => Ok(FieldDatatype::F64),
             "i32" => Ok(FieldDatatype::I32),
@@ -42,7 +48,8 @@ impl TryFrom<String> for FieldDatatype {
             "u32" => Ok(FieldDatatype::U32),
             "i8" => Ok(FieldDatatype::I8),
             "i16" => Ok(FieldDatatype::I16),
-            _ => Err(ConversionError::UnsupportedFieldType),
+            "rgb" => Ok(FieldDatatype::RGB),
+            _ => Err(MsgConversionError::UnsupportedFieldType(value)),
         }
     }
 }
@@ -100,8 +107,15 @@ impl GetFieldDatatype for i16 {
     }
 }
 
+/// Convenience implementation for the RGB union.
+impl GetFieldDatatype for crate::points::RGB {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::RGB
+    }
+}
+
 impl TryFrom<u8> for FieldDatatype {
-    type Error = ConversionError;
+    type Error = MsgConversionError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -113,7 +127,7 @@ impl TryFrom<u8> for FieldDatatype {
             6 => Ok(FieldDatatype::U32),
             7 => Ok(FieldDatatype::F32),
             8 => Ok(FieldDatatype::F64),
-            _ => Err(ConversionError::UnsupportedFieldType),
+            _ => Err(MsgConversionError::UnsupportedFieldType(value.to_string())),
         }
     }
 }
@@ -129,6 +143,7 @@ impl From<FieldDatatype> for u8 {
             FieldDatatype::U32 => 6,
             FieldDatatype::F32 => 7,
             FieldDatatype::F64 => 8,
+            FieldDatatype::RGB => 7, // RGB is marked as f32 in the buffer
         }
     }
 }
@@ -251,6 +266,23 @@ impl FromBytes for f32 {
     #[inline]
     fn bytes(x: &f32) -> Vec<u8> {
         Vec::from(x.to_le_bytes())
+    }
+}
+
+impl FromBytes for points::RGB {
+    #[inline]
+    fn from_be_bytes(bytes: &[u8]) -> Self {
+        Self::new_from_packed_f32(f32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+    }
+
+    #[inline]
+    fn from_le_bytes(bytes: &[u8]) -> Self {
+        Self::new_from_packed_f32(f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+    }
+
+    #[inline]
+    fn bytes(x: &points::RGB) -> Vec<u8> {
+        Vec::from(x.raw().to_le_bytes())
     }
 }
 
