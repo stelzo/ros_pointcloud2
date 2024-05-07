@@ -12,19 +12,44 @@ pub enum FieldDatatype {
     U32,
     I8,
     I16,
+
+    /// While RGB is not officially supported by ROS, it is used in practice as a packed f32.
+    /// To make it easier to work with and avoid packing code, the
+    /// [`ros_pointcloud2::points::RGB`] union is supported here and handled like a f32.
+    RGB,
 }
 
 impl FieldDatatype {
     pub fn size(&self) -> usize {
         match self {
-            FieldDatatype::U8 => 1,
-            FieldDatatype::U16 => 2,
-            FieldDatatype::U32 => 4,
-            FieldDatatype::I8 => 1,
-            FieldDatatype::I16 => 2,
-            FieldDatatype::I32 => 4,
-            FieldDatatype::F32 => 4,
-            FieldDatatype::F64 => 8,
+            FieldDatatype::U8 => std::mem::size_of::<u8>(),
+            FieldDatatype::U16 => std::mem::size_of::<u16>(),
+            FieldDatatype::U32 => std::mem::size_of::<u32>(),
+            FieldDatatype::I8 => std::mem::size_of::<i8>(),
+            FieldDatatype::I16 => std::mem::size_of::<i16>(),
+            FieldDatatype::I32 => std::mem::size_of::<i32>(),
+            FieldDatatype::F32 => std::mem::size_of::<f32>(),
+            FieldDatatype::F64 => std::mem::size_of::<f64>(),
+            FieldDatatype::RGB => std::mem::size_of::<f32>(), // packed in f32
+        }
+    }
+}
+
+impl TryFrom<String> for FieldDatatype {
+    type Error = MsgConversionError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "f32" => Ok(FieldDatatype::F32),
+            "f64" => Ok(FieldDatatype::F64),
+            "i32" => Ok(FieldDatatype::I32),
+            "u8" => Ok(FieldDatatype::U8),
+            "u16" => Ok(FieldDatatype::U16),
+            "u32" => Ok(FieldDatatype::U32),
+            "i8" => Ok(FieldDatatype::I8),
+            "i16" => Ok(FieldDatatype::I16),
+            "rgb" => Ok(FieldDatatype::RGB),
+            _ => Err(MsgConversionError::UnsupportedFieldType(value)),
         }
     }
 }
@@ -82,8 +107,15 @@ impl GetFieldDatatype for i16 {
     }
 }
 
+/// Convenience implementation for the RGB union.
+impl GetFieldDatatype for crate::points::RGB {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::RGB
+    }
+}
+
 impl TryFrom<u8> for FieldDatatype {
-    type Error = ConversionError;
+    type Error = MsgConversionError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
@@ -95,7 +127,7 @@ impl TryFrom<u8> for FieldDatatype {
             6 => Ok(FieldDatatype::U32),
             7 => Ok(FieldDatatype::F32),
             8 => Ok(FieldDatatype::F64),
-            _ => Err(ConversionError::UnsupportedFieldType),
+            _ => Err(MsgConversionError::UnsupportedFieldType(value.to_string())),
         }
     }
 }
@@ -111,35 +143,19 @@ impl From<FieldDatatype> for u8 {
             FieldDatatype::U32 => 6,
             FieldDatatype::F32 => 7,
             FieldDatatype::F64 => 8,
+            FieldDatatype::RGB => 7, // RGB is marked as f32 in the buffer
         }
     }
 }
 
-pub(crate) fn check_coord(
-    coord: Option<usize>,
-    fields: &[PointFieldMsg],
-    xyz_field_type: &FieldDatatype,
-) -> Result<PointFieldMsg, ConversionError> {
-    match coord {
-        Some(y_idx) => {
-            let field = &fields[y_idx];
-            if field.datatype != u8::from(*xyz_field_type) {
-                return Err(ConversionError::InvalidFieldFormat);
-            }
-            Ok(field.clone())
-        }
-        None => Err(ConversionError::NotEnoughFields),
-    }
-}
-
-/// Matching field names from each meta data per point to the PointField name.
+/// Matching field names from each data point.
 /// Always make sure to use the same order as in your conversion implementation to have a correct mapping.
 ///
 /// This trait is needed to implement the `PointConvertible` trait.
 ///
-/// # Example for full point conversion.
+/// # Example
 /// ```
-/// use ros_pointcloud2::{Point, PointConvertible, MetaNames, size_of};
+/// use ros_pointcloud2::prelude::*;
 ///
 /// #[derive(Clone, Debug, PartialEq, Copy)]
 /// pub struct MyPointXYZI {
@@ -149,14 +165,14 @@ pub(crate) fn check_coord(
 ///     pub intensity: f32,
 /// }
 ///
-/// impl MetaNames<1> for MyPointXYZI {
-///    fn meta_names() -> [&'static str; 1] {
-///       ["intensity"]
+/// impl Fields<4> for MyPointXYZI {
+///    fn field_names_ordered() -> [&'static str; 4] {
+///       ["x", "y", "z", "intensity"]
 ///   }
 /// }
 /// ```
-pub trait MetaNames<const METADIM: usize> {
-    fn meta_names() -> [&'static str; METADIM];
+pub trait Fields<const N: usize> {
+    fn field_names_ordered() -> [&'static str; N];
 }
 
 /// This trait is used to convert a byte slice to a primitive type.
@@ -253,6 +269,23 @@ impl FromBytes for f32 {
     }
 }
 
+impl FromBytes for points::RGB {
+    #[inline]
+    fn from_be_bytes(bytes: &[u8]) -> Self {
+        Self::new_from_packed_f32(f32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+    }
+
+    #[inline]
+    fn from_le_bytes(bytes: &[u8]) -> Self {
+        Self::new_from_packed_f32(f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+    }
+
+    #[inline]
+    fn bytes(x: &points::RGB) -> Vec<u8> {
+        Vec::from(x.raw().to_le_bytes())
+    }
+}
+
 impl FromBytes for i32 {
     #[inline]
     fn from_be_bytes(bytes: &[u8]) -> Self {
@@ -305,42 +338,12 @@ impl FromBytes for u8 {
     }
 }
 
-#[derive(Default, Clone, Debug, PartialEq)]
-pub(crate) enum Endianness {
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
+pub enum Endianness {
     Big,
 
     #[default]
     Little,
-}
-
-#[inline(always)]
-pub(crate) fn load_loadable<T: FromBytes, const SIZE: usize>(
-    start_idx: usize,
-    data: &[u8],
-    endian: &Endianness,
-) -> T {
-    match endian {
-        Endianness::Big => T::from_be_bytes(load_bytes::<SIZE>(start_idx, data).as_slice()),
-        Endianness::Little => T::from_le_bytes(load_bytes::<SIZE>(start_idx, data).as_slice()),
-    }
-}
-
-/// Note: check if the data slice is long enough to load the bytes beforehand! Uses unsafe indexing.
-#[inline(always)]
-fn load_bytes<const S: usize>(start_idx: usize, data: &[u8]) -> [u8; S] {
-    let mut target = [u8::default(); S];
-
-    debug_assert!(target.len() == S);
-    debug_assert!(data.len() >= start_idx + S);
-
-    let source = unsafe { data.get_unchecked(start_idx..start_idx + S) };
-    target
-        .iter_mut()
-        .zip(source.iter())
-        .for_each(|(target, source)| {
-            *target = *source;
-        });
-    target
 }
 
 #[cfg(test)]

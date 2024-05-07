@@ -15,7 +15,7 @@ pub struct HeaderMsg {
     pub frame_id: String,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct PointFieldMsg {
     pub name: String,
     pub offset: u32,
@@ -23,21 +23,19 @@ pub struct PointFieldMsg {
     pub count: u32,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct PointCloud2Msg {
-    pub header: HeaderMsg,
-    pub height: u32,
-    pub width: u32,
-    pub fields: Vec<PointFieldMsg>,
-    pub is_bigendian: bool,
-    pub point_step: u32,
-    pub row_step: u32,
-    pub data: Vec<u8>,
-    pub is_dense: bool,
+impl Default for PointFieldMsg {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            offset: 0,
+            datatype: 0,
+            count: 1,
+        }
+    }
 }
 
 #[cfg(feature = "r2r_msg")]
-impl From<r2r::sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
+impl From<r2r::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
     fn from(msg: r2r::sensor_msgs::msg::PointCloud2) -> Self {
         Self {
             header: HeaderMsg {
@@ -70,8 +68,8 @@ impl From<r2r::sensor_msgs::msg::PointCloud2> for PointCloud2Msg {
 }
 
 #[cfg(feature = "r2r_msg")]
-impl From<PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
-    fn from(msg: PointCloud2Msg) -> Self {
+impl From<crate::PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
+    fn from(msg: crate::PointCloud2Msg) -> Self {
         r2r::sensor_msgs::msg::PointCloud2 {
             header: r2r::std_msgs::msg::Header {
                 stamp: r2r::builtin_interfaces::msg::Time {
@@ -102,7 +100,7 @@ impl From<PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
 }
 
 #[cfg(feature = "rosrust_msg")]
-impl From<rosrust_msg::sensor_msgs::PointCloud2> for PointCloud2Msg {
+impl From<rosrust_msg::sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
     fn from(msg: rosrust_msg::sensor_msgs::PointCloud2) -> Self {
         Self {
             header: HeaderMsg {
@@ -135,8 +133,8 @@ impl From<rosrust_msg::sensor_msgs::PointCloud2> for PointCloud2Msg {
 }
 
 #[cfg(feature = "rosrust_msg")]
-impl From<PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
-    fn from(msg: PointCloud2Msg) -> Self {
+impl From<crate::PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
+    fn from(msg: crate::PointCloud2Msg) -> Self {
         rosrust_msg::sensor_msgs::PointCloud2 {
             header: rosrust_msg::std_msgs::Header {
                 seq: msg.header.seq,
