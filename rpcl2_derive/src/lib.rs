@@ -133,7 +133,7 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
     let from_custom_point = quote! {
         impl From<#name> for ros_pointcloud2::RPCL2Point<#field_len_token> {
             fn from(point: #name) -> Self {
-                ros_pointcloud2::Point {
+                ros_pointcloud2::RPCL2Point {
                     fields: [ #(#field_names_into,)* ]
                 }
             }

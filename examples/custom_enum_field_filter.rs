@@ -27,19 +27,7 @@ struct CustomPoint {
     my_custom_label: Label,
 }
 
-// For us as convenience
-impl CustomPoint {
-    fn new(x: f32, y: f32, z: f32, intensity: f32, my_custom_label: Label) -> Self {
-        Self {
-            x,
-            y,
-            z,
-            intensity,
-            my_custom_label,
-        }
-    }
-}
-
+// For our convenience
 impl From<Label> for u8 {
     fn from(label: Label) -> Self {
         match label {

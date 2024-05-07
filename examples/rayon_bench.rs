@@ -68,14 +68,11 @@ fn roundtrip_filter_par(cloud: Vec<PointXYZ>) -> bool {
         .filter(|point: &PointXYZ| {
             (point.x.powi(2) + point.y.powi(2) + point.z.powi(2)).sqrt() < 1.9
         })
-        .reduce(
-            || PointXYZ::default(),
-            |acc, point| PointXYZ {
-                x: acc.x + point.x,
-                y: acc.y + point.y,
-                z: acc.z + point.z,
-            },
-        );
+        .reduce(PointXYZ::default, |acc, point| PointXYZ {
+            x: acc.x + point.x,
+            y: acc.y + point.y,
+            z: acc.z + point.z,
+        });
     orig_len == total.x as usize
 }
 

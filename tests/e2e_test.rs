@@ -402,9 +402,7 @@ fn write_less_than_available() {
 
     impl From<CustomPoint> for RPCL2Point<3> {
         fn from(point: CustomPoint) -> Self {
-            Point {
-                fields: [point.x.into(), point.y.into(), point.z.into()],
-            }
+            [point.x.into(), point.y.into(), point.z.into()].into()
         }
     }
 

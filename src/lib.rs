@@ -336,7 +336,7 @@ impl PointCloud2Msg {
         C: PointConvertible<N>,
     {
         match system_endian() {
-            Endianness::Big => Self::try_from_iter(vec.into_iter()),
+            Endianness::Big => Self::try_from_iter(vec),
             Endianness::Little => {
                 let mut cloud = Self::prepare_direct_copy::<N, C>()?;
 
@@ -503,10 +503,10 @@ impl TryFrom<type_layout::Field> for PointField {
     fn try_from(f: type_layout::Field) -> Result<Self, Self::Error> {
         match f {
             type_layout::Field::Field { name, ty, size } => {
-                let typename: String = ty.to_owned().into();
+                let typename: String = ty.into_owned();
                 let datatype = FieldDatatype::try_from(typename)?;
                 Ok(Self::Field {
-                    name: name.to_owned().into(),
+                    name: name.into_owned(),
                     size: size as u32,
                     datatype: datatype.into(),
                 })
