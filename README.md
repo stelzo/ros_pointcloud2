@@ -37,7 +37,7 @@ let in_msg = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
 
 let new_pcl = in_msg.try_into_iter().unwrap()
   .map(|point: PointXYZ| { // Define the type of point here.
-    // Some logic here ...
+      // Some logic here ...
 
       point
     })
