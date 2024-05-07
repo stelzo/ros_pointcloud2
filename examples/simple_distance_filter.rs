@@ -14,7 +14,7 @@ fn main() {
 
     println!("Original cloud: {:?}", cloud);
 
-    let msg = PointCloud2Msg::try_from_iter(cloud.clone().into_iter()).unwrap();
+    let msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
 
     println!("filtering by distance < 1.9m");
     let out = msg

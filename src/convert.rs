@@ -148,14 +148,14 @@ impl From<FieldDatatype> for u8 {
     }
 }
 
-/// Matching field names from each meta data per point to the PointField name.
+/// Matching field names from each data point.
 /// Always make sure to use the same order as in your conversion implementation to have a correct mapping.
 ///
 /// This trait is needed to implement the `PointConvertible` trait.
 ///
 /// # Example
 /// ```
-/// use ros_pointcloud2::{Point, PointConvertible, MetaNames, size_of};
+/// use ros_pointcloud2::prelude::*;
 ///
 /// #[derive(Clone, Debug, PartialEq, Copy)]
 /// pub struct MyPointXYZI {
@@ -165,9 +165,9 @@ impl From<FieldDatatype> for u8 {
 ///     pub intensity: f32,
 /// }
 ///
-/// impl MetaNames<1> for MyPointXYZI {
-///    fn meta_names() -> [&'static str; 1] {
-///       ["intensity"]
+/// impl Fields<4> for MyPointXYZI {
+///    fn field_names_ordered() -> [&'static str; 4] {
+///       ["x", "y", "z", "intensity"]
 ///   }
 /// }
 /// ```

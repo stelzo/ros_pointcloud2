@@ -1,33 +1,29 @@
+## !! Note !!
+This library is currently in development for v1.0.0, for the documentation of v0.4.0 on crates.io, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/).
+
 <p align="center">
   <h3 align="center">ROS PointCloud2</h3>
-  <p align="center">Customizable conversions to and from the PointCloud2 ROS message.</p>
+  <p align="center">A complete and versatile abstraction of PointCloud2.</p>
   <p align="center"><a href="https://crates.io/crates/ros_pointcloud2"><img src="https://img.shields.io/crates/v/ros_pointcloud2.svg" alt=""></a> <a href="https://github.com/stelzo/ros_pointcloud2/tree/main/tests"><img src="https://github.com/stelzo/ros_pointcloud2/actions/workflows/tests.yml/badge.svg" alt=""></a>
   </p>
 </p>
 
-A complete implementation of `sensor_msgs/PointCloud2` conversions with focus on ease of use and maximum throughput.
+To keep the crate a general purpose library for the problem, it uses its own type for the message `PointCloud2Msg`.
+ROS1 and ROS2 is supported with feature flags.
 
-Providing an easy to use, generics defined, point-wise iterator abstraction over the byte buffer in `PointCloud2` to minimize iterations in your processing pipeline.
+Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/1.0.0/ros_pointcloud2/) for a complete guide.
 
-To keep the crate a general purpose library for the problem, it uses its own type for the message `PointCloud2Msg`. ROS1 and ROS2 support is added with feature flags.
+## Quickstart
 
-## Performance
-
-The library compares the similarity of the ROS message point type with your given Point, allowing it to select the fastest strategy.
-
-Since PCL is the most used library for this work in C++, the predefined types in ros_pointcloud2 use C padding to be exact copies for maximum performance between C++ and Rust nodes at the cost of a slightly larger message sizes.
-
-Since ros_pointcloud2 optimizes the performance dynamically, it typically outperforms PCL conversions in all tasks.
-
-## Quickstart (Iterator)
+The following example uses the iterator APIs. For memory bound pipelines, you may also try the `try_from_vec` or `try_into_vec` functions by enabling the `derive` feature.
 
 ```rust
 use ros_pointcloud2::prelude::*;
 
-// Your points (here using a predefined type PointXYZ).
+// PointXYZ (and many others) are provided by the crate.
 let cloud_points = vec![
-  PointXYZ {x: 91.486, y: -4.1, z: 42.0001,},
-  PointXYZ {x: f32::MAX, y: f32::MIN, z: f32::MAX,},
+  PointXYZ::new(91.486, -4.1, 42.0001),
+  PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
 ];
 
 // Give the Vec or anything that implements `IntoIterator`.

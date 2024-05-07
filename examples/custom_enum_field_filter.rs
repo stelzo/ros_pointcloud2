@@ -67,9 +67,9 @@ impl From<u8> for Label {
 // - coordinate type
 // - dimension (xyz = 3)
 // - metadata dimension (intensity + my_custom_label = 2)
-impl From<CustomPoint> for Point<5> {
+impl From<CustomPoint> for RPCL2Point<5> {
     fn from(point: CustomPoint) -> Self {
-        Point {
+        RPCL2Point {
             fields: [
                 point.x.into(),
                 point.y.into(),
@@ -81,8 +81,8 @@ impl From<CustomPoint> for Point<5> {
     }
 }
 
-impl From<Point<5>> for CustomPoint {
-    fn from(point: Point<5>) -> Self {
+impl From<RPCL2Point<5>> for CustomPoint {
+    fn from(point: RPCL2Point<5>) -> Self {
         Self {
             x: point.fields[0].get(),
             y: point.fields[1].get(),

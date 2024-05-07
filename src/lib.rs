@@ -21,12 +21,12 @@
 //!
 //! # Example PointXYZ
 //! ```
-//! use ros_pointcloud2::{PointCloud2Msg, pcl_utils::PointXYZ};
+//! use ros_pointcloud2::prelude::*;
 //!
 //! // PointXYZ is predefined
 //! let cloud_points = vec![
-//!   PointXYZ {x: 9.0006, y: 42.0, z: -6.2,},
-//!   PointXYZ {x: f32::MAX, y: f32::MIN,z: f32::MAX,},
+//!   PointXYZ::new(9.0006, 42.0, -6.2),
+//!   PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
 //! ];
 //!
 //! // For equality test later
@@ -164,7 +164,7 @@ impl PointCloud2Msg {
     where
         C: PointConvertible<N>,
     {
-        let point: Point<N> = C::default().into();
+        let point: RPCL2Point<N> = C::default().into();
         debug_assert!(point.fields.len() == N);
 
         let meta_names = C::field_names_ordered();
@@ -206,7 +206,7 @@ impl PointCloud2Msg {
     where
         C: PointConvertible<N>,
     {
-        let point: Point<N> = C::default().into();
+        let point: RPCL2Point<N> = C::default().into();
         debug_assert!(point.fields.len() == N);
 
         let meta_names = C::field_names_ordered();
@@ -253,7 +253,7 @@ impl PointCloud2Msg {
     where
         C: PointConvertible<N>,
     {
-        let point: Point<N> = C::default().into();
+        let point: RPCL2Point<N> = C::default().into();
         debug_assert!(point.fields.len() == N);
 
         let meta_names = C::field_names_ordered();
@@ -295,13 +295,11 @@ impl PointCloud2Msg {
     ///
     /// # Example
     /// ```
-    /// use ros_pointcloud2::{
-    ///     pcl_utils::PointXYZ, PointCloud2Msg,
-    /// };
+    /// use ros_pointcloud2::prelude::*;
     ///
     /// let cloud_points: Vec<PointXYZ> = vec![
-    ///     PointXYZ { x: 1.0, y: 2.0, z: 3.0 },
-    ///     PointXYZ { x: 4.0, y: 5.0, z: 6.0 },
+    ///     PointXYZ::new(1.0, 2.0, 3.0),
+    ///     PointXYZ::new(4.0, 5.0, 6.0),
     /// ];
     ///
     // let msg_out = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
@@ -315,7 +313,7 @@ impl PointCloud2Msg {
         let mut cloud = Self::prepare::<N, C>()?;
 
         iterable.into_iter().for_each(|coords| {
-            let point: Point<N> = coords.into();
+            let point: RPCL2Point<N> = coords.into();
 
             point.fields.iter().for_each(|meta| {
                 let truncated_bytes = unsafe {
@@ -410,8 +408,22 @@ impl PointCloud2Msg {
 /// Implement the `From` traits for your point type to use the conversion.
 ///
 /// See the [`ros_pointcloud2::PointConvertible`] trait for more information.
-pub struct Point<const N: usize> {
+pub struct RPCL2Point<const N: usize> {
     pub fields: [PointMeta; N],
+}
+
+impl<const N: usize> Default for RPCL2Point<N> {
+    fn default() -> Self {
+        Self {
+            fields: [PointMeta::default(); N],
+        }
+    }
+}
+
+impl<const N: usize> From<[PointMeta; N]> for RPCL2Point<N> {
+    fn from(fields: [PointMeta; N]) -> Self {
+        Self { fields }
+    }
 }
 
 /// Trait to enable point conversions on the fly while iterating.
@@ -420,9 +432,9 @@ pub struct Point<const N: usize> {
 ///
 /// # Example
 /// ```
-/// use ros_pointcloud2::{Point, PointConvertible, MetaNames, size_of};
+/// use ros_pointcloud2::prelude::*;
 ///
-/// #[derive(Clone, Debug, PartialEq, Copy)]
+/// #[derive(Clone, Debug, PartialEq, Copy, Default)]
 /// pub struct MyPointXYZI {
 ///     pub x: f32,
 ///     pub y: f32,
@@ -430,43 +442,42 @@ pub struct Point<const N: usize> {
 ///     pub intensity: f32,
 /// }
 ///
-/// impl From<MyPointXYZI> for Point<f32, 3, 1> {
+/// impl From<MyPointXYZI> for RPCL2Point<4> {
 ///     fn from(point: MyPointXYZI) -> Self {
-///         Point {
-///             coords: [point.x, point.y, point.z],
-///             meta: [point.intensity.into()],
+///         RPCL2Point {
+///             fields: [point.x.into(), point.y.into(), point.z.into(), point.intensity.into()],
 ///         }
 ///     }
 /// }
 ///
-/// impl From<Point<f32, 3, 1>> for MyPointXYZI {
-///     fn from(point: Point<f32, 3, 1>) -> Self {
+/// impl From<RPCL2Point<4>> for MyPointXYZI {
+///     fn from(point: RPCL2Point<4>) -> Self {
 ///         Self {
-///             x: point.coords[0],
-///             y: point.coords[1],
-///             z: point.coords[2],
-///             intensity: point.meta[0].get(),
+///             x: point.fields[0].get(),
+///             y: point.fields[1].get(),
+///             z: point.fields[2].get(),
+///             intensity: point.fields[3].get(),
 ///         }
 ///     }
 /// }
 ///
-/// impl MetaNames<1> for MyPointXYZI {
-///    fn meta_names() -> [&'static str; 1] {
-///       ["intensity"]
+/// impl Fields<4> for MyPointXYZI {
+///    fn field_names_ordered() -> [&'static str; 4] {
+///       ["x", "y", "z", "intensity"]
 ///   }
 /// }
 ///
-/// impl PointConvertible<f32, {size_of!(f32)}, 3, 1> for MyPointXYZI {}
+/// impl PointConvertible<4> for MyPointXYZI {}
 /// ```
 #[cfg(not(feature = "derive"))]
 pub trait PointConvertible<const N: usize>:
-    From<Point<N>> + Into<Point<N>> + Fields<N> + Clone + 'static + Default
+    From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Fields<N> + Clone + 'static + Default
 {
 }
 
 #[cfg(feature = "derive")]
 pub trait PointConvertible<const N: usize>:
-    type_layout::TypeLayout + From<Point<N>> + Into<Point<N>> + Fields<N> + 'static + Default
+    type_layout::TypeLayout + From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Fields<N> + 'static + Default
 {
 }
 

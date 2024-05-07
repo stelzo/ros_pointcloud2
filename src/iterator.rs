@@ -1,6 +1,6 @@
 use crate::{
     convert::{Endianness, FieldDatatype},
-    Fields, MsgConversionError, Point, PointCloud2Msg, PointConvertible, PointMeta,
+    Fields, MsgConversionError, PointCloud2Msg, PointConvertible, PointMeta, RPCL2Point,
 };
 
 /// The PointCloudIterator provides a an iterator abstraction of the PointCloud2Msg.
@@ -192,7 +192,7 @@ impl<const N: usize> ByteBufferView<N> {
     }
 
     #[inline(always)]
-    fn point_at(&self, idx: usize) -> Point<N> {
+    fn point_at(&self, idx: usize) -> RPCL2Point<N> {
         let offset = (self.start_point_idx + idx) * self.point_step_size;
 
         // TODO memcpy entire point at once, then extract fields?
@@ -209,7 +209,7 @@ impl<const N: usize> ByteBufferView<N> {
                 );
             });
 
-        Point { fields: meta }
+        RPCL2Point { fields: meta }
     }
 
     #[inline]

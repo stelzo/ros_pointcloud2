@@ -54,7 +54,7 @@ fn write_cloud() {
         PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
-    let msg = PointCloud2Msg::try_from_iter(cloud.into_iter());
+    let msg = PointCloud2Msg::try_from_iter(cloud);
     assert!(msg.is_ok());
 }
 
@@ -256,16 +256,14 @@ fn converterxyzrgbnormal() {
     convert_from_into!(
         PointXYZRGBNormal,
         vec![
-            PointXYZRGBNormal::new(0.0, 1.0, 5.0, 0, 0, 0, 0.0, 0.0, 0.0),
-            PointXYZRGBNormal::new(1.0, 1.5, 5.0, 1, 1, 1, 1.0, 1.0, 1.0),
-            PointXYZRGBNormal::new(1.3, 1.6, 5.7, 2, 2, 2, 2.0, 2.0, 2.0),
+            PointXYZRGBNormal::new(0.0, 1.0, 5.0, RGB::new(0, 0, 0), 0.0, 0.0, 0.0),
+            PointXYZRGBNormal::new(1.0, 1.5, 5.0, RGB::new(1, 1, 1), 1.0, 1.0, 1.0),
+            PointXYZRGBNormal::new(1.3, 1.6, 5.7, RGB::new(2, 2, 2), 2.0, 2.0, 2.0),
             PointXYZRGBNormal::new(
                 f32::MAX,
                 f32::MIN,
                 f32::MAX,
-                u8::MAX,
-                u8::MAX,
-                u8::MAX,
+                RGB::new(u8::MAX, u8::MAX, u8::MAX),
                 f32::MAX,
                 f32::MAX,
                 f32::MAX,
@@ -339,10 +337,10 @@ fn converterxyzl() {
     convert_from_into!(
         PointXYZL,
         vec![
-            PointXYZL::new(0.0, 1.0, 5.0, 0.0),
-            PointXYZL::new(1.0, 1.5, 5.0, 1.0),
-            PointXYZL::new(1.3, 1.6, 5.7, 2.0),
-            PointXYZL::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX),
+            PointXYZL::new(0.0, 1.0, 5.0, 0),
+            PointXYZL::new(1.0, 1.5, 5.0, 1),
+            PointXYZL::new(1.3, 1.6, 5.7, 2),
+            PointXYZL::new(f32::MAX, f32::MIN, f32::MAX, u32::MAX),
         ]
     );
 }
@@ -391,8 +389,8 @@ fn write_less_than_available() {
         dummy: f32,
     }
 
-    impl From<Point<3>> for CustomPoint {
-        fn from(point: Point<3>) -> Self {
+    impl From<RPCL2Point<3>> for CustomPoint {
+        fn from(point: RPCL2Point<3>) -> Self {
             Self {
                 x: point.fields[0].get(),
                 y: point.fields[1].get(),
@@ -402,7 +400,7 @@ fn write_less_than_available() {
         }
     }
 
-    impl From<CustomPoint> for Point<3> {
+    impl From<CustomPoint> for RPCL2Point<3> {
         fn from(point: CustomPoint) -> Self {
             Point {
                 fields: [point.x.into(), point.y.into(), point.z.into()],

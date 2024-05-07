@@ -1,12 +1,10 @@
+use rand::Rng;
 /// This example implements a naive benchmark for the library so you can evaluate the use of rayon for parallel processing.
 /// It generates a random point cloud and measures the time it takes to iterate over it.
-/// The code works mainly as a showcase. For real benchmarks, check the `benches` directory.
-/// It also implements the same benchmark shown here.
+/// The code works mainly as a showcase. For actual benchmarks, check the `benches` directory or run `cargo bench`.
 use std::time::Duration;
 
 use ros_pointcloud2::prelude::*;
-
-use rand::Rng;
 
 pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<PointXYZ> {
     let mut rng = rand::thread_rng();
@@ -24,7 +22,7 @@ pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<
 
 fn roundtrip(cloud: Vec<PointXYZ>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iter(cloud.into_iter()).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
         .try_into_iter()
         .unwrap()
@@ -34,7 +32,7 @@ fn roundtrip(cloud: Vec<PointXYZ>) -> bool {
 
 fn roundtrip_filter(cloud: Vec<PointXYZ>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iter(cloud.into_iter()).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
         .try_into_iter()
         .unwrap()

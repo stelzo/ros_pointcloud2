@@ -4,7 +4,7 @@ pub use crate::points::*;
 #[cfg(feature = "rayon")]
 pub use rayon::prelude::*;
 
-pub use crate::{Fields, MsgConversionError, Point, PointCloud2Msg, PointConvertible};
+pub use crate::{Fields, MsgConversionError, PointCloud2Msg, PointConvertible, RPCL2Point};
 
 #[cfg(feature = "derive")]
 pub use type_layout::TypeLayout;

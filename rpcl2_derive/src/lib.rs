@@ -116,8 +116,8 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
     }).collect::<Vec<_>>();
 
     let from_my_point =  quote! {
-        impl From<ros_pointcloud2::Point<#field_len_token>> for #name {
-            fn from(point: ros_pointcloud2::Point<#field_len_token>) -> Self {
+        impl From<ros_pointcloud2::RPCL2Point<#field_len_token>> for #name {
+            fn from(point: ros_pointcloud2::RPCL2Point<#field_len_token>) -> Self {
                 Self {
                     #(#field_names_get,)*
                 }
@@ -131,7 +131,7 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
     }).collect::<Vec<_>>();
 
     let from_custom_point = quote! {
-        impl From<#name> for ros_pointcloud2::Point<#field_len_token> {
+        impl From<#name> for ros_pointcloud2::RPCL2Point<#field_len_token> {
             fn from(point: #name) -> Self {
                 ros_pointcloud2::Point {
                     fields: [ #(#field_names_into,)* ]
