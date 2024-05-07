@@ -2,7 +2,10 @@
 // The use case is a segmentation point cloud where each point holds a label
 // with a custom enum type we want to filter.
 
-use ros_pointcloud2::{Fields, Point, PointCloud2Msg, PointConvertible};
+use ros_pointcloud2::{Fields, Point};
+
+#[cfg(not(feature = "derive"))]
+use ros_pointcloud2::{PointCloud2Msg, PointConvertible};
 
 #[derive(Debug, PartialEq, Clone, Default)]
 enum Label {
@@ -83,54 +86,58 @@ impl Fields<5> for CustomPoint {
 }
 
 // We implemented everything that is needed so we declare it as a PointConvertible
+#[cfg(not(feature = "derive"))]
 impl PointConvertible<5> for CustomPoint {}
 
 fn main() {
-    let cloud = vec![
-        CustomPoint {
-            x: 1.0,
-            y: 2.0,
-            z: 3.0,
-            intensity: 4.0,
-            my_custom_label: Label::Deer,
-        },
-        CustomPoint {
-            x: 4.0,
-            y: 5.0,
-            z: 6.0,
-            intensity: 7.0,
-            my_custom_label: Label::Car,
-        },
-        CustomPoint {
-            x: 7.0,
-            y: 8.0,
-            z: 9.0,
-            intensity: 10.0,
-            my_custom_label: Label::Human,
-        },
-    ];
+    #[cfg(not(feature = "derive"))]
+    {
+        let cloud = vec![
+            CustomPoint {
+                x: 1.0,
+                y: 2.0,
+                z: 3.0,
+                intensity: 4.0,
+                my_custom_label: Label::Deer,
+            },
+            CustomPoint {
+                x: 4.0,
+                y: 5.0,
+                z: 6.0,
+                intensity: 7.0,
+                my_custom_label: Label::Car,
+            },
+            CustomPoint {
+                x: 7.0,
+                y: 8.0,
+                z: 9.0,
+                intensity: 10.0,
+                my_custom_label: Label::Human,
+            },
+        ];
 
-    println!("Original cloud: {:?}", cloud);
+        println!("Original cloud: {:?}", cloud);
 
-    let msg = PointCloud2Msg::try_from_iter(cloud.clone().into_iter()).unwrap();
+        let msg = PointCloud2Msg::try_from_iter(cloud.clone().into_iter()).unwrap();
 
-    println!("filtering by label == Deer");
-    let out = msg
-        .try_into_iter()
-        .unwrap()
-        .filter(|point: &CustomPoint| point.my_custom_label == Label::Deer)
-        .collect::<Vec<_>>();
+        println!("filtering by label == Deer");
+        let out = msg
+            .try_into_iter()
+            .unwrap()
+            .filter(|point: &CustomPoint| point.my_custom_label == Label::Deer)
+            .collect::<Vec<_>>();
 
-    println!("Filtered cloud: {:?}", out);
+        println!("Filtered cloud: {:?}", out);
 
-    assert_eq!(
-        vec![CustomPoint {
-            x: 1.0,
-            y: 2.0,
-            z: 3.0,
-            intensity: 4.0,
-            my_custom_label: Label::Deer,
-        },],
-        out
-    );
+        assert_eq!(
+            vec![CustomPoint {
+                x: 1.0,
+                y: 2.0,
+                z: 3.0,
+                intensity: 4.0,
+                my_custom_label: Label::Deer,
+            },],
+            out
+        );
+    }
 }

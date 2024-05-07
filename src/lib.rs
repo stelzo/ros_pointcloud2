@@ -63,10 +63,11 @@ use crate::ros_types::{HeaderMsg, PointFieldMsg};
 use convert::Endianness;
 pub use convert::Fields;
 
-use type_layout::TypeLayout;
-
 #[cfg(feature = "derive")]
 pub use rpcl2_derive::*;
+
+#[cfg(feature = "derive")]
+pub use type_layout::TypeLayout;
 
 /// All errors that can occur while converting to or from the PointCloud2 message.
 #[derive(Debug)]
@@ -123,6 +124,7 @@ impl Default for PointCloud2Msg {
 }
 
 impl PointCloud2Msg {
+    #[cfg(feature = "derive")]
     fn prepare_direct_copy<const N: usize, C>() -> Result<Self, ConversionError>
     where
         C: PointConvertible<N>,
@@ -134,7 +136,7 @@ impl PointCloud2Msg {
         debug_assert!(meta_names.len() == N);
 
         let mut offset: u32 = 0;
-        let layout = C::layout();
+        let layout = TypeLayoutInfo::try_from(C::type_layout())?;
         let mut fields: Vec<PointFieldMsg> = Vec::with_capacity(layout.fields.len());
         for f in layout.fields.into_iter() {
             match f {
@@ -162,6 +164,53 @@ impl PointCloud2Msg {
             fields,
             ..Default::default()
         })
+    }
+
+    #[cfg(feature = "derive")]
+    fn assert_byte_similarity<const N: usize, C>(&self) -> Result<bool, ConversionError>
+    where
+        C: PointConvertible<N>,
+    {
+        let point: Point<N> = C::default().into();
+        debug_assert!(point.fields.len() == N);
+
+        let meta_names = C::field_names_ordered();
+        debug_assert!(meta_names.len() == N);
+
+        let mut offset: u32 = 0;
+        let layout = TypeLayoutInfo::try_from(C::type_layout())?;
+        for (f, msg_f) in layout.fields.into_iter().zip(self.fields.iter()) {
+            match f {
+                PointField::Field {
+                    name,
+                    datatype,
+                    size,
+                } => {
+                    if msg_f.name != name {
+                        return Err(ConversionError::FieldNotFound(vec![name.clone()]));
+                    }
+
+                    if msg_f.datatype != datatype {
+                        return Err(ConversionError::InvalidFieldFormat);
+                    }
+
+                    if msg_f.offset != offset {
+                        return Err(ConversionError::DataLengthMismatch);
+                    }
+
+                    if msg_f.count != 1 {
+                        return Err(ConversionError::UnsupportedFieldType);
+                    }
+
+                    offset += size; // assume field_count 1
+                }
+                PointField::Padding(size) => {
+                    offset += size; // assume field_count 1
+                }
+            }
+        }
+
+        Ok(true)
     }
 
     #[inline(always)]
@@ -250,27 +299,73 @@ impl PointCloud2Msg {
         Ok(cloud)
     }
 
+    #[cfg(feature = "derive")]
     pub fn try_from_vec<const N: usize, C>(vec: Vec<C>) -> Result<Self, ConversionError>
     where
         C: PointConvertible<N>,
     {
-        let mut cloud = Self::prepare_direct_copy::<N, C>()?;
+        let endianness = if cfg!(target_endian = "big") {
+            Endianness::Big
+        } else if cfg!(target_endian = "little") {
+            Endianness::Little
+        } else {
+            panic!("Unsupported endianness");
+        };
 
-        let bytes_total = vec.len() * cloud.point_step as usize;
-        cloud.data.resize(bytes_total, u8::default());
-        let raw_data: *mut C = cloud.data.as_ptr() as *mut C;
-        unsafe {
-            std::ptr::copy_nonoverlapping(
-                vec.as_ptr() as *const u8,
-                raw_data as *mut u8,
-                bytes_total,
-            );
+        match endianness {
+            Endianness::Big => Self::try_from_iter(vec.into_iter()),
+            Endianness::Little => {
+                let mut cloud = Self::prepare_direct_copy::<N, C>()?;
+
+                let bytes_total = vec.len() * cloud.point_step as usize;
+                cloud.data.resize(bytes_total, u8::default());
+                let raw_data: *mut C = cloud.data.as_ptr() as *mut C;
+                unsafe {
+                    std::ptr::copy_nonoverlapping(
+                        vec.as_ptr() as *const u8,
+                        raw_data as *mut u8,
+                        bytes_total,
+                    );
+                }
+
+                cloud.width = vec.len() as u32;
+                cloud.row_step = cloud.width * cloud.point_step;
+
+                Ok(cloud)
+            }
         }
+    }
 
-        cloud.width = vec.len() as u32;
-        cloud.row_step = cloud.width * cloud.point_step;
+    #[cfg(feature = "derive")]
+    pub fn try_into_vec<const N: usize, C>(self) -> Result<Vec<C>, ConversionError>
+    where
+        C: PointConvertible<N>,
+    {
+        let endianness = if cfg!(target_endian = "big") {
+            Endianness::Big
+        } else if cfg!(target_endian = "little") {
+            Endianness::Little
+        } else {
+            panic!("Unsupported endianness");
+        };
 
-        Ok(cloud)
+        self.assert_byte_similarity::<N, C>()?;
+
+        match endianness {
+            Endianness::Big => Ok(self.try_into_iter()?.collect()),
+            Endianness::Little => {
+                let mut vec = Vec::with_capacity(self.width as usize);
+                let raw_data: *const C = self.data.as_ptr() as *const C;
+                unsafe {
+                    for i in 0..self.width {
+                        let point = raw_data.add(i as usize).read();
+                        vec.push(point);
+                    }
+                }
+
+                Ok(vec)
+            }
+        }
     }
 
     pub fn try_into_iter<const N: usize, C>(
@@ -347,8 +442,15 @@ pub struct Point<const N: usize> {
 ///
 /// impl PointConvertible<f32, {size_of!(f32)}, 3, 1> for MyPointXYZI {}
 /// ```
+#[cfg(not(feature = "derive"))]
 pub trait PointConvertible<const N: usize>:
-    KnownLayout + From<Point<N>> + Into<Point<N>> + Fields<N> + Clone + 'static + Default
+    From<Point<N>> + Into<Point<N>> + Fields<N> + Clone + 'static + Default
+{
+}
+
+#[cfg(feature = "derive")]
+pub trait PointConvertible<const N: usize>:
+    type_layout::TypeLayout + From<Point<N>> + Into<Point<N>> + Fields<N> + Clone + 'static + Default
 {
 }
 
@@ -395,10 +497,6 @@ impl TryFrom<type_layout::TypeLayoutInfo> for TypeLayoutInfo {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Self { fields })
     }
-}
-
-trait KnownLayout {
-    fn layout() -> TypeLayoutInfo;
 }
 
 /// Metadata representation for a point.

@@ -1,3 +1,5 @@
+#![cfg(feature = "derive")]
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ros_pointcloud2::{pcl_utils::PointXYZ, PointCloud2Msg};
 

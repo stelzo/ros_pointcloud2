@@ -1,10 +1,23 @@
 extern crate proc_macro;
 
-use std::{any::Any, collections::HashMap, fmt::Debug};
+use std::collections::HashMap;
 
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, DeriveInput};
+
+fn get_allowed_types() -> HashMap<&'static str, usize> {
+    let mut allowed_datatypes = HashMap::<&'static str, usize>::new();
+    allowed_datatypes.insert("f32", 4);
+    allowed_datatypes.insert("f64", 8);
+    allowed_datatypes.insert("i32", 4);
+    allowed_datatypes.insert("u8", 1);
+    allowed_datatypes.insert("u16", 2);
+    allowed_datatypes.insert("u32", 4);
+    allowed_datatypes.insert("i8", 1);
+    allowed_datatypes.insert("i16", 2);
+    allowed_datatypes
+}
 
 /// Derive macro for the `Fields` trait.
 /// 
@@ -19,15 +32,7 @@ pub fn ros_point_fields_derive(input: TokenStream) -> TokenStream {
         _ => return syn::Error::new_spanned(input, "Only structs are supported").to_compile_error().into(),
     };
 
-    let mut allowed_datatypes = HashMap::<&'static str, usize>::new();
-    allowed_datatypes.insert("f32", 4);
-    allowed_datatypes.insert("f64", 8);
-    allowed_datatypes.insert("i32", 4);
-    allowed_datatypes.insert("u8", 1);
-    allowed_datatypes.insert("u16", 2);
-    allowed_datatypes.insert("u32", 4);
-    allowed_datatypes.insert("i8", 1);
-    allowed_datatypes.insert("i16", 2);
+    let allowed_datatypes = get_allowed_types();
 
     if fields.is_empty() {
         return syn::Error::new_spanned(input, "No fields found").to_compile_error().into();
@@ -75,15 +80,7 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
         _ => return syn::Error::new_spanned(input, "Only structs are supported").to_compile_error().into(),
     };
 
-    let mut allowed_datatypes = HashMap::<&'static str, usize>::new();
-    allowed_datatypes.insert("f32", 4);
-    allowed_datatypes.insert("f64", 8);
-    allowed_datatypes.insert("i32", 4);
-    allowed_datatypes.insert("u8", 1);
-    allowed_datatypes.insert("u16", 2);
-    allowed_datatypes.insert("u32", 4);
-    allowed_datatypes.insert("i8", 1);
-    allowed_datatypes.insert("i16", 2);
+    let allowed_datatypes = get_allowed_types();
 
     if fields.is_empty() {
         return syn::Error::new_spanned(input, "No fields found").to_compile_error().into();

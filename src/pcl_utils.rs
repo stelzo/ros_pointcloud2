@@ -1,4 +1,7 @@
-use crate::{Fields, Point, PointConvertible};
+use crate::{ConversionError, Fields, Point, PointConvertible};
+
+#[cfg(feature = "derive")]
+use crate::TypeLayout;
 
 /// Pack an RGB color into a single f32 value as used in ROS with PCL for RViz usage.
 #[inline]
@@ -20,6 +23,7 @@ fn unpack_rgb(rgb: f32) -> [u8; 3] {
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZ {
     pub x: f32,
@@ -56,6 +60,7 @@ impl PointConvertible<3> for PointXYZ {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an intensity value.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZI {
     pub x: f32,
@@ -99,6 +104,7 @@ impl PointConvertible<4> for PointXYZI {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZL {
     pub x: f32,
@@ -142,6 +148,7 @@ impl PointConvertible<4> for PointXYZL {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an RGB color value.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZRGB {
     pub x: f32,
@@ -188,6 +195,7 @@ impl PointConvertible<4> for PointXYZRGB {}
 /// This is a 3D point with x, y, z coordinates and an RGBA color value.
 /// The alpha channel is commonly used as padding but this crate uses every channel and no padding.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZRGBA {
     pub x: f32,
@@ -241,6 +249,7 @@ impl PointConvertible<5> for PointXYZRGBA {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an RGB color value and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZRGBNormal {
     pub x: f32,
@@ -300,6 +309,7 @@ impl PointConvertible<7> for PointXYZRGBNormal {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an intensity value and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZINormal {
     pub x: f32,
@@ -352,6 +362,7 @@ impl PointConvertible<7> for PointXYZINormal {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZRGBL {
     pub x: f32,
@@ -405,6 +416,7 @@ impl PointConvertible<5> for PointXYZRGBL {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZNormal {
     pub x: f32,

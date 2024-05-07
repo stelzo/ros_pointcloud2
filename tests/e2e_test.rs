@@ -9,6 +9,7 @@ macro_rules! convert_from_into {
     };
 }
 
+#[cfg(feature = "derive")]
 macro_rules! convert_from_into_vec {
     ($point:ty, $cloud:expr) => {
         convert_from_into_in_out_cloud_vec!($cloud, $point, $cloud, $point);
@@ -29,6 +30,7 @@ macro_rules! convert_from_into_in_out_cloud {
     };
 }
 
+#[cfg(feature = "derive")]
 macro_rules! convert_from_into_in_out_cloud_vec {
     ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
         let msg = PointCloud2Msg::try_from_vec($in_cloud.clone());
@@ -73,6 +75,7 @@ fn write_cloud() {
 }
 
 #[test]
+#[cfg(feature = "derive")]
 fn write_cloud_from_vec() {
     let cloud = vec![
         PointXYZ {
@@ -105,8 +108,10 @@ fn write_cloud_from_vec() {
 }
 
 #[test]
+#[cfg(feature = "derive")]
 fn custom_xyz_f32() {
-    #[derive(Debug, PartialEq, Clone, Default, RosFull)]
+    #[derive(Debug, PartialEq, Clone, Default, RosFull, TypeLayout)]
+    #[repr(C)]
     struct CustomPoint {
         x: f32,
         y: f32,
@@ -136,6 +141,7 @@ fn custom_xyz_f32() {
 }
 
 #[test]
+#[cfg(feature = "derive")]
 fn custom_xyzi_f32() {
     let cloud: Vec<CustomPointXYZI> = vec![
         CustomPointXYZI {
@@ -164,7 +170,8 @@ fn custom_xyzi_f32() {
         },
     ];
 
-    #[derive(Debug, PartialEq, Clone, Default, RosFull)]
+    #[derive(Debug, PartialEq, Clone, Default, RosFull, TypeLayout)]
+    #[repr(C)]
     struct CustomPointXYZI {
         x: f32,
         y: f32,
@@ -176,8 +183,10 @@ fn custom_xyzi_f32() {
 }
 
 #[test]
+#[cfg(feature = "derive")]
 fn custom_rgba_f32() {
-    #[derive(Debug, PartialEq, Clone, Default, RosFull)]
+    #[derive(Debug, PartialEq, Clone, Default, RosFull, TypeLayout)]
+    #[repr(C)]
     struct CustomPoint {
         x: f32,
         y: f32,
@@ -528,6 +537,7 @@ fn converterxyzrgb() {
 }
 
 #[test]
+#[cfg(feature = "derive")]
 fn converterxyzrgb_from_vec() {
     convert_from_into_vec!(
         PointXYZRGB,
@@ -691,7 +701,8 @@ fn write_xyzi_read_xyz() {
 
 #[test]
 fn write_less_than_available() {
-    #[derive(Debug, PartialEq, Clone, Default)]
+    #[derive(Debug, PartialEq, Clone, Default, TypeLayout)]
+    #[repr(C)]
     struct CustomPoint {
         x: f32,
         y: f32,
