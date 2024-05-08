@@ -50,3 +50,5 @@ r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2_derive", "dep:type-layout"]
 nalgebra = ["dep:nalgebra"]
+
+default = ["rayon", "derive"]
