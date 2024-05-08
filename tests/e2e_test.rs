@@ -392,9 +392,9 @@ fn write_less_than_available() {
     impl From<RPCL2Point<3>> for CustomPoint {
         fn from(point: RPCL2Point<3>) -> Self {
             Self {
-                x: point.fields[0].get(),
-                y: point.fields[1].get(),
-                z: point.fields[2].get(),
+                x: point[0].get(),
+                y: point[1].get(),
+                z: point[2].get(),
                 dummy: 0.0,
             }
         }

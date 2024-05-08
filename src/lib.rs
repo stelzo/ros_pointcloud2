@@ -227,26 +227,26 @@ impl PointCloud2Msg {
 
         let mut offset: u32 = 0;
         let layout = TypeLayoutInfo::try_from(C::type_layout())?;
-        for (f, msg_f) in layout.fields.into_iter().zip(self.fields.iter()) {
+        for (f, msg_f) in layout.fields.iter().zip(self.fields.iter()) {
             match f {
                 PointField::Field {
                     name,
                     datatype,
                     size,
                 } => {
-                    if msg_f.name != name {
+                    if (*msg_f).name != *name {
                         return Err(MsgConversionError::FieldNotFound(vec![name.clone()]));
                     }
 
-                    if msg_f.datatype != datatype {
+                    if (*msg_f).datatype != *datatype {
                         return Err(MsgConversionError::InvalidFieldFormat);
                     }
 
-                    if msg_f.offset != offset {
+                    if (*msg_f).offset != offset {
                         return Err(MsgConversionError::DataLengthMismatch);
                     }
 
-                    if msg_f.count != 1 {
+                    if (*msg_f).count != 1 {
                         return Err(MsgConversionError::DataLengthMismatch);
                     }
 
@@ -258,7 +258,11 @@ impl PointCloud2Msg {
             }
         }
 
-        Ok(true)
+        if offset == self.point_step {
+            Ok(true)
+        } else {
+            Err(MsgConversionError::DataLengthMismatch)
+        }
     }
 
     #[inline(always)]
@@ -415,17 +419,27 @@ impl PointCloud2Msg {
     where
         C: PointConvertible<N>,
     {
-        self.assert_byte_similarity::<N, C>()?;
+        let same_size = self.assert_byte_similarity::<N, C>()?;
 
         match system_endian() {
             Endianness::Big => Ok(self.try_into_iter()?.collect()),
             Endianness::Little => {
                 let mut vec = Vec::with_capacity(self.width as usize);
                 let raw_data: *const C = self.data.as_ptr() as *const C;
-                unsafe {
-                    for i in 0..self.width {
-                        let point = raw_data.add(i as usize).read();
-                        vec.push(point);
+                if same_size {
+                    unsafe {
+                        std::ptr::copy_nonoverlapping(
+                            raw_data as *const u8,
+                            vec.as_mut_ptr() as *mut u8,
+                            self.data.len(),
+                        );
+                    }
+                } else {
+                    unsafe {
+                        for i in 0..self.width {
+                            let point = raw_data.add(i as usize).read();
+                            vec.push(point);
+                        }
                     }
                 }
 

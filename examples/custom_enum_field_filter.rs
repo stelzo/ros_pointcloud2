@@ -50,7 +50,6 @@ impl From<u8> for Label {
     }
 }
 
-#[cfg(not(feature = "derive"))]
 impl CustomPoint {
     fn new(x: f32, y: f32, z: f32, intensity: f32, my_custom_label: Label) -> Self {
         Self {

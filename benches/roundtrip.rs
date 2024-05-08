@@ -186,9 +186,7 @@ fn roundtrip_filter_vec(cloud: Vec<PointXYZ>) -> bool {
     let total = internal_msg
         .try_into_iter()
         .unwrap()
-        .filter(|point: &PointXYZ| {
-            (point.x.powi(2) + point.y.powi(2) + point.z.powi(2)).sqrt() < 1.9
-        })
+        .filter(|point: &PointXYZ| distance_to_origin(point) < 69.9)
         .fold(PointXYZ::default(), |acc, point| PointXYZ {
             x: acc.x + point.x,
             y: acc.y + point.y,
@@ -203,9 +201,7 @@ fn roundtrip_filter(cloud: Vec<PointXYZ>) -> bool {
     let total = internal_msg
         .try_into_iter()
         .unwrap()
-        .filter(|point: &PointXYZ| {
-            (point.x.powi(2) + point.y.powi(2) + point.z.powi(2)).sqrt() < 1.9
-        })
+        .filter(|point: &PointXYZ| distance_to_origin(point) < 69.9)
         .fold(PointXYZ::default(), |acc, point| PointXYZ {
             x: acc.x + point.x,
             y: acc.y + point.y,
@@ -249,13 +245,13 @@ fn roundtrip_computing_par_par(cloud: Vec<PointXYZ>) -> bool {
 #[cfg(feature = "derive")]
 fn roundtrip_computing_vec(cloud: Vec<PointXYZ>) -> bool {
     let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
-    let total: Vec<f32> = internal_msg
+    let total: f32 = internal_msg
         .try_into_vec()
         .unwrap()
         .into_iter()
         .map(|point: PointXYZ| heavy_computing(&point, 100))
-        .collect();
-    total.iter().sum::<f32>() > 0.0
+        .sum();
+    total > 0.0
 }
 
 #[cfg(feature = "rayon")]
@@ -287,9 +283,7 @@ fn roundtrip_filter_par(cloud: Vec<PointXYZ>) -> bool {
     let total = internal_msg
         .try_into_par_iter()
         .unwrap()
-        .filter(|point: &PointXYZ| {
-            (point.x.powi(2) + point.y.powi(2) + point.z.powi(2)).sqrt() < 1.9
-        })
+        .filter(|point: &PointXYZ| distance_to_origin(point) < 69.9)
         .reduce(PointXYZ::default, |acc, point| PointXYZ {
             x: acc.x + point.x,
             y: acc.y + point.y,
@@ -305,9 +299,7 @@ fn roundtrip_filter_par_par(cloud: Vec<PointXYZ>) -> bool {
     let total = internal_msg
         .try_into_par_iter()
         .unwrap()
-        .filter(|point: &PointXYZ| {
-            (point.x.powi(2) + point.y.powi(2) + point.z.powi(2)).sqrt() < 1.9
-        })
+        .filter(|point: &PointXYZ| distance_to_origin(point) < 69.9)
         .reduce(PointXYZ::default, |acc, point| PointXYZ {
             x: acc.x + point.x,
             y: acc.y + point.y,
@@ -317,9 +309,33 @@ fn roundtrip_filter_par_par(cloud: Vec<PointXYZ>) -> bool {
 }
 
 fn roundtrip_benchmark(c: &mut Criterion) {
+    let cloud_points_60k = generate_random_pointcloud(60_000, f32::MIN / 2.0, f32::MAX / 2.0);
     let cloud_points_120k = generate_random_pointcloud(120_000, f32::MIN / 2.0, f32::MAX / 2.0);
     let cloud_points_500k = generate_random_pointcloud(500_000, f32::MIN / 2.0, f32::MAX / 2.0);
     let cloud_points_1_5m = generate_random_pointcloud(1_500_000, f32::MIN / 2.0, f32::MAX / 2.0);
+
+    // 60k points (Ouster OS with 64 beams)
+
+    // Moving memory
+    c.bench_function("60k iter", |b| {
+        b.iter(|| {
+            black_box(roundtrip(cloud_points_60k.clone()));
+        })
+    });
+
+    #[cfg(feature = "rayon")]
+    c.bench_function("60k iter_par", |b| {
+        b.iter(|| {
+            black_box(roundtrip_par(cloud_points_60k.clone()));
+        })
+    });
+
+    #[cfg(feature = "rayon")]
+    c.bench_function("60k iter_par_par", |b| {
+        b.iter(|| {
+            black_box(roundtrip_par_par(cloud_points_60k.clone()));
+        })
+    });
 
     // 120k points (Ouster OS with 128 beams)
 
