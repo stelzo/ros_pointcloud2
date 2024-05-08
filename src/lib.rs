@@ -409,19 +409,27 @@ impl PointCloud2Msg {
 ///
 /// See the [`ros_pointcloud2::PointConvertible`] trait for more information.
 pub struct RPCL2Point<const N: usize> {
-    pub fields: [PointMeta; N],
+    fields: [PointData; N],
 }
 
 impl<const N: usize> Default for RPCL2Point<N> {
     fn default() -> Self {
         Self {
-            fields: [PointMeta::default(); N],
+            fields: [PointData::default(); N],
         }
     }
 }
 
-impl<const N: usize> From<[PointMeta; N]> for RPCL2Point<N> {
-    fn from(fields: [PointMeta; N]) -> Self {
+impl<const N: usize> std::ops::Index<usize> for RPCL2Point<N> {
+    type Output = PointData;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.fields[index]
+    }
+}
+
+impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
+    fn from(fields: [PointData; N]) -> Self {
         Self { fields }
     }
 }
@@ -444,19 +452,17 @@ impl<const N: usize> From<[PointMeta; N]> for RPCL2Point<N> {
 ///
 /// impl From<MyPointXYZI> for RPCL2Point<4> {
 ///     fn from(point: MyPointXYZI) -> Self {
-///         RPCL2Point {
-///             fields: [point.x.into(), point.y.into(), point.z.into(), point.intensity.into()],
-///         }
+///         [point.x.into(), point.y.into(), point.z.into(), point.intensity.into()].into()
 ///     }
 /// }
 ///
 /// impl From<RPCL2Point<4>> for MyPointXYZI {
 ///     fn from(point: RPCL2Point<4>) -> Self {
 ///         Self {
-///             x: point.fields[0].get(),
-///             y: point.fields[1].get(),
-///             z: point.fields[2].get(),
-///             intensity: point.fields[3].get(),
+///             x: point[0].get(),
+///             y: point[1].get(),
+///             z: point[2].get(),
+///             intensity: point[3].get(),
 ///         }
 ///     }
 /// }
@@ -537,20 +543,20 @@ impl TryFrom<type_layout::TypeLayoutInfo> for TypeLayoutInfo {
 ///
 /// # Example
 /// ```
-/// use ros_pointcloud2::PointMeta;
+/// use ros_pointcloud2::PointData;
 ///
 /// let original_data: f64 = 1.0;
-/// let meta = PointMeta::new(original_data);
+/// let meta = PointData::new(original_data);
 /// let my_data: f64 = meta.get();
 /// ```
 #[derive(Debug, Clone, Copy)]
-pub struct PointMeta {
+pub struct PointData {
     bytes: [u8; std::mem::size_of::<f64>()],
     endianness: Endianness,
     datatype: FieldDatatype,
 }
 
-impl Default for PointMeta {
+impl Default for PointData {
     fn default() -> Self {
         Self {
             bytes: [u8::default(); std::mem::size_of::<f64>()],
@@ -560,23 +566,17 @@ impl Default for PointMeta {
     }
 }
 
-impl PointMeta {
-    /// Create a new PointMeta from a value.
+impl PointData {
+    /// Create a new PointData from a value.
     ///
     /// # Example
     /// ```
-    /// let meta = ros_pointcloud2::PointMeta::new(1.0);
+    /// let meta = ros_pointcloud2::PointData::new(1.0);
     /// ```
     #[inline(always)]
     pub fn new<T: FromBytes>(value: T) -> Self {
-        let raw_bytes = T::bytes(&value);
-        let mut bytes = [0; std::mem::size_of::<f64>()];
-        for (byte, save_byte) in raw_bytes.into_iter().zip(bytes.iter_mut()) {
-            *save_byte = byte;
-        }
-
         Self {
-            bytes,
+            bytes: value.into().raw(),
             datatype: T::field_datatype(),
             ..Default::default()
         }
@@ -604,71 +604,65 @@ impl PointMeta {
         }
     }
 
-    /// Get the numeric value from the PointMeta description.
+    /// Get the numeric value from the PointData description.
     ///
     /// # Example
     /// ```
     /// let original_data: f64 = 1.0;
-    /// let meta = ros_pointcloud2::PointMeta::new(original_data);
+    /// let meta = ros_pointcloud2::PointData::new(original_data);
     /// let my_data: f64 = meta.get();
     /// ```
     pub fn get<T: FromBytes>(&self) -> T {
-        let size = T::field_datatype().size();
-        let bytes = self
-            .bytes
-            .get(0..size)
-            .expect("Exceeds bounds of f64, which is the largest type");
-
         match self.endianness {
-            Endianness::Big => T::from_be_bytes(bytes),
-            Endianness::Little => T::from_le_bytes(bytes),
+            Endianness::Big => T::from_be_bytes(convert::PointDataBuffer::new(self.bytes)),
+            Endianness::Little => T::from_le_bytes(convert::PointDataBuffer::new(self.bytes)),
         }
     }
 }
 
-impl From<f32> for PointMeta {
+impl From<f32> for PointData {
     fn from(value: f32) -> Self {
         Self::new(value)
     }
 }
 
-impl From<f64> for PointMeta {
+impl From<f64> for PointData {
     fn from(value: f64) -> Self {
         Self::new(value)
     }
 }
 
-impl From<i32> for PointMeta {
+impl From<i32> for PointData {
     fn from(value: i32) -> Self {
         Self::new(value)
     }
 }
 
-impl From<u8> for PointMeta {
+impl From<u8> for PointData {
     fn from(value: u8) -> Self {
         Self::new(value)
     }
 }
 
-impl From<u16> for PointMeta {
+impl From<u16> for PointData {
     fn from(value: u16) -> Self {
         Self::new(value)
     }
 }
 
-impl From<u32> for PointMeta {
+impl From<u32> for PointData {
     fn from(value: u32) -> Self {
         Self::new(value)
     }
 }
 
-impl From<i8> for PointMeta {
+impl From<i8> for PointData {
     fn from(value: i8) -> Self {
         Self::new(value)
     }
 }
 
-impl From<i16> for PointMeta {
+impl From<i16> for PointData {
     fn from(value: i16) -> Self {
         Self::new(value)
     }

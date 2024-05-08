@@ -17,7 +17,8 @@ enum Label {
     Car,
 }
 
-// Define a custom point with an enum (not supported by PointCloud2)
+// Define a custom point with an enum.
+// This is normally not supported by PointCloud2 but we will explain the library how to handle it.
 #[derive(Debug, PartialEq, Clone, Default)]
 struct CustomPoint {
     x: f32,
@@ -27,7 +28,7 @@ struct CustomPoint {
     my_custom_label: Label,
 }
 
-// For our convenience
+// Some convenience functions to convert between the enum and u8.
 impl From<Label> for u8 {
     fn from(label: Label) -> Self {
         match label {
@@ -49,45 +50,54 @@ impl From<u8> for Label {
     }
 }
 
-// We implement the PointConvertible trait (needed for every custom point)
+#[cfg(not(feature = "derive"))]
+impl CustomPoint {
+    fn new(x: f32, y: f32, z: f32, intensity: f32, my_custom_label: Label) -> Self {
+        Self {
+            x,
+            y,
+            z,
+            intensity,
+            my_custom_label,
+        }
+    }
+}
 
-// A ros_pointcloud2::Point takes as generic arguments:
-// - coordinate type
-// - dimension (xyz = 3)
-// - metadata dimension (intensity + my_custom_label = 2)
+// We implement the PointConvertible trait (needed for every custom point).
+// RPCL2Point is the internal representation. It takes the amount of fields as generic arguments.
 impl From<CustomPoint> for RPCL2Point<5> {
     fn from(point: CustomPoint) -> Self {
-        RPCL2Point {
-            fields: [
-                point.x.into(),
-                point.y.into(),
-                point.z.into(),
-                point.intensity.into(),
-                u8::from(point.my_custom_label).into(),
-            ],
-        }
+        [
+            point.x.into(),
+            point.y.into(),
+            point.z.into(),
+            point.intensity.into(),
+            u8::from(point.my_custom_label).into(),
+        ]
+        .into()
     }
 }
 
 impl From<RPCL2Point<5>> for CustomPoint {
     fn from(point: RPCL2Point<5>) -> Self {
-        Self {
-            x: point.fields[0].get(),
-            y: point.fields[1].get(),
-            z: point.fields[2].get(),
-            intensity: point.fields[3].get(),
-            my_custom_label: point.fields[4].get(), // decoding the label from u8
-        }
+        Self::new(
+            point[0].get(),
+            point[1].get(),
+            point[2].get(),
+            point[3].get(),
+            point[4].get(),
+        )
     }
 }
 
+// Define wow we want to name the fields in the message.
 impl Fields<5> for CustomPoint {
     fn field_names_ordered() -> [&'static str; 5] {
-        ["x", "y", "z", "intensity", "my_custom_label"] // how we want to name the metadata in the message
+        ["x", "y", "z", "intensity", "my_custom_label"]
     }
 }
 
-// We implemented everything that is needed so we declare it as a PointConvertible
+// We implemented everything that is needed for PointConvertible so we declare it as a done.
 #[cfg(not(feature = "derive"))]
 impl PointConvertible<5> for CustomPoint {}
 
@@ -95,26 +105,28 @@ impl PointConvertible<5> for CustomPoint {}
 // You don't need to do this if your CustomPoint has a field that is already supported by PointCloud2.
 impl GetFieldDatatype for Label {
     fn field_datatype() -> FieldDatatype {
-        FieldDatatype::U8 // we want to encode the label as u8
+        FieldDatatype::U8 // Declare that we want to use u8 as the datatype for the label.
     }
 }
 
 // Again, you don't need this with only supported field types.
-// Technically, PointCloud2 supports big and little endian even though it is rarely used.
-// 'be' stands for big endian and 'le' for little endian.
+// u8 -> Label
 impl FromBytes for Label {
-    // u8 -> Label
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    // Technically, PointCloud2 supports big and little endian even though it is rarely used.
+    // 'be' stands for big endian and 'le' for little endian.
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         u8::from_be_bytes([bytes[0]]).into()
     }
 
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         u8::from_le_bytes([bytes[0]]).into()
     }
+}
 
-    // Label -> u8
-    fn bytes(label: &Self) -> Vec<u8> {
-        u8::bytes(&u8::from(*label))
+// Label -> u8
+impl From<Label> for PointDataBuffer {
+    fn from(label: Label) -> Self {
+        [u8::from(label)].into()
     }
 }
 

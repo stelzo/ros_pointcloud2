@@ -1,6 +1,6 @@
 use crate::{
     convert::{Endianness, FieldDatatype},
-    Fields, MsgConversionError, PointCloud2Msg, PointConvertible, PointMeta, RPCL2Point,
+    Fields, MsgConversionError, PointCloud2Msg, PointConvertible, PointData, RPCL2Point,
 };
 
 /// The PointCloudIterator provides a an iterator abstraction of the PointCloud2Msg.
@@ -196,12 +196,12 @@ impl<const N: usize> ByteBufferView<N> {
         let offset = (self.start_point_idx + idx) * self.point_step_size;
 
         // TODO memcpy entire point at once, then extract fields?
-        let mut meta = [PointMeta::default(); N];
+        let mut meta = [PointData::default(); N];
         meta.iter_mut()
             .zip(self.offsets.iter())
             .zip(self.meta.iter())
             .for_each(|((p_meta, in_point_offset), (_, meta_type))| {
-                *p_meta = PointMeta::from_buffer(
+                *p_meta = PointData::from_buffer(
                     &self.data,
                     offset + in_point_offset,
                     *meta_type,

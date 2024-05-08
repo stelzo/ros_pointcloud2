@@ -175,166 +175,200 @@ pub trait Fields<const N: usize> {
     fn field_names_ordered() -> [&'static str; N];
 }
 
+pub struct PointDataBuffer([u8; 8]);
+
+impl std::ops::Index<usize> for PointDataBuffer {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl PointDataBuffer {
+    pub fn new(data: [u8; 8]) -> Self {
+        Self(data)
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+
+    pub fn raw(self) -> [u8; 8] {
+        self.0
+    }
+
+    pub fn from_slice(data: &[u8]) -> Self {
+        let mut buffer = [0; 8];
+        data.iter().enumerate().for_each(|(i, &v)| buffer[i] = v);
+        Self(buffer)
+    }
+}
+
+impl From<&[u8]> for PointDataBuffer {
+    fn from(data: &[u8]) -> Self {
+        Self::from_slice(data)
+    }
+}
+
+impl<const N: usize> From<[u8; N]> for PointDataBuffer {
+    fn from(data: [u8; N]) -> Self {
+        Self::from(data.as_slice())
+    }
+}
+
+impl From<i8> for PointDataBuffer {
+    fn from(x: i8) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<i16> for PointDataBuffer {
+    fn from(x: i16) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<u16> for PointDataBuffer {
+    fn from(x: u16) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<i32> for PointDataBuffer {
+    fn from(x: i32) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<u32> for PointDataBuffer {
+    fn from(x: u32) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<f32> for PointDataBuffer {
+    fn from(x: f32) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<f64> for PointDataBuffer {
+    fn from(x: f64) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<u8> for PointDataBuffer {
+    fn from(x: u8) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<points::RGB> for PointDataBuffer {
+    fn from(x: points::RGB) -> Self {
+        x.raw().to_le_bytes().into()
+    }
+}
+
 /// This trait is used to convert a byte slice to a primitive type.
 /// All PointField types are supported.
-pub trait FromBytes: Default + Sized + Copy + GetFieldDatatype {
-    fn from_be_bytes(bytes: &[u8]) -> Self;
-    fn from_le_bytes(bytes: &[u8]) -> Self;
-
-    fn bytes(_: &Self) -> Vec<u8>;
+pub trait FromBytes: Default + Sized + Copy + GetFieldDatatype + Into<PointDataBuffer> {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self;
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self;
 }
 
 impl FromBytes for i8 {
-    #[inline]
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_be_bytes([bytes[0]])
     }
 
-    #[inline]
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([bytes[0]])
-    }
-
-    #[inline]
-    fn bytes(x: &i8) -> Vec<u8> {
-        Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for i16 {
-    #[inline]
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1]])
     }
 
-    #[inline]
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([bytes[0], bytes[1]])
-    }
-
-    #[inline]
-    fn bytes(x: &i16) -> Vec<u8> {
-        Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for u16 {
-    #[inline]
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1]])
     }
 
-    #[inline]
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([bytes[0], bytes[1]])
-    }
-
-    #[inline]
-    fn bytes(x: &u16) -> Vec<u8> {
-        Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for u32 {
-    #[inline]
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
-    #[inline]
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
-    }
-
-    #[inline]
-    fn bytes(x: &u32) -> Vec<u8> {
-        Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for f32 {
-    #[inline]
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
-    #[inline]
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
-    }
-
-    #[inline]
-    fn bytes(x: &f32) -> Vec<u8> {
-        Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for points::RGB {
-    #[inline]
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         Self::new_from_packed_f32(f32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
     }
 
-    #[inline]
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::new_from_packed_f32(f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
-    }
-
-    #[inline]
-    fn bytes(x: &points::RGB) -> Vec<u8> {
-        Vec::from(x.raw().to_le_bytes())
     }
 }
 
 impl FromBytes for i32 {
     #[inline]
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
-    }
-
-    fn bytes(x: &i32) -> Vec<u8> {
-        Vec::from(x.to_le_bytes())
     }
 }
 
 impl FromBytes for f64 {
-    #[inline]
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_be_bytes([
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
         ])
     }
 
-    #[inline]
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
         ])
     }
-
-    #[inline]
-    fn bytes(x: &f64) -> Vec<u8> {
-        Vec::from(x.to_le_bytes())
-    }
 }
 
 impl FromBytes for u8 {
-    #[inline]
-    fn from_be_bytes(bytes: &[u8]) -> Self {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_be_bytes([bytes[0]])
     }
 
-    #[inline]
-    fn from_le_bytes(bytes: &[u8]) -> Self {
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([bytes[0]])
-    }
-
-    #[inline]
-    fn bytes(x: &u8) -> Vec<u8> {
-        Vec::from(x.to_le_bytes())
     }
 }
 
@@ -344,21 +378,4 @@ pub enum Endianness {
 
     #[default]
     Little,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn from_bytes() {
-        i8::bytes(&1);
-        u8::bytes(&1);
-        i16::bytes(&1);
-        u16::bytes(&1);
-        i32::bytes(&1);
-        u32::bytes(&1);
-        f32::bytes(&1.0);
-        f64::bytes(&1.0);
-    }
 }
