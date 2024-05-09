@@ -234,19 +234,19 @@ impl PointCloud2Msg {
                     datatype,
                     size,
                 } => {
-                    if (*msg_f).name != *name {
+                    if msg_f.name != *name {
                         return Err(MsgConversionError::FieldNotFound(vec![name.clone()]));
                     }
 
-                    if (*msg_f).datatype != *datatype {
+                    if msg_f.datatype != *datatype {
                         return Err(MsgConversionError::InvalidFieldFormat);
                     }
 
-                    if (*msg_f).offset != offset {
+                    if msg_f.offset != offset {
                         return Err(MsgConversionError::DataLengthMismatch);
                     }
 
-                    if (*msg_f).count != 1 {
+                    if msg_f.count != 1 {
                         return Err(MsgConversionError::DataLengthMismatch);
                     }
 

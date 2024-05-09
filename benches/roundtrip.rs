@@ -36,7 +36,7 @@ pub fn reflection_through_plane(
     normal: &PointXYZ,
     point_on_plane: &PointXYZ,
 ) -> PointXYZ {
-    let v = PointXYZ {
+    PointXYZ {
         x: point.x
             - 2.0
                 * ((point.x - point_on_plane.x) * normal.x
@@ -52,8 +52,7 @@ pub fn reflection_through_plane(
                 * ((point.x - point_on_plane.x) * normal.x
                     + (point.y - point_on_plane.y) * normal.y
                     + (point.z - point_on_plane.z) * normal.z),
-    };
-    v
+    }
 }
 
 pub fn rotation_about_x(point: &PointXYZ, angle: f32) -> PointXYZ {
@@ -71,7 +70,7 @@ pub fn closest_point_on_line(
     line_point: &PointXYZ,
     line_direction: &PointXYZ,
 ) -> PointXYZ {
-    let v = PointXYZ {
+    PointXYZ {
         x: line_point.x
             + (line_point.x - point.x) * ((line_point.x - point.x).powi(2))
                 / ((line_direction.x * 2.0).powi(2))
@@ -87,8 +86,7 @@ pub fn closest_point_on_line(
                 / ((line_direction.z * 2.0).powi(2))
             + (line_direction.y * 2.0) * (point.y - line_point.y)
                 / ((line_direction.y * 2.0).powi(2)),
-    };
-    v
+    }
 }
 
 fn minus(point1: &PointXYZ, point2: &PointXYZ) -> PointXYZ {
@@ -153,7 +151,7 @@ pub fn heavy_computing(point: &PointXYZ, iterations: u32) -> f32 {
                 y: 11.0,
                 z: 12.0,
             },
-            3.14159,
+            std::f32::consts::PI / 2.0,
         );
 
         result += magnitude_squared(&minus(&reflected_point, &rotated_point));
