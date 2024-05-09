@@ -3,6 +3,8 @@ use ros_pointcloud2::prelude::*;
 
 use rand::Rng;
 
+pub type PointXYZB = PointXYZINormal;
+
 pub fn distance_to_origin(point: &PointXYZ) -> f32 {
     ((point.x.powi(2)) + (point.y.powi(2)) + (point.z.powi(2))).sqrt()
 }
@@ -97,14 +99,15 @@ fn minus(point1: &PointXYZ, point2: &PointXYZ) -> PointXYZ {
     }
 }
 
-pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<PointXYZ> {
+pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<PointXYZB> {
     let mut rng = rand::thread_rng();
     let mut pointcloud = Vec::with_capacity(num_points);
     for _ in 0..num_points {
-        let point = PointXYZ {
+        let point = PointXYZB {
             x: rng.gen_range(min..max),
             y: rng.gen_range(min..max),
             z: rng.gen_range(min..max),
+            ..Default::default()
         };
         pointcloud.push(point);
     }
@@ -160,14 +163,14 @@ pub fn heavy_computing(point: &PointXYZ, iterations: u32) -> f32 {
 }
 
 #[cfg(feature = "derive")]
-fn roundtrip_vec(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_vec(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
     let total: Vec<PointXYZ> = internal_msg.try_into_vec().unwrap();
     orig_len == total.len()
 }
 
-fn roundtrip(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
@@ -178,7 +181,7 @@ fn roundtrip(cloud: Vec<PointXYZ>) -> bool {
 }
 
 #[cfg(feature = "derive")]
-fn roundtrip_filter_vec(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_filter_vec(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
     let total = internal_msg
@@ -193,7 +196,7 @@ fn roundtrip_filter_vec(cloud: Vec<PointXYZ>) -> bool {
     orig_len == total.x as usize
 }
 
-fn roundtrip_filter(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_filter(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
@@ -208,7 +211,7 @@ fn roundtrip_filter(cloud: Vec<PointXYZ>) -> bool {
     orig_len == total.x as usize
 }
 
-fn roundtrip_computing(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_computing(cloud: Vec<PointXYZB>) -> bool {
     let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
         .try_into_iter()
@@ -219,7 +222,7 @@ fn roundtrip_computing(cloud: Vec<PointXYZ>) -> bool {
 }
 
 #[cfg(feature = "rayon")]
-fn roundtrip_computing_par(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_computing_par(cloud: Vec<PointXYZB>) -> bool {
     let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
         .try_into_par_iter()
@@ -230,7 +233,7 @@ fn roundtrip_computing_par(cloud: Vec<PointXYZ>) -> bool {
 }
 
 #[cfg(feature = "derive")]
-fn roundtrip_computing_par_par(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_computing_par_par(cloud: Vec<PointXYZB>) -> bool {
     let internal_msg = PointCloud2Msg::try_from_par_iter(cloud.into_par_iter()).unwrap();
     let total = internal_msg
         .try_into_par_iter()
@@ -241,7 +244,7 @@ fn roundtrip_computing_par_par(cloud: Vec<PointXYZ>) -> bool {
 }
 
 #[cfg(feature = "derive")]
-fn roundtrip_computing_vec(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_computing_vec(cloud: Vec<PointXYZB>) -> bool {
     let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
     let total: f32 = internal_msg
         .try_into_vec()
@@ -253,7 +256,7 @@ fn roundtrip_computing_vec(cloud: Vec<PointXYZ>) -> bool {
 }
 
 #[cfg(feature = "rayon")]
-fn roundtrip_par(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_par(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
@@ -264,7 +267,7 @@ fn roundtrip_par(cloud: Vec<PointXYZ>) -> bool {
 }
 
 #[cfg(feature = "rayon")]
-fn roundtrip_par_par(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_par_par(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_par_iter(cloud.into_par_iter()).unwrap();
     let total = internal_msg
@@ -275,7 +278,7 @@ fn roundtrip_par_par(cloud: Vec<PointXYZ>) -> bool {
 }
 
 #[cfg(feature = "rayon")]
-fn roundtrip_filter_par(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_filter_par(cloud: Vec<PointXYZB>) -> bool {
     let orig_len: usize = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let total = internal_msg
@@ -291,7 +294,7 @@ fn roundtrip_filter_par(cloud: Vec<PointXYZ>) -> bool {
 }
 
 #[cfg(feature = "rayon")]
-fn roundtrip_filter_par_par(cloud: Vec<PointXYZ>) -> bool {
+fn roundtrip_filter_par_par(cloud: Vec<PointXYZB>) -> bool {
     let orig_len: usize = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_par_iter(cloud.into_par_iter()).unwrap();
     let total = internal_msg
@@ -307,12 +310,99 @@ fn roundtrip_filter_par_par(cloud: Vec<PointXYZ>) -> bool {
 }
 
 fn roundtrip_benchmark(c: &mut Criterion) {
+    let cloud_points_16k = generate_random_pointcloud(16_000, f32::MIN / 2.0, f32::MAX / 2.0);
     let cloud_points_60k = generate_random_pointcloud(60_000, f32::MIN / 2.0, f32::MAX / 2.0);
     let cloud_points_120k = generate_random_pointcloud(120_000, f32::MIN / 2.0, f32::MAX / 2.0);
     let cloud_points_500k = generate_random_pointcloud(500_000, f32::MIN / 2.0, f32::MAX / 2.0);
     let cloud_points_1_5m = generate_random_pointcloud(1_500_000, f32::MIN / 2.0, f32::MAX / 2.0);
 
-    // 60k points (Ouster OS with 64 beams)
+    // 16k points (Velodyne with 16 beams)
+
+    // Moving memory
+    c.bench_function("16k iter", |b| {
+        b.iter(|| {
+            black_box(roundtrip(cloud_points_16k.clone()));
+        })
+    });
+
+    #[cfg(feature = "rayon")]
+    c.bench_function("16k iter_par", |b| {
+        b.iter(|| {
+            black_box(roundtrip_par(cloud_points_16k.clone()));
+        })
+    });
+
+    #[cfg(feature = "rayon")]
+    c.bench_function("16k iter_par_par", |b| {
+        b.iter(|| {
+            black_box(roundtrip_par_par(cloud_points_16k.clone()));
+        })
+    });
+
+    #[cfg(feature = "derive")]
+    c.bench_function("16k vec", |b| {
+        b.iter(|| {
+            black_box(roundtrip_vec(cloud_points_16k.clone()));
+        })
+    });
+
+    // Simple distance filter
+    c.bench_function("16k iter_filter", |b| {
+        b.iter(|| {
+            roundtrip_filter(black_box(cloud_points_16k.clone()));
+        })
+    });
+
+    #[cfg(feature = "rayon")]
+    c.bench_function("16k filter_par", |b| {
+        b.iter(|| {
+            roundtrip_filter_par(black_box(cloud_points_16k.clone()));
+        })
+    });
+
+    #[cfg(feature = "rayon")]
+    c.bench_function("16k filter_par_par", |b| {
+        b.iter(|| {
+            black_box(roundtrip_filter_par_par(cloud_points_16k.clone()));
+        })
+    });
+
+    #[cfg(feature = "derive")]
+    c.bench_function("16k vec_filter", |b| {
+        b.iter(|| {
+            roundtrip_filter_vec(black_box(cloud_points_16k.clone()));
+        })
+    });
+
+    // Heavy computing
+    c.bench_function("16k iter_compute", |b| {
+        b.iter(|| {
+            roundtrip_computing(black_box(cloud_points_16k.clone()));
+        })
+    });
+
+    #[cfg(feature = "rayon")]
+    c.bench_function("16k iter_compute_par", |b| {
+        b.iter(|| {
+            roundtrip_computing_par(black_box(cloud_points_16k.clone()));
+        })
+    });
+
+    #[cfg(feature = "rayon")]
+    c.bench_function("16k iter_compute_par_par", |b| {
+        b.iter(|| {
+            roundtrip_computing_par_par(black_box(cloud_points_16k.clone()));
+        })
+    });
+
+    #[cfg(feature = "derive")]
+    c.bench_function("16k vec_compute", |b| {
+        b.iter(|| {
+            roundtrip_computing_vec(black_box(cloud_points_16k.clone()));
+        })
+    });
+
+    // 60k points (Ouster with 64 beams)
 
     // Moving memory
     c.bench_function("60k iter", |b| {
@@ -335,7 +425,14 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    // 120k points (Ouster OS with 128 beams)
+    #[cfg(feature = "derive")]
+    c.bench_function("60k vec", |b| {
+        b.iter(|| {
+            black_box(roundtrip_vec(cloud_points_60k.clone()));
+        })
+    });
+
+    // 120k points (Ouster with 128 beams)
 
     // Moving memory
     c.bench_function("120k iter", |b| {
