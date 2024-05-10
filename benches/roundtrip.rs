@@ -232,7 +232,7 @@ fn roundtrip_computing_par(cloud: Vec<PointXYZB>) -> bool {
     total > 0.0
 }
 
-#[cfg(feature = "derive")]
+#[cfg(feature = "rayon")]
 fn roundtrip_computing_par_par(cloud: Vec<PointXYZB>) -> bool {
     let internal_msg = PointCloud2Msg::try_from_par_iter(cloud.into_par_iter()).unwrap();
     let total = internal_msg

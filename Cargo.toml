@@ -51,4 +51,4 @@ rayon = ["dep:rayon"]
 derive = ["dep:rpcl2_derive", "dep:type-layout"]
 nalgebra = ["dep:nalgebra"]
 
-default = ["rayon", "derive"]
+default = ["derive"]

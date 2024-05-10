@@ -268,7 +268,7 @@ where
                 .into_iter()
                 .map(|(name, _)| (*name).to_owned())
                 .collect::<Vec<String>>();
-            return Err(MsgConversionError::FieldNotFound(names_not_found));
+            return Err(MsgConversionError::FieldsNotFound(names_not_found));
         }
 
         let ordered_fieldnames = C::field_names_ordered();

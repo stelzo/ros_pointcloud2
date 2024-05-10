@@ -8,21 +8,106 @@ use syn::{parse_macro_input, DeriveInput};
 
 fn get_allowed_types() -> HashMap<&'static str, usize> {
     let mut allowed_datatypes = HashMap::<&'static str, usize>::new();
-    allowed_datatypes.insert("f32", 4);
-    allowed_datatypes.insert("f64", 8);
-    allowed_datatypes.insert("i32", 4);
-    allowed_datatypes.insert("u8", 1);
-    allowed_datatypes.insert("u16", 2);
-    allowed_datatypes.insert("u32", 4);
-    allowed_datatypes.insert("i8", 1);
-    allowed_datatypes.insert("i16", 2);
+    allowed_datatypes.insert("f32", std::mem::size_of::<f32>());
+    allowed_datatypes.insert("f64", std::mem::size_of::<f64>());
+    allowed_datatypes.insert("i32", std::mem::size_of::<i32>());
+    allowed_datatypes.insert("u8", std::mem::size_of::<u8>());
+    allowed_datatypes.insert("u16", std::mem::size_of::<u16>());
+    allowed_datatypes.insert("u32", std::mem::size_of::<u32>());
+    allowed_datatypes.insert("i8", std::mem::size_of::<i8>());
+    allowed_datatypes.insert("i16", std::mem::size_of::<i16>());
     allowed_datatypes
+}
+
+// Given a field, get the value of the `rpcl2` renaming attribute like
+// #[rpcl2(name = "new_name")]
+fn get_ros_fields_attribute(attrs: &Vec<syn::Attribute>) -> Option<syn::Lit> {
+    for attr in attrs {
+        if attr.path.is_ident("rpcl2") {
+            let meta = attr.parse_meta().unwrap();
+            if let syn::Meta::List(meta_list) = meta {
+                for nested_meta in meta_list.nested {
+                    if let syn::NestedMeta::Meta(meta) = nested_meta {
+                        if let syn::Meta::NameValue(meta_name_value) = meta {
+                            if meta_name_value.path.is_ident("name") {
+                                return Some(meta_name_value.lit);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
+    let fields = match input.data {
+        syn::Data::Struct(ref data) => match data.fields {
+            syn::Fields::Named(ref fields) => &fields.named,
+            _ => panic!("StructNames can only be derived for structs with named fields"),
+        },
+        _ => panic!("StructNames can only be derived for structs"),
+    };
+
+    fields.iter().map(|field| {
+        let field_name = field.ident.as_ref().unwrap();
+        let ros_fields_attr = get_ros_fields_attribute(&field.attrs);
+        match ros_fields_attr {
+            Some(ros_fields) => {
+                match ros_fields {
+                    syn::Lit::Str(lit_str) => {
+                        let val = lit_str.value();
+                        if val.is_empty() {
+                            panic!("Empty string literals are not allowed for the rpcl2 attribute");
+                        }
+                        val
+                    }
+                    _ => {
+                        panic!("Only string literals are allowed for the rpcl2 attribute")
+                    }
+                }
+            }
+            None => {
+                String::from(field_name.to_token_stream().to_string())
+            }
+        }
+    }).collect()
+}
+
+#[proc_macro_derive(RosFields, attributes(rpcl2))]
+pub fn ros_point_fields_derive(input: TokenStream) -> TokenStream {
+    // Parse the input tokens into a syntax tree
+    let input = parse_macro_input!(input as DeriveInput);
+
+    // Get the name of the struct
+    let struct_name = &input.ident;
+
+    let field_names = struct_field_rename_array(&input).into_iter().map(|field_name| {
+        quote! { #field_name }
+    });
+
+    let field_names_len = field_names.len();
+
+    let expanded = quote! {
+        impl Fields<#field_names_len> for #struct_name {
+            fn field_names_ordered() -> [&'static str; #field_names_len] {
+                [
+                    #(#field_names,)*
+                ]
+            }
+        }
+    };
+
+    // Return the generated implementation
+    expanded.into()
 }
 
 /// Derive macro for the `Fields` trait.
 ///
 /// Given the ordering from the source code of your struct, this macro will generate an array of field names.
-#[proc_macro_derive(RosFields)]
+/// If the fields contain attributes for renaming or skipping, the generated array will reflect the final ordering.
+/*#[proc_macro_derive(RosFields)]
 pub fn ros_point_fields_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.clone().ident;
@@ -74,7 +159,7 @@ pub fn ros_point_fields_derive(input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(field_impl)
-}
+}*/
 
 /// This macro will fully implement the `PointConvertible` trait for your struct so you can use your point for the PointCloud2 conversion.
 ///
