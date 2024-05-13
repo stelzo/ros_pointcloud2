@@ -45,7 +45,7 @@ impl core::fmt::Debug for RGB {
 impl RGB {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self {
-            unpacked: [r, g, b, 0],
+            unpacked: [b, g, r, 0],
         }
     }
 
@@ -62,7 +62,7 @@ impl RGB {
     }
 
     pub fn r(&self) -> u8 {
-        unsafe { self.unpacked[0] }
+        unsafe { self.unpacked[2] }
     }
 
     pub fn g(&self) -> u8 {
@@ -70,11 +70,11 @@ impl RGB {
     }
 
     pub fn b(&self) -> u8 {
-        unsafe { self.unpacked[2] }
+        unsafe { self.unpacked[0] }
     }
 
     pub fn set_r(&mut self, r: u8) {
-        unsafe { self.unpacked[0] = r }
+        unsafe { self.unpacked[2] = r }
     }
 
     pub fn set_g(&mut self, g: u8) {
@@ -82,7 +82,7 @@ impl RGB {
     }
 
     pub fn set_b(&mut self, b: u8) {
-        unsafe { self.unpacked[2] = b }
+        unsafe { self.unpacked[0] = b }
     }
 }
 
