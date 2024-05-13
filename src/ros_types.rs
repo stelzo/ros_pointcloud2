@@ -100,18 +100,18 @@ impl From<crate::PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
                     count: field.count,
                 })
                 .collect(),
-            is_bigendian: if msg.endian == crate::Endian::Big {
-                true
+            endian: if msg.is_bigendian {
+                crate::Endian::Big
             } else {
-                false
+                crate::Endian::Little
             },
             point_step: msg.point_step,
             row_step: msg.row_step,
             data: msg.data,
-            is_dense: if msg.dense == crate::convert::Denseness::Dense {
-                true
+            dense: if msg.is_dense {
+                crate::convert::Denseness::Dense
             } else {
-                false
+                crate::convert::Denseness::Sparse
             },
         }
     }
