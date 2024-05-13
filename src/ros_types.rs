@@ -46,8 +46,10 @@ impl From<r2r::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
                 },
                 frame_id: msg.header.frame_id,
             },
-            height: msg.height,
-            width: msg.width,
+            dimensions: crate::CloudDimensions {
+                width: msg.width,
+                height: msg.height,
+            },
             fields: msg
                 .fields
                 .into_iter()
@@ -58,11 +60,19 @@ impl From<r2r::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
                     count: field.count,
                 })
                 .collect(),
-            is_bigendian: msg.is_bigendian,
+            endian: if msg.is_bigendian {
+                crate::Endian::Big
+            } else {
+                crate::Endian::Little
+            },
             point_step: msg.point_step,
             row_step: msg.row_step,
             data: msg.data,
-            is_dense: msg.is_dense,
+            dense: if msg.is_dense {
+                crate::convert::Denseness::Dense
+            } else {
+                crate::convert::Denseness::Sparse
+            },
         }
     }
 }
@@ -78,8 +88,8 @@ impl From<crate::PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
                 },
                 frame_id: msg.header.frame_id,
             },
-            height: msg.height,
-            width: msg.width,
+            height: msg.dimensions.height,
+            width: msg.dimensions.width,
             fields: msg
                 .fields
                 .into_iter()
@@ -90,11 +100,19 @@ impl From<crate::PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
                     count: field.count,
                 })
                 .collect(),
-            is_bigendian: msg.is_bigendian,
+            is_bigendian: if msg.endian == crate::Endian::Big {
+                true
+            } else {
+                false
+            },
             point_step: msg.point_step,
             row_step: msg.row_step,
             data: msg.data,
-            is_dense: msg.is_dense,
+            is_dense: if msg.dense == crate::convert::Denseness::Dense {
+                true
+            } else {
+                false
+            },
         }
     }
 }
@@ -111,8 +129,10 @@ impl From<rosrust_msg::sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
                 },
                 frame_id: msg.header.frame_id,
             },
-            height: msg.height,
-            width: msg.width,
+            dimensions: crate::CloudDimensions {
+                width: msg.width,
+                height: msg.height,
+            },
             fields: msg
                 .fields
                 .into_iter()
@@ -123,11 +143,19 @@ impl From<rosrust_msg::sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
                     count: field.count,
                 })
                 .collect(),
-            is_bigendian: msg.is_bigendian,
+            is_bigendian: if msg.endian == crate::Endian::Big {
+                true
+            } else {
+                false
+            },
             point_step: msg.point_step,
             row_step: msg.row_step,
             data: msg.data,
-            is_dense: msg.is_dense,
+            is_dense: if msg.dense == crate::convert::Denseness::Dense {
+                true
+            } else {
+                false
+            },
         }
     }
 }
@@ -144,8 +172,8 @@ impl From<crate::PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
                 },
                 frame_id: msg.header.frame_id,
             },
-            height: msg.height,
-            width: msg.width,
+            height: msg.dimensions.height,
+            width: msg.dimensions.width,
             fields: msg
                 .fields
                 .into_iter()
@@ -156,11 +184,19 @@ impl From<crate::PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
                     count: field.count,
                 })
                 .collect(),
-            is_bigendian: msg.is_bigendian,
+            is_bigendian: if msg.endian == crate::Endian::Big {
+                true
+            } else {
+                false
+            },
             point_step: msg.point_step,
             row_step: msg.row_step,
             data: msg.data,
-            is_dense: msg.is_dense,
+            is_dense: if msg.dense == crate::convert::Denseness::Dense {
+                true
+            } else {
+                false
+            },
         }
     }
 }

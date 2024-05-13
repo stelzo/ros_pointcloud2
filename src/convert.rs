@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::*;
 
 /// Datatypes from the [PointField message](http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/PointField.html).
@@ -13,9 +15,8 @@ pub enum FieldDatatype {
     I8,
     I16,
 
-    /// While RGB is not officially supported by ROS, it is used in practice as a packed f32.
-    /// To make it easier to work with and avoid packing code, the
-    /// [`ros_pointcloud2::points::RGB`] union is supported here and handled like a f32.
+    /// While RGB is not officially supported by ROS, it is used in the tooling as a packed f32.
+    /// To make it easy to work with and avoid packing code, the [`ros_pointcloud2::points::RGB`] union is supported here and handled like a f32.
     RGB,
 }
 
@@ -35,11 +36,11 @@ impl FieldDatatype {
     }
 }
 
-impl TryFrom<String> for FieldDatatype {
-    type Error = MsgConversionError;
+impl FromStr for FieldDatatype {
+    type Err = MsgConversionError;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.to_lowercase().as_str() {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
             "f32" => Ok(FieldDatatype::F32),
             "f64" => Ok(FieldDatatype::F64),
             "i32" => Ok(FieldDatatype::I32),
@@ -49,7 +50,7 @@ impl TryFrom<String> for FieldDatatype {
             "i8" => Ok(FieldDatatype::I8),
             "i16" => Ok(FieldDatatype::I16),
             "rgb" => Ok(FieldDatatype::RGB),
-            _ => Err(MsgConversionError::UnsupportedFieldType(value)),
+            _ => Err(MsgConversionError::UnsupportedFieldType(s.into())),
         }
     }
 }
@@ -145,6 +146,14 @@ impl From<FieldDatatype> for u8 {
             FieldDatatype::F64 => 8,
             FieldDatatype::RGB => 7, // RGB is marked as f32 in the buffer
         }
+    }
+}
+
+impl TryFrom<&ros_types::PointFieldMsg> for FieldDatatype {
+    type Error = MsgConversionError;
+
+    fn try_from(value: &ros_types::PointFieldMsg) -> Result<Self, Self::Error> {
+        Self::try_from(value.datatype)
     }
 }
 
@@ -372,10 +381,22 @@ impl FromBytes for u8 {
     }
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Copy)]
-pub enum Endianness {
-    Big,
+pub enum ByteSimilarity {
+    Equal,
+    Overlapping,
+    Different,
+}
 
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
+pub enum Endian {
+    Big,
     #[default]
     Little,
+}
+
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
+pub enum Denseness {
+    #[default]
+    Dense,
+    Sparse,
 }
