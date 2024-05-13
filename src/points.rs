@@ -149,11 +149,7 @@ impl Fields<3> for PointXYZ {
 
 impl From<RPCL2Point<3>> for PointXYZ {
     fn from(point: RPCL2Point<3>) -> Self {
-        Self::new(
-            point.fields[0].get(),
-            point.fields[1].get(),
-            point.fields[2].get(),
-        )
+        Self::new(point[0].get(), point[1].get(), point[2].get())
     }
 }
 
@@ -200,10 +196,10 @@ impl Fields<4> for PointXYZI {
 impl From<RPCL2Point<4>> for PointXYZI {
     fn from(point: RPCL2Point<4>) -> Self {
         Self::new(
-            point.fields[0].get(),
-            point.fields[1].get(),
-            point.fields[2].get(),
-            point.fields[3].get(),
+            point[0].get(),
+            point[1].get(),
+            point[2].get(),
+            point[3].get(),
         )
     }
 }
@@ -257,10 +253,10 @@ impl Fields<4> for PointXYZL {
 impl From<RPCL2Point<4>> for PointXYZL {
     fn from(point: RPCL2Point<4>) -> Self {
         Self::new(
-            point.fields[0].get(),
-            point.fields[1].get(),
-            point.fields[2].get(),
-            point.fields[3].get(),
+            point[0].get(),
+            point[1].get(),
+            point[2].get(),
+            point[3].get(),
         )
     }
 }
@@ -327,10 +323,10 @@ impl Fields<4> for PointXYZRGB {
 impl From<RPCL2Point<4>> for PointXYZRGB {
     fn from(point: RPCL2Point<4>) -> Self {
         Self {
-            x: point.fields[0].get(),
-            y: point.fields[1].get(),
-            z: point.fields[2].get(),
-            rgb: point.fields[3].get(),
+            x: point[0].get(),
+            y: point[1].get(),
+            z: point[2].get(),
+            rgb: point[3].get(),
         }
     }
 }
@@ -399,11 +395,11 @@ impl Fields<5> for PointXYZRGBA {
 impl From<RPCL2Point<5>> for PointXYZRGBA {
     fn from(point: RPCL2Point<5>) -> Self {
         Self {
-            x: point.fields[0].get(),
-            y: point.fields[1].get(),
-            z: point.fields[2].get(),
-            rgb: point.fields[3].get::<f32>().into(),
-            a: point.fields[4].get(),
+            x: point[0].get(),
+            y: point[1].get(),
+            z: point[2].get(),
+            rgb: point[3].get::<f32>().into(),
+            a: point[4].get(),
         }
     }
 }
@@ -489,13 +485,13 @@ impl Fields<7> for PointXYZRGBNormal {
 impl From<RPCL2Point<7>> for PointXYZRGBNormal {
     fn from(point: RPCL2Point<7>) -> Self {
         Self {
-            x: point.fields[0].get(),
-            y: point.fields[1].get(),
-            z: point.fields[2].get(),
-            rgb: point.fields[3].get::<f32>().into(),
-            normal_x: point.fields[4].get(),
-            normal_y: point.fields[5].get(),
-            normal_z: point.fields[6].get(),
+            x: point[0].get(),
+            y: point[1].get(),
+            z: point[2].get(),
+            rgb: point[3].get::<f32>().into(),
+            normal_x: point[4].get(),
+            normal_y: point[5].get(),
+            normal_z: point[6].get(),
         }
     }
 }
@@ -571,13 +567,13 @@ impl Fields<7> for PointXYZINormal {
 impl From<RPCL2Point<7>> for PointXYZINormal {
     fn from(point: RPCL2Point<7>) -> Self {
         Self::new(
-            point.fields[0].get(),
-            point.fields[1].get(),
-            point.fields[2].get(),
-            point.fields[3].get(),
-            point.fields[4].get(),
-            point.fields[5].get(),
-            point.fields[6].get(),
+            point[0].get(),
+            point[1].get(),
+            point[2].get(),
+            point[3].get(),
+            point[4].get(),
+            point[5].get(),
+            point[6].get(),
         )
     }
 }
@@ -654,11 +650,11 @@ impl Fields<5> for PointXYZRGBL {
 impl From<RPCL2Point<5>> for PointXYZRGBL {
     fn from(point: RPCL2Point<5>) -> Self {
         Self {
-            x: point.fields[0].get(),
-            y: point.fields[1].get(),
-            z: point.fields[2].get(),
-            rgb: point.fields[3].get::<f32>().into(),
-            label: point.fields[4].get(),
+            x: point[0].get(),
+            y: point[1].get(),
+            z: point[2].get(),
+            rgb: point[3].get::<f32>().into(),
+            label: point[4].get(),
         }
     }
 }
@@ -722,12 +718,12 @@ impl Fields<6> for PointXYZNormal {
 impl From<RPCL2Point<6>> for PointXYZNormal {
     fn from(point: RPCL2Point<6>) -> Self {
         Self::new(
-            point.fields[0].get(),
-            point.fields[1].get(),
-            point.fields[2].get(),
-            point.fields[3].get(),
-            point.fields[4].get(),
-            point.fields[5].get(),
+            point[0].get(),
+            point[1].get(),
+            point[2].get(),
+            point[3].get(),
+            point[4].get(),
+            point[5].get(),
         )
     }
 }

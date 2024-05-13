@@ -78,7 +78,7 @@ fn write_cloud_from_vec() {
 #[test]
 #[cfg(feature = "derive")]
 fn custom_xyz_f32() {
-    #[derive(Debug, PartialEq, Clone, Default, RosFull, TypeLayout)]
+    #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
     #[repr(C)]
     struct CustomPoint {
         x: f32,
@@ -138,7 +138,7 @@ fn custom_xyzi_f32() {
         },
     ];
 
-    #[derive(Debug, PartialEq, Clone, Default, RosFull, TypeLayout)]
+    #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
     #[repr(C)]
     struct CustomPointXYZI {
         x: f32,
@@ -153,7 +153,7 @@ fn custom_xyzi_f32() {
 #[test]
 #[cfg(feature = "derive")]
 fn custom_rgba_f32() {
-    #[derive(Debug, PartialEq, Clone, Default, RosFull, TypeLayout)]
+    #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
     #[repr(C)]
     struct CustomPoint {
         x: f32,
@@ -392,9 +392,9 @@ fn write_less_than_available() {
     impl From<RPCL2Point<3>> for CustomPoint {
         fn from(point: RPCL2Point<3>) -> Self {
             Self {
-                x: point.fields[0].get(),
-                y: point.fields[1].get(),
-                z: point.fields[2].get(),
+                x: point[0].get(),
+                y: point[1].get(),
+                z: point[2].get(),
                 dummy: 0.0,
             }
         }

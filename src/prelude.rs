@@ -12,4 +12,4 @@ pub use type_layout::TypeLayout;
 #[cfg(feature = "derive")]
 pub use rpcl2_derive::*;
 
-pub use crate::convert::{FieldDatatype, FromBytes, GetFieldDatatype};
+pub use crate::convert::{FieldDatatype, FromBytes, GetFieldDatatype, PointDataBuffer};

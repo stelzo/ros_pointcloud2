@@ -1,21 +1,19 @@
 ## !! Note !!
+
 This library is currently in development for v1.0.0, for the documentation of v0.4.0 on crates.io, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/).
 
 <p align="center">
   <h3 align="center">ROS PointCloud2</h3>
-  <p align="center">A complete and versatile abstraction of PointCloud2.</p>
+  <p align="center">A PointCloud2 message conversion library.</p>
   <p align="center"><a href="https://crates.io/crates/ros_pointcloud2"><img src="https://img.shields.io/crates/v/ros_pointcloud2.svg" alt=""></a> <a href="https://github.com/stelzo/ros_pointcloud2/tree/main/tests"><img src="https://github.com/stelzo/ros_pointcloud2/actions/workflows/tests.yml/badge.svg" alt=""></a>
   </p>
 </p>
 
-To keep the crate a general purpose library for the problem, it uses its own type for the message `PointCloud2Msg`.
-ROS1 and ROS2 is supported with feature flags.
+ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
 Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/1.0.0/ros_pointcloud2/) for a complete guide.
 
 ## Quickstart
-
-The following example uses the iterator APIs. For memory bound pipelines, you may also try the `try_from_vec` or `try_into_vec` functions by enabling the `derive` feature.
 
 ```rust
 use ros_pointcloud2::prelude::*;
@@ -27,7 +25,7 @@ let cloud_points = vec![
 ];
 
 // Give the Vec or anything that implements `IntoIterator`.
-let in_msg = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
+let in_msg = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
 
 // Convert the ROS crate message type, we will use r2r here.
 // let msg: r2r::sensor_msgs::msg::PointCloud2 = in_msg.into();
@@ -36,7 +34,7 @@ let in_msg = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
 // let in_msg: PointCloud2Msg = msg.into();
 
 let new_pcl = in_msg.try_into_iter().unwrap()
-  .map(|point: PointXYZ| { // Define the type of point here.
+  .map(|point: PointXYZ| { // Define the info you want to have from the Msg.
       // Some logic here ...
 
       point
@@ -84,7 +82,15 @@ Also, indicate the following dependencies to your linker inside the `package.xml
 <depend>builtin_interfaces</depend>
 ```
 
-Please open an issue or PR if you want to see support for other crates.
+Please open an issue or PR if you need other integrations.
+
+## Performance
+
+The library offers a speed up when compared to PointCloudLibrary (PCL) conversions but the specific factor depends heavily on the use case and system.
+`vec` conversions are on average ~7.5x faster than PCL while the single core iteration `_iter` APIs are around 2x faster.
+Parallelization with `_par_iter` showcases a 10.5x speed up compared to an OpenMP accelerated PCL pipeline.
+
+The full benchmarks are publicly available in this [repository](https://github.com/stelzo/ros_pcl_conv_bench).
 
 ## License
 

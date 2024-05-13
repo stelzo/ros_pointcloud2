@@ -1,6 +1,6 @@
 use crate::{
-    convert::{Endianness, FieldDatatype},
-    Fields, MsgConversionError, PointCloud2Msg, PointConvertible, PointMeta, RPCL2Point,
+    convert::{Endian, FieldDatatype},
+    Fields, MsgConversionError, PointCloud2Msg, PointConvertible, PointData, RPCL2Point,
 };
 
 /// The PointCloudIterator provides a an iterator abstraction of the PointCloud2Msg.
@@ -162,7 +162,7 @@ struct ByteBufferView<const N: usize> {
     point_step_size: usize,
     offsets: [usize; N],
     meta: Vec<(String, FieldDatatype)>,
-    endianness: Endianness,
+    endian: Endian,
 }
 
 impl<const N: usize> ByteBufferView<N> {
@@ -173,7 +173,7 @@ impl<const N: usize> ByteBufferView<N> {
         end_point_idx: usize,
         offsets: [usize; N],
         meta: Vec<(String, FieldDatatype)>,
-        endianness: Endianness,
+        endian: Endian,
     ) -> Self {
         Self {
             data: std::sync::Arc::<[u8]>::from(data),
@@ -182,7 +182,7 @@ impl<const N: usize> ByteBufferView<N> {
             point_step_size,
             offsets,
             meta,
-            endianness,
+            endian,
         }
     }
 
@@ -196,16 +196,16 @@ impl<const N: usize> ByteBufferView<N> {
         let offset = (self.start_point_idx + idx) * self.point_step_size;
 
         // TODO memcpy entire point at once, then extract fields?
-        let mut meta = [PointMeta::default(); N];
+        let mut meta = [PointData::default(); N];
         meta.iter_mut()
             .zip(self.offsets.iter())
             .zip(self.meta.iter())
             .for_each(|((p_meta, in_point_offset), (_, meta_type))| {
-                *p_meta = PointMeta::from_buffer(
+                *p_meta = PointData::from_buffer(
                     &self.data,
                     offset + in_point_offset,
                     *meta_type,
-                    self.endianness,
+                    self.endian,
                 );
             });
 
@@ -221,7 +221,7 @@ impl<const N: usize> ByteBufferView<N> {
             point_step_size: self.point_step_size,
             offsets: self.offsets,
             meta: self.meta.clone(),
-            endianness: self.endianness,
+            endian: self.endian,
         }
     }
 
@@ -268,7 +268,7 @@ where
                 .into_iter()
                 .map(|(name, _)| (*name).to_owned())
                 .collect::<Vec<String>>();
-            return Err(MsgConversionError::FieldNotFound(names_not_found));
+            return Err(MsgConversionError::FieldsNotFound(names_not_found));
         }
 
         let ordered_fieldnames = C::field_names_ordered();
@@ -303,14 +303,8 @@ where
                 *meta_offset = offset;
             });
 
-        let endian = if cloud.is_bigendian {
-            Endianness::Big
-        } else {
-            Endianness::Little
-        };
-
         let point_step_size = cloud.point_step as usize;
-        let cloud_length = cloud.width as usize * cloud.height as usize;
+        let cloud_length = cloud.dimensions.width as usize * cloud.dimensions.height as usize;
         if point_step_size * cloud_length != cloud.data.len() {
             return Err(MsgConversionError::DataLengthMismatch);
         }
@@ -323,7 +317,7 @@ where
             return Err(MsgConversionError::DataLengthMismatch);
         }
 
-        let cloud_length = cloud.width as usize * cloud.height as usize;
+        let cloud_length = cloud.dimensions.width as usize * cloud.dimensions.height as usize;
 
         let data = ByteBufferView::new(
             cloud.data,
@@ -332,7 +326,7 @@ where
             cloud_length - 1,
             offsets,
             meta,
-            endian,
+            cloud.endian,
         );
 
         Ok(Self {

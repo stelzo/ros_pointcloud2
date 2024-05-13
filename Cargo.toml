@@ -51,4 +51,7 @@ rayon = ["dep:rayon"]
 derive = ["dep:rpcl2_derive", "dep:type-layout"]
 nalgebra = ["dep:nalgebra"]
 
-default = ["rayon", "derive", "nalgebra"]
+default = ["derive"]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--generate-link-to-definition"]
