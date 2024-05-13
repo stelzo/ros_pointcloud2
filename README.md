@@ -86,11 +86,13 @@ Please open an issue or PR if you need other integrations.
 
 ## Performance
 
-The library offers a speed up when compared to PointCloudLibrary (PCL) conversions but the specific factor depends heavily on the use case and system.
-`vec` conversions are on average ~7.5x faster than PCL while the single core iteration `_iter` APIs are around 2x faster.
-Parallelization with `_par_iter` showcases a 10.5x speed up compared to an OpenMP accelerated PCL pipeline.
+This library offers a speed up when compared to PointCloudLibrary (PCL) conversions but the specific factor depends heavily on the use case and system.
+The `_vec` conversions are on average ~7.5x faster than PCL while the single core iteration `_iter` functions are around 2x faster.
+Parallelization with `_par_iter` gives a 10.5x speed up compared to an OpenMP accelerated PCL pipeline.
 
-The full benchmarks are publicly available in this [repository](https://github.com/stelzo/ros_pcl_conv_bench).
+The results are measured with benchmarks in this [repository](https://github.com/stelzo/ros_pcl_conv_bench) and are evaluated on a i7-14700.
+
+For minimizing the ROS overhead, always use the functions that best fit your use case.
 
 ## License
 
