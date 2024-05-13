@@ -601,12 +601,12 @@ impl PointCloud2Msg {
     /// use ros_pointcloud2::prelude::*;
     ///
     /// let cloud_points: Vec<PointXYZI> = vec![
-    ///    PointXYZ::new(1.0, 2.0, 3.0, 0.5),
-    ///    PointXYZ::new(4.0, 5.0, 6.0, 1.1),
+    ///    PointXYZI::new(1.0, 2.0, 3.0, 0.5),
+    ///    PointXYZI::new(4.0, 5.0, 6.0, 1.1),
     /// ];
     ///
     /// let msg_out = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
-    /// let cloud_points_out = msg_out.try_into_par_iter::<N, C>().unwrap().collect::<Vec<PointXYZ>>();
+    /// let cloud_points_out = msg_out.try_into_par_iter().unwrap().collect::<Vec<PointXYZ>>();
     /// assert_eq!(2, cloud_points_out.len());
     /// ```
     #[cfg(feature = "rayon")]
