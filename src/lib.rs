@@ -10,9 +10,10 @@
 //! - [`PointCloud2Msg::try_from_iter`]
 //! - [`PointCloud2Msg::try_into_iter`]
 //!
-//! These feature predictable but [slightly worse](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#performance) performance while avoiding memory allocations.
+//! These feature predictable performance but they do not scale well with large clouds. Learn more about that in the [performance section](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#performance) of the repository.
+//! The iterators are useful when your conversions are more complex than a simple copy or you the cloud is small enough.
 //!
-//! Use the parallel iterator for processing-heavy tasks.
+//! When the cloud is getting larger or you are doing a lot of processing per point, switch to the parallel iterators.
 //! - [`PointCloud2Msg::try_into_par_iter`] requires `rayon` feature
 //! - [`PointCloud2Msg::try_from_par_iter`] requires `rayon` + `derive` feature
 //!
