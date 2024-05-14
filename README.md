@@ -20,20 +20,21 @@ use ros_pointcloud2::prelude::*;
 
 // PointXYZ (and many others) are provided by the crate.
 let cloud_points = vec![
-  PointXYZ::new(91.486, -4.1, 42.0001),
-  PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
+  PointXYZI::new(91.486, -4.1, 42.0001, 0.1),
+  PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MIN),
 ];
 
-// Give the Vec or anything that implements `IntoIterator`.
-let in_msg = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
+let out_msg = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
 
 // Convert the ROS crate message type, we will use r2r here.
-// let msg: r2r::sensor_msgs::msg::PointCloud2 = in_msg.into();
+// let msg: r2r::sensor_msgs::msg::PointCloud2 = out_msg.into();
 // Publish ...
+
 // ... now incoming from a topic.
 // let in_msg: PointCloud2Msg = msg.into();
+let in_msg = out_msg;
 
-let new_pcl = in_msg.try_into_iter().unwrap()
+let processed_cloud = in_msg.try_into_iter().unwrap()
   .map(|point: PointXYZ| { // Define the info you want to have from the Msg.
       // Some logic here ...
 
@@ -60,9 +61,9 @@ You can use `rosrust` and `r2r` by enabling the respective feature:
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { version = "*", features = ["r2r_msg"]}
+ros_pointcloud2 = { version = "*", features = ["r2r_msg", "derive"]}
 # or
-ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]}
+ros_pointcloud2 = { version = "*", features = ["rosrust_msg", "derive"]}
 ```
 
 ### rclrs (ros2_rust)

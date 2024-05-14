@@ -1,13 +1,40 @@
+//! Types used to represent ROS messages and convert between different ROS crates.
+//!
+//! This intermediate layer allows various ROS libraries to be integrated to the conversion process.
+//!
+//! There are 2 functions needed to be implemented for a new ROS message library:
+//! - `From` for converting from the library-generated message to [`crate::PointCloud2Msg`].
+//! ```
+//! #[cfg(feature = "fancy_ros_msg")]
+//! impl From<fancy_ros::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
+//!     fn from(msg: r2r::sensor_msgs::msg::PointCloud2) -> Self {
+//!         // Conversion code - avoid any point buffer copy!
+//!     }
+//! }
+//! ```
+//!
+//! - `From` for converting from the [`crate::PointCloud2Msg`] to the library-generated message type.
+//! ```
+//! #[cfg(feature = "fancy_ros_msg")]
+//! impl From<crate::PointCloud2Msg> for fancy_ros::sensor_msgs::msg::PointCloud2 {
+//!     fn from(msg: crate::PointCloud2Msg) -> Self {
+//!         // Conversion code - avoid any point buffer copy!
+//!     }
+//! }
+//! ```
+
+/// [Time](https://docs.ros2.org/latest/api/builtin_interfaces/msg/Time.html) representation for ROS messages.
 #[cfg(not(feature = "rosrust_msg"))]
 #[derive(Clone, Debug, Default)]
 pub struct TimeMsg {
-    pub sec: u32,
-    pub nsec: u32,
+    pub sec: i32,
+    pub nanosec: u32,
 }
 
 #[cfg(feature = "rosrust_msg")]
 pub use rosrust::Time as TimeMsg;
 
+/// Represents the [header of a ROS message](https://docs.ros2.org/latest/api/std_msgs/msg/Header.html).
 #[derive(Clone, Debug, Default)]
 pub struct HeaderMsg {
     pub seq: u32,
@@ -15,6 +42,7 @@ pub struct HeaderMsg {
     pub frame_id: String,
 }
 
+/// Describing a point encoded in the byte buffer of a PointCloud2 message. See the [official message description](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointField.html) for more information.
 #[derive(Clone, Debug)]
 pub struct PointFieldMsg {
     pub name: String,
@@ -41,8 +69,8 @@ impl From<r2r::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
             header: HeaderMsg {
                 seq: 0,
                 stamp: TimeMsg {
-                    sec: msg.header.stamp.sec as u32,
-                    nsec: msg.header.stamp.nanosec,
+                    sec: msg.header.stamp.sec,
+                    nanosec: msg.header.stamp.nanosec,
                 },
                 frame_id: msg.header.frame_id,
             },
@@ -69,9 +97,9 @@ impl From<r2r::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
             row_step: msg.row_step,
             data: msg.data,
             dense: if msg.is_dense {
-                crate::convert::Denseness::Dense
+                crate::Denseness::Dense
             } else {
-                crate::convert::Denseness::Sparse
+                crate::Denseness::Sparse
             },
         }
     }
@@ -83,8 +111,8 @@ impl From<crate::PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
         r2r::sensor_msgs::msg::PointCloud2 {
             header: r2r::std_msgs::msg::Header {
                 stamp: r2r::builtin_interfaces::msg::Time {
-                    sec: msg.header.stamp.sec as i32,
-                    nanosec: msg.header.stamp.nsec,
+                    sec: msg.header.stamp.sec,
+                    nanosec: msg.header.stamp.nanosec,
                 },
                 frame_id: msg.header.frame_id,
             },
@@ -108,8 +136,8 @@ impl From<crate::PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
             row_step: msg.row_step,
             data: msg.data,
             is_dense: match msg.dense {
-                crate::convert::Denseness::Dense => true,
-                crate::convert::Denseness::Sparse => false,
+                crate::Denseness::Dense => true,
+                crate::Denseness::Sparse => false,
             },
         }
     }
@@ -122,8 +150,8 @@ impl From<rosrust_msg::sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
             header: HeaderMsg {
                 seq: msg.header.seq,
                 stamp: TimeMsg {
-                    sec: msg.header.stamp.sec,
-                    nsec: msg.header.stamp.nsec,
+                    sec: msg.header.stamp.sec as i32,
+                    nanosec: msg.header.stamp.nsec,
                 },
                 frame_id: msg.header.frame_id,
             },
@@ -165,8 +193,8 @@ impl From<crate::PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
             header: rosrust_msg::std_msgs::Header {
                 seq: msg.header.seq,
                 stamp: TimeMsg {
-                    sec: msg.header.stamp.sec,
-                    nsec: msg.header.stamp.nsec,
+                    sec: msg.header.stamp.sec as u32,
+                    nsec: msg.header.stamp.nanosec,
                 },
                 frame_id: msg.header.frame_id,
             },

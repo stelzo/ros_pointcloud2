@@ -107,9 +107,9 @@ pub fn ros_point_fields_derive(input: TokenStream) -> TokenStream {
 /// This macro will fully implement the `PointConvertible` trait for your struct so you can use your point for the PointCloud2 conversion.
 ///
 /// Note that the repr(C) attribute is required for the struct to work efficiently with C++ PCL.
-/// With Rust layout optimizations, the struct might not work with the PCL library but the message still conforms to the specification of PointCloud2.
+/// With Rust layout optimizations, the struct might not work with the PCL library but the message still conforms to the description of PointCloud2.
 /// Furthermore, Rust layout can lead to smaller messages to be send over the network.
-#[proc_macro_derive(PointConvertible)]
+#[proc_macro_derive(PointConvertible, attributes(rpcl2))]
 pub fn ros_point_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.clone().ident;

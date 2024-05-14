@@ -77,6 +77,23 @@ fn write_cloud_from_vec() {
 
 #[test]
 #[cfg(feature = "derive")]
+fn write_empty_cloud_vec() {
+    let cloud: Vec<PointXYZ> = vec![];
+    let msg = PointCloud2Msg::try_from_vec(cloud);
+    assert!(msg.is_ok());
+    assert!(msg.unwrap().data.is_empty());
+}
+
+#[test]
+fn write_empty_cloud_iter() {
+    let cloud: Vec<PointXYZ> = vec![];
+    let msg = PointCloud2Msg::try_from_iter(cloud);
+    assert!(msg.is_ok());
+    assert!(msg.unwrap().data.is_empty());
+}
+
+#[test]
+#[cfg(feature = "derive")]
 fn custom_xyz_f32() {
     #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
     #[repr(C)]
@@ -377,8 +394,28 @@ fn write_xyzi_read_xyz() {
     convert_from_into_in_out_cloud!(write_cloud, PointXYZI, read_cloud, PointXYZ);
 }
 
-#[cfg(feature = "derive")]
 #[test]
+#[cfg(feature = "derive")]
+fn write_xyzi_read_xyz_vec() {
+    let write_cloud = vec![
+        PointXYZI::new(0.0, 1.0, 5.0, 0.0),
+        PointXYZI::new(1.0, 1.5, 5.0, 1.0),
+        PointXYZI::new(1.3, 1.6, 5.7, 2.0),
+        PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX),
+    ];
+
+    let read_cloud = [
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
+    ];
+
+    convert_from_into_in_out_cloud_vec!(write_cloud, PointXYZI, read_cloud, PointXYZ);
+}
+
+#[test]
+#[cfg(feature = "derive")]
 fn write_less_than_available() {
     #[derive(Debug, PartialEq, Clone, Default, TypeLayout)]
     #[repr(C)]
@@ -457,4 +494,37 @@ fn write_less_than_available() {
     ];
 
     convert_from_into_in_out_cloud!(write_cloud, CustomPoint, read_cloud, CustomPoint);
+}
+
+#[test]
+#[cfg(feature = "derive")]
+#[allow(unused_variables)]
+fn readme() {
+    use ros_pointcloud2::prelude::*;
+
+    // PointXYZ (and many others) are provided by the crate.
+    let cloud_points = vec![
+        PointXYZI::new(91.486, -4.1, 42.0001, 0.1),
+        PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MIN),
+    ];
+
+    let out_msg = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
+
+    // Convert the ROS crate message type, we will use r2r here.
+    // let msg: r2r::sensor_msgs::msg::PointCloud2 = out_msg.into();
+    // Publish ...
+    // ... now incoming from a topic.
+    // let in_msg: PointCloud2Msg = msg.into();
+    let in_msg = out_msg;
+
+    let processed_cloud = in_msg
+        .try_into_iter()
+        .unwrap()
+        .map(|point: PointXYZ| {
+            // Define the info you want to have from the Msg.
+            // Some logic here ...
+
+            point
+        })
+        .collect::<Vec<_>>();
 }

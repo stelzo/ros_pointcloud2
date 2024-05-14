@@ -1,3 +1,4 @@
+//! Predefined point types commonly used in ROS.
 use crate::{Fields, PointConvertible, RPCL2Point};
 
 #[cfg(feature = "derive")]

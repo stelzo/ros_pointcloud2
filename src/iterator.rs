@@ -1,6 +1,7 @@
+//! Iterator implementations for PointCloud2Msg including a parallel iterator for rayon.
 use crate::{
-    convert::{Endian, FieldDatatype},
-    Fields, MsgConversionError, PointCloud2Msg, PointConvertible, PointData, RPCL2Point,
+    Endian, FieldDatatype, Fields, MsgConversionError, PointCloud2Msg, PointConvertible, PointData,
+    RPCL2Point,
 };
 
 /// The PointCloudIterator provides a an iterator abstraction of the PointCloud2Msg.

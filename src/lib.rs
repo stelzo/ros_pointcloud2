@@ -1,76 +1,144 @@
 //! A PointCloud2 message conversion library.
 //!
-//! The library provides the [`ros_pointcloud2::PointCloud2Msg`] type, which implements conversions to and from `Vec` and (parallel) iterators.
+//! The library provides the [`PointCloud2Msg`] type, which implements conversions to and from `Vec` and (parallel) iterators.
 //!
-//! - [`ros_pointcloud2::PointCloud2Msg::try_from_vec`]
-//! - [`ros_pointcloud2::PointCloud2Msg::try_into_vec`]
-//! - [`ros_pointcloud2::PointCloud2Msg::try_from_iter`]
-//! - [`ros_pointcloud2::PointCloud2Msg::try_into_iter`]
-//! - [`ros_pointcloud2::PointCloud2Msg::try_into_par_iter`]
-//! - [`ros_pointcloud2::PointCloud2Msg::try_from_par_iter`]
+//! Vector conversions are optimized for direct copy. They are useful when you just move similar data around. They are usually a good default.
+//! - [`PointCloud2Msg::try_from_vec`] requires `derive` feature (enabled by default)
+//! - [`PointCloud2Msg::try_into_vec`] requires `derive` feature (enabled by default)
 //!
-//! The best choice depends on your use case and the point cloud size.
-//! A good rule of thumb for minimum latency is to use `_vec` per default.
+//! You can use the iterator functions for more control over the conversion process.
+//! - [`PointCloud2Msg::try_from_iter`]
+//! - [`PointCloud2Msg::try_into_iter`]
 //!
-//! The `_iter` APIs bring more predictable performance and avoid memory allocation but are slower in general (see Performance section in the repository).
-//! If you do any processing on larger point clouds or heavy processing on any sized cloud, switch to `_par_iter`.
+//! These feature predictable but [slightly worse](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#performance) performance while avoiding memory allocations.
 //!
-//! For ROS interoperability, there are implementations for the `r2r`, `rclrs` (ros2_rust) and `rosrust` message types
-//! available with feature flags. If you miss a message type, please open an issue or a PR.
-//! See the [`ros_pointcloud2::ros_types`] module for more information.
+//! Use the parallel iterator for processing-heavy tasks.
+//! - [`PointCloud2Msg::try_into_par_iter`] requires `rayon` feature
+//! - [`PointCloud2Msg::try_from_par_iter`] requires `rayon` + `derive` feature
 //!
-//! Common point types like [`ros_pointcloud2::points::PointXYZ`] or
-//! [`ros_pointcloud2::points::PointXYZI`] are provided. You can easily add any additional custom type.
-//! See `examples/custom_enum_field_filter.rs` for an example.
+//! For ROS interoperability, there are integrations avialable with feature flags. If you miss a message type, please open an issue or a PR.
+//! See the [`ros`] module for more information on how to integrate more libraries.
 //!
-//! # Example PointXYZ
+//! Common point types like [`points::PointXYZ`] or [`points::PointXYZI`] are provided. You can easily add any additional custom type.
+//! See [custom_enum_field_filter.rs](https://github.com/stelzo/ros_pointcloud2/blob/main/examples/custom_enum_field_filter.rs) for an example.
+//!
+//! # Minimal Example
 //! ```
 //! use ros_pointcloud2::prelude::*;
 //!
 //! let cloud_points = vec![
-//!   PointXYZ::new(9.0006, 42.0, -6.2),
-//!   PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
+//!     PointXYZI::new(9.6, 42.0, -6.2, 0.1),
+//!     PointXYZI::new(46.0, 5.47, 0.5, 0.1),
 //! ];
 //! let cloud_copy = cloud_points.clone(); // For equality test later.
-//!
-//! let in_msg = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
-//!
-//! // Convert to your ROS crate message type, we will use r2r here.
+//!     
+//! let out_msg = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
+//!     
+//! // Convert to your ROS crate message type.
 //! // let msg: r2r::sensor_msgs::msg::PointCloud2 = in_msg.into();
 //! // Publish ...
+//!
 //! // ... now incoming from a topic.
 //! // let in_msg: PointCloud2Msg = msg.into();
-//!
-//! let new_pcl = in_msg.try_into_iter().unwrap()
+//! let in_msg = out_msg;
+//!     
+//! let processed_cloud = in_msg.try_into_iter().unwrap()
 //!     .map(|point: PointXYZ| { // Define the data you want from the point.
 //!         // Some logic here.
+//!         PointXYZI::new(point.x, point.y, point.z, 0.1)
+//!     }).collect::<Vec<_>>();
 //!
-//!         point
-//!     })
-//!     .collect::<Vec<_>>();
-//! assert_eq!(new_pcl, cloud_copy);
+//! assert_eq!(processed_cloud, cloud_copy);
 //! ```
 //!
 //! # Features
-//! In addition to the ROS intregrations, the following features are available:
-//! - 'derive' (default): Helpful derive macros for custom point types. Also, derive enables direct copy with `_vec` endpoints.
-//! - 'rayon': Parallel iterator support for `_par_iter` functions. `try_from_par_iter` additionally needs the 'derive' feature to be enabled.
-//! - 'nalgebra': Predefined points offer `xyz()` getter functions for `nalgebra::Point3` types.
+//! - **r2r_msg** — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
+//! - **(rclrs_msg)** — Integration for ROS2 [rclrs](https://github.com/ros2-rust/ros2_rust) but it needs this [workaround](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#rclrs-ros2_rust) instead of a feature flag.
+//! - **rosrust_msg** — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
+//! - **derive** (default) — Needed for the `_vec` functions and helpful custom point derive macros for the [`PointConvertible`] trait.
+//! - **rayon** — Parallel iterator support for `_par_iter` functions. [`PointCloud2Msg::try_from_par_iter`] additionally needs the 'derive' feature to be enabled.
+//! - **nalgebra** — When enabled, predefined points offer a `xyz()` getter returning `nalgebra::Point3`.
+//!
+//! # Custom Points
+//! Implement [`PointConvertible`] for your point with the `derive` feature or manually.
+//!
+//! ```
+//! use ros_pointcloud2::prelude::*;
+//!
+//! #[cfg_attr(feature = "derive", derive(PointConvertible, TypeLayout))]
+//! #[derive(Clone, Debug, PartialEq, Copy, Default)]
+//! pub struct MyPointXYZI {
+//!     pub x: f32,
+//!     pub y: f32,
+//!     pub z: f32,
+//!     #[cfg_attr(feature = "derive", rpcl2(name = "i"))]
+//!     pub intensity: f32,
+//! }
+//!
+//! impl MyPointXYZI {
+//!     pub fn new(x: f32, y: f32, z: f32, intensity: f32) -> Self {
+//!         Self { x, y, z, intensity }
+//!     }
+//! }
+//!
+//! // Manual implementation of PointConvertible without derive.
+//! #[cfg(not(feature = "derive"))]
+//! impl Fields<4> for MyPointXYZI {
+//!     fn field_names_ordered() -> [&'static str; 4] {
+//!         ["x", "y", "z", "i"] // Note the different field name for intensity.
+//!     }
+//! }
+//!
+//! #[cfg(not(feature = "derive"))]
+//! impl From<RPCL2Point<4>> for MyPointXYZI {
+//!     fn from(point: RPCL2Point<4>) -> Self {
+//!         Self::new(point[0].get(), point[1].get(), point[2].get(), point[3].get())
+//!     }
+//! }
+//!
+//! #[cfg(not(feature = "derive"))]
+//! impl From<MyPointXYZI> for RPCL2Point<4> {
+//!     fn from(point: MyPointXYZI) -> Self {
+//!         [point.x.into(), point.y.into(), point.z.into(), point.intensity.into()].into()
+//!     }
+//! }
+//!
+//! #[cfg(not(feature = "derive"))]
+//! impl PointConvertible<4> for MyPointXYZI {}
+//!
+//! let first_p = MyPointXYZI::new(1.0, 2.0, 3.0, 0.5);
+//! let cloud_points = vec![first_p, MyPointXYZI::new(4.0, 5.0, 6.0, 0.5)];
+//! let msg_out = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
+//! let cloud_points_out: Vec<MyPointXYZI> = msg_out.try_into_iter().unwrap().collect();
+//! assert_eq!(first_p, *cloud_points_out.first().unwrap());
+//! ```
+//!
+//! An example without `#[cfg_attr]` looks like this:
+//! ```ignore
+//! #[derive(Clone, Debug, PartialEq, Copy, Default, PointConvertible, TypeLayout)]
+//! pub struct MyPointXYZI {
+//!     pub x: f32,
+//!     pub y: f32,
+//!     pub z: f32,
+//!     #[rpcl2(name = "i")]
+//!     pub intensity: f32,
+//! }
+//! ```
 
-pub mod convert;
+#![crate_type = "lib"]
+#![warn(clippy::print_stderr)]
+#![warn(clippy::print_stdout)]
+
 pub mod points;
 pub mod prelude;
-pub mod ros_types;
+pub mod ros;
 
 pub mod iterator;
 
 use std::num::TryFromIntError;
 use std::str::FromStr;
 
-use crate::convert::{FieldDatatype, FromBytes};
-use crate::ros_types::{HeaderMsg, PointFieldMsg};
-pub use convert::Fields;
-use convert::{ByteSimilarity, Denseness, Endian};
+use crate::ros::{HeaderMsg, PointFieldMsg};
 
 /// All errors that can occur while converting to or from the message type.
 #[derive(Debug)]
@@ -138,10 +206,10 @@ fn system_endian() -> Endian {
     }
 }
 
-/// A PointCloud2 message type.
+/// The intermediate point cloud type for ROS integrations.
 ///
-/// This representation is a small abstraction of the ROS message description, since every ROS library generates its own messages.
-/// To assert consistency, the type should be build with the [`ros_pointcloud2::PointCloud2MsgBuilder`].
+/// To assert consistency, the type should be build with the [`PointCloud2MsgBuilder`].
+/// See the offical [ROS message description](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointCloud2.html) for more information on the fields.
 #[derive(Clone, Debug)]
 pub struct PointCloud2Msg {
     pub header: HeaderMsg,
@@ -154,6 +222,30 @@ pub struct PointCloud2Msg {
     pub dense: Denseness,
 }
 
+/// Endianess encoding hint for the message.
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
+pub enum Endian {
+    Big,
+    #[default]
+    Little,
+}
+
+/// Density flag for the message. Writing sparse point clouds is not supported.
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
+pub enum Denseness {
+    #[default]
+    Dense,
+    Sparse,
+}
+
+#[cfg(feature = "derive")]
+enum ByteSimilarity {
+    Equal,
+    Overlapping,
+    Different,
+}
+
+/// Creating a CloudDimensions type with the builder pattern to avoid invalid states when using 1-row point clouds.
 #[derive(Clone, Debug)]
 pub struct CloudDimensionsBuilder(usize);
 
@@ -175,7 +267,7 @@ impl CloudDimensionsBuilder {
     }
 }
 
-/// Creating a PointCloud2Msg with a builder pattern to avoid invalid states.
+/// Creating a PointCloud2Msg with the builder pattern to avoid invalid states.
 #[derive(Clone, Debug, Default)]
 pub struct PointCloud2MsgBuilder {
     header: HeaderMsg,
@@ -280,6 +372,7 @@ impl PointCloud2MsgBuilder {
     }
 }
 
+/// Dimensions of the point cloud as width and height.
 #[derive(Clone, Debug, Default)]
 pub struct CloudDimensions {
     pub width: u32,
@@ -288,52 +381,8 @@ pub struct CloudDimensions {
 
 impl PointCloud2Msg {
     #[cfg(feature = "derive")]
-    fn prepare_direct_copy<const N: usize, C>() -> Result<PointCloud2MsgBuilder, MsgConversionError>
-    where
-        C: PointConvertible<N>,
-    {
-        let point: RPCL2Point<N> = C::default().into();
-        debug_assert!(point.fields.len() == N);
-
-        let field_names = C::field_names_ordered();
-        debug_assert!(field_names.len() == N);
-
-        let layout = TypeLayoutInfo::try_from(C::type_layout())?;
-        debug_assert!(field_names.len() == layout.fields.len());
-
-        let mut offset = 0;
-        let mut fields: Vec<PointFieldMsg> = Vec::with_capacity(layout.fields.len());
-        for f in layout.fields.into_iter() {
-            let f_translated = field_names[fields.len()].to_string();
-            match f {
-                PointField::Field {
-                    datatype,
-                    size,
-                    count,
-                } => {
-                    fields.push(PointFieldMsg {
-                        name: f_translated,
-                        offset,
-                        datatype,
-                        ..Default::default()
-                    });
-                    offset += size * count;
-                }
-                PointField::Padding(size) => {
-                    offset += size;
-                }
-            }
-        }
-
-        Ok(PointCloud2MsgBuilder::new()
-            .fields(fields)
-            .point_step(offset))
-    }
-
-    #[cfg(feature = "derive")]
-    fn assert_byte_similarity<const N: usize, C>(
-        &self,
-    ) -> Result<ByteSimilarity, MsgConversionError>
+    #[inline(always)]
+    fn byte_similarity<const N: usize, C>(&self) -> Result<ByteSimilarity, MsgConversionError>
     where
         C: PointConvertible<N>,
     {
@@ -381,44 +430,6 @@ impl PointCloud2Msg {
         })
     }
 
-    #[inline(always)]
-    fn prepare<const N: usize, C>() -> Result<PointCloud2MsgBuilder, MsgConversionError>
-    where
-        C: PointConvertible<N>,
-    {
-        let point: RPCL2Point<N> = C::default().into();
-        debug_assert!(point.fields.len() == N);
-
-        let field_names = C::field_names_ordered();
-        debug_assert!(field_names.len() == N);
-
-        let mut meta_offsets_acc: u32 = 0;
-        let mut fields = vec![PointFieldMsg::default(); N];
-        let field_count: u32 = 1;
-        for ((meta_value, field_name), field_val) in point
-            .fields
-            .into_iter()
-            .zip(field_names.into_iter())
-            .zip(fields.iter_mut())
-        {
-            let datatype_code = meta_value.datatype.into();
-            let _ = FieldDatatype::try_from(datatype_code)?;
-
-            *field_val = PointFieldMsg {
-                name: field_name.into(),
-                offset: meta_offsets_acc,
-                datatype: datatype_code,
-                count: 1,
-            };
-
-            meta_offsets_acc += field_count * meta_value.datatype.size() as u32;
-        }
-
-        Ok(PointCloud2MsgBuilder::new()
-            .fields(fields)
-            .point_step(meta_offsets_acc))
-    }
-
     /// Create a PointCloud2Msg from any iterable type.
     ///
     /// # Example
@@ -438,9 +449,43 @@ impl PointCloud2Msg {
     where
         C: PointConvertible<N>,
     {
-        let mut cloud = Self::prepare::<N, C>()?;
+        let (mut cloud, point_step) = {
+            let point: RPCL2Point<N> = C::default().into();
+            debug_assert!(point.fields.len() == N);
+
+            let field_names = C::field_names_ordered();
+            debug_assert!(field_names.len() == N);
+
+            let mut meta_offsets_acc: u32 = 0;
+            let mut fields = vec![PointFieldMsg::default(); N];
+            let field_count: u32 = 1;
+            for ((meta_value, field_name), field_val) in point
+                .fields
+                .into_iter()
+                .zip(field_names.into_iter())
+                .zip(fields.iter_mut())
+            {
+                let datatype_code = meta_value.datatype.into();
+                let _ = FieldDatatype::try_from(datatype_code)?;
+
+                *field_val = PointFieldMsg {
+                    name: field_name.into(),
+                    offset: meta_offsets_acc,
+                    datatype: datatype_code,
+                    count: 1,
+                };
+
+                meta_offsets_acc += field_count * meta_value.datatype.size() as u32;
+            }
+
+            (
+                PointCloud2MsgBuilder::new()
+                    .fields(fields)
+                    .point_step(meta_offsets_acc),
+                meta_offsets_acc,
+            )
+        };
         let mut cloud_width = 0;
-        let cloud_point_step = cloud.point_step;
 
         iterable.into_iter().for_each(|pointdata| {
             let point: RPCL2Point<N> = pointdata.into();
@@ -456,7 +501,7 @@ impl PointCloud2Msg {
         });
 
         cloud = cloud.width(cloud_width);
-        cloud = cloud.row_step(cloud_width * cloud_point_step);
+        cloud = cloud.row_step(cloud_width * point_step);
 
         cloud.build()
     }
@@ -493,8 +538,47 @@ impl PointCloud2Msg {
     {
         match (system_endian(), Endian::default()) {
             (Endian::Big, Endian::Big) | (Endian::Little, Endian::Little) => {
-                let mut cloud = Self::prepare_direct_copy::<N, C>()?;
-                let point_step = cloud.point_step;
+                let (mut cloud, point_step) = {
+                    let point: RPCL2Point<N> = C::default().into();
+                    debug_assert!(point.fields.len() == N);
+
+                    let field_names = C::field_names_ordered();
+                    debug_assert!(field_names.len() == N);
+
+                    let layout = TypeLayoutInfo::try_from(C::type_layout())?;
+                    debug_assert!(field_names.len() == layout.fields.len());
+
+                    let mut offset = 0;
+                    let mut fields: Vec<PointFieldMsg> = Vec::with_capacity(layout.fields.len());
+                    for f in layout.fields.into_iter() {
+                        let f_translated = field_names[fields.len()].to_string();
+                        match f {
+                            PointField::Field {
+                                datatype,
+                                size,
+                                count,
+                            } => {
+                                fields.push(PointFieldMsg {
+                                    name: f_translated,
+                                    offset,
+                                    datatype,
+                                    ..Default::default()
+                                });
+                                offset += size * count;
+                            }
+                            PointField::Padding(size) => {
+                                offset += size;
+                            }
+                        }
+                    }
+
+                    (
+                        PointCloud2MsgBuilder::new()
+                            .fields(fields)
+                            .point_step(offset),
+                        offset,
+                    )
+                };
 
                 let bytes_total = vec.len() * point_step as usize;
                 cloud.data.resize(bytes_total, u8::default());
@@ -538,7 +622,7 @@ impl PointCloud2Msg {
     {
         match (system_endian(), self.endian) {
             (Endian::Big, Endian::Big) | (Endian::Little, Endian::Little) => {
-                let bytematch = match self.assert_byte_similarity::<N, C>()? {
+                let bytematch = match self.byte_similarity::<N, C>()? {
                     ByteSimilarity::Equal => true,
                     ByteSimilarity::Overlapping => false,
                     ByteSimilarity::Different => return Ok(self.try_into_iter()?.collect()),
@@ -554,6 +638,7 @@ impl PointCloud2Msg {
                             vec.as_mut_ptr() as *mut u8,
                             self.data.len(),
                         );
+                        vec.set_len(cloud_width);
                     }
                 } else {
                     unsafe {
@@ -621,10 +706,11 @@ impl PointCloud2Msg {
 }
 
 /// Internal point representation. It is used to store the coordinates and meta data of a point.
+///
 /// In each iteration, an internal point representation is converted to the desired point type.
 /// Implement the `From` traits for your point type to use the conversion.
 ///
-/// See the [`ros_pointcloud2::PointConvertible`] trait for more information.
+/// See the [`PointConvertible`] trait for more information.
 pub struct RPCL2Point<const N: usize> {
     fields: [PointData; N],
 }
@@ -757,6 +843,33 @@ pub trait PointConvertible<const N: usize>:
 {
 }
 
+/// Matching field names from each data point.
+/// Always make sure to use the same order as in your conversion implementation to have a correct mapping.
+///
+/// This trait is needed to implement the `PointConvertible` trait.
+///
+/// # Example
+/// ```
+/// use ros_pointcloud2::prelude::*;
+///
+/// #[derive(Clone, Debug, PartialEq, Copy)]
+/// pub struct MyPointXYZI {
+///     pub x: f32,
+///     pub y: f32,
+///     pub z: f32,
+///     pub intensity: f32,
+/// }
+///
+/// impl Fields<4> for MyPointXYZI {
+///    fn field_names_ordered() -> [&'static str; 4] {
+///       ["x", "y", "z", "intensity"]
+///   }
+/// }
+/// ```
+pub trait Fields<const N: usize> {
+    fn field_names_ordered() -> [&'static str; N];
+}
+
 #[cfg(feature = "derive")]
 enum PointField {
     Padding(u32),
@@ -875,8 +988,8 @@ impl PointData {
     /// ```
     pub fn get<T: FromBytes>(&self) -> T {
         match self.endian {
-            Endian::Big => T::from_be_bytes(convert::PointDataBuffer::new(self.bytes)),
-            Endian::Little => T::from_le_bytes(convert::PointDataBuffer::new(self.bytes)),
+            Endian::Big => T::from_be_bytes(PointDataBuffer::new(self.bytes)),
+            Endian::Little => T::from_le_bytes(PointDataBuffer::new(self.bytes)),
         }
     }
 }
@@ -929,9 +1042,365 @@ impl From<i16> for PointData {
     }
 }
 
+/// Datatypes from the [`ros::PointFieldMsg`].
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
+pub enum FieldDatatype {
+    F32,
+    F64,
+    I32,
+    U8,
+    U16,
+    #[default]
+    U32,
+    I8,
+    I16,
+
+    /// While RGB is not officially supported by ROS, it is used in the tooling as a packed f32.
+    /// To make it easy to work with and avoid packing code, the [`points::RGB`] union is supported here and handled like a f32.
+    RGB,
+}
+
+impl FieldDatatype {
+    pub fn size(&self) -> usize {
+        match self {
+            FieldDatatype::U8 => std::mem::size_of::<u8>(),
+            FieldDatatype::U16 => std::mem::size_of::<u16>(),
+            FieldDatatype::U32 => std::mem::size_of::<u32>(),
+            FieldDatatype::I8 => std::mem::size_of::<i8>(),
+            FieldDatatype::I16 => std::mem::size_of::<i16>(),
+            FieldDatatype::I32 => std::mem::size_of::<i32>(),
+            FieldDatatype::F32 => std::mem::size_of::<f32>(),
+            FieldDatatype::F64 => std::mem::size_of::<f64>(),
+            FieldDatatype::RGB => std::mem::size_of::<f32>(), // packed in f32
+        }
+    }
+}
+
+impl FromStr for FieldDatatype {
+    type Err = MsgConversionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "f32" => Ok(FieldDatatype::F32),
+            "f64" => Ok(FieldDatatype::F64),
+            "i32" => Ok(FieldDatatype::I32),
+            "u8" => Ok(FieldDatatype::U8),
+            "u16" => Ok(FieldDatatype::U16),
+            "u32" => Ok(FieldDatatype::U32),
+            "i8" => Ok(FieldDatatype::I8),
+            "i16" => Ok(FieldDatatype::I16),
+            "rgb" => Ok(FieldDatatype::RGB),
+            _ => Err(MsgConversionError::UnsupportedFieldType(s.into())),
+        }
+    }
+}
+
+/// Getter trait for the datatype of a field value.
+pub trait GetFieldDatatype {
+    fn field_datatype() -> FieldDatatype;
+}
+
+impl GetFieldDatatype for f32 {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::F32
+    }
+}
+
+impl GetFieldDatatype for f64 {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::F64
+    }
+}
+
+impl GetFieldDatatype for i32 {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::I32
+    }
+}
+
+impl GetFieldDatatype for u8 {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::U8
+    }
+}
+
+impl GetFieldDatatype for u16 {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::U16
+    }
+}
+
+impl GetFieldDatatype for u32 {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::U32
+    }
+}
+
+impl GetFieldDatatype for i8 {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::I8
+    }
+}
+
+impl GetFieldDatatype for i16 {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::I16
+    }
+}
+
+/// Convenience implementation for the RGB union.
+impl GetFieldDatatype for crate::points::RGB {
+    fn field_datatype() -> FieldDatatype {
+        FieldDatatype::RGB
+    }
+}
+
+impl TryFrom<u8> for FieldDatatype {
+    type Error = MsgConversionError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(FieldDatatype::I8),
+            2 => Ok(FieldDatatype::U8),
+            3 => Ok(FieldDatatype::I16),
+            4 => Ok(FieldDatatype::U16),
+            5 => Ok(FieldDatatype::I32),
+            6 => Ok(FieldDatatype::U32),
+            7 => Ok(FieldDatatype::F32),
+            8 => Ok(FieldDatatype::F64),
+            _ => Err(MsgConversionError::UnsupportedFieldType(value.to_string())),
+        }
+    }
+}
+
+impl From<FieldDatatype> for u8 {
+    fn from(val: FieldDatatype) -> Self {
+        match val {
+            FieldDatatype::I8 => 1,
+            FieldDatatype::U8 => 2,
+            FieldDatatype::I16 => 3,
+            FieldDatatype::U16 => 4,
+            FieldDatatype::I32 => 5,
+            FieldDatatype::U32 => 6,
+            FieldDatatype::F32 => 7,
+            FieldDatatype::F64 => 8,
+            FieldDatatype::RGB => 7, // RGB is marked as f32 in the buffer
+        }
+    }
+}
+
+impl TryFrom<&ros::PointFieldMsg> for FieldDatatype {
+    type Error = MsgConversionError;
+
+    fn try_from(value: &ros::PointFieldMsg) -> Result<Self, Self::Error> {
+        Self::try_from(value.datatype)
+    }
+}
+
+/// Byte buffer alias for endian-aware point data reading and writing.
+///
+/// It uses a fixed size buffer of 8 bytes since the largest supported datatype for PointFieldMsg is f64.
+pub struct PointDataBuffer([u8; 8]);
+
+impl std::ops::Index<usize> for PointDataBuffer {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl PointDataBuffer {
+    pub fn new(data: [u8; 8]) -> Self {
+        Self(data)
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+
+    pub fn raw(self) -> [u8; 8] {
+        self.0
+    }
+
+    pub fn from_slice(data: &[u8]) -> Self {
+        let mut buffer = [0; 8];
+        data.iter().enumerate().for_each(|(i, &v)| buffer[i] = v);
+        Self(buffer)
+    }
+}
+
+impl From<&[u8]> for PointDataBuffer {
+    fn from(data: &[u8]) -> Self {
+        Self::from_slice(data)
+    }
+}
+
+impl<const N: usize> From<[u8; N]> for PointDataBuffer {
+    fn from(data: [u8; N]) -> Self {
+        Self::from(data.as_slice())
+    }
+}
+
+impl From<i8> for PointDataBuffer {
+    fn from(x: i8) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<i16> for PointDataBuffer {
+    fn from(x: i16) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<u16> for PointDataBuffer {
+    fn from(x: u16) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<i32> for PointDataBuffer {
+    fn from(x: i32) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<u32> for PointDataBuffer {
+    fn from(x: u32) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<f32> for PointDataBuffer {
+    fn from(x: f32) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<f64> for PointDataBuffer {
+    fn from(x: f64) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<u8> for PointDataBuffer {
+    fn from(x: u8) -> Self {
+        x.to_le_bytes().into()
+    }
+}
+
+impl From<points::RGB> for PointDataBuffer {
+    fn from(x: points::RGB) -> Self {
+        x.raw().to_le_bytes().into()
+    }
+}
+
+/// This trait is used to convert a byte slice to a primitive type.
+/// All PointField types are supported.
+pub trait FromBytes: Default + Sized + Copy + GetFieldDatatype + Into<PointDataBuffer> {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self;
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self;
+}
+
+impl FromBytes for i8 {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_be_bytes([bytes[0]])
+    }
+
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_le_bytes([bytes[0]])
+    }
+}
+
+impl FromBytes for i16 {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_be_bytes([bytes[0], bytes[1]])
+    }
+
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_le_bytes([bytes[0], bytes[1]])
+    }
+}
+
+impl FromBytes for u16 {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_be_bytes([bytes[0], bytes[1]])
+    }
+
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_le_bytes([bytes[0], bytes[1]])
+    }
+}
+
+impl FromBytes for u32 {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
+
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
+}
+
+impl FromBytes for f32 {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
+
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
+}
+
+impl FromBytes for points::RGB {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
+        Self::new_from_packed_f32(f32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+    }
+
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
+        Self::new_from_packed_f32(f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+    }
+}
+
+impl FromBytes for i32 {
+    #[inline]
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
+}
+
+impl FromBytes for f64 {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_be_bytes([
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ])
+    }
+
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_le_bytes([
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ])
+    }
+}
+
+impl FromBytes for u8 {
+    fn from_be_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_be_bytes([bytes[0]])
+    }
+
+    fn from_le_bytes(bytes: PointDataBuffer) -> Self {
+        Self::from_le_bytes([bytes[0]])
+    }
+}
+
 #[cfg(test)]
+#[cfg(feature = "derive")]
 mod tests {
-    use super::*;
+    use super::Fields;
     use rpcl2_derive::Fields;
 
     #[allow(dead_code)]
