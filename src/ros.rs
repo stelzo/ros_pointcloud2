@@ -198,7 +198,7 @@ impl From<crate::PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
         rosrust_msg::sensor_msgs::PointCloud2 {
             header: rosrust_msg::std_msgs::Header {
                 seq: msg.header.seq,
-                stamp: TimeMsg {
+                stamp: rosrust::Time {
                     sec: msg.header.stamp.sec as u32,
                     nsec: msg.header.stamp.nanosec,
                 },
