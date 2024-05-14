@@ -1,10 +1,8 @@
 #[cfg(feature = "rclrs_msg")]
 #[test]
 fn convertxyz_rclrs_msg() {
-    use ros_pointcloud2::{
-        pcl_utils::PointXYZ, reader::ReaderXYZ, writer::WriterXYZ, PointCloud2Msg,
-    };
-    
+    use ros_pointcloud2::{points::PointXYZ, PointCloud2Msg};
+
     use sensor_msgs::msg::PointCloud2;
 
     let cloud = vec![
@@ -25,10 +23,10 @@ fn convertxyz_rclrs_msg() {
         },
     ];
     let copy = cloud.clone();
-    let internal_cloud: PointCloud2Msg = WriterXYZ::from(cloud).try_into().unwrap();
+    let internal_cloud = PointCloud2Msg::try_from_iter(cloud).unwrap();
     let rclrs_msg_cloud: PointCloud2 = internal_cloud.into();
     let convert_back_internal: PointCloud2Msg = rclrs_msg_cloud.into();
-    let to_convert = ReaderXYZ::try_from(convert_back_internal).unwrap();
+    let to_convert = convert_back_internal.try_into_iter().unwrap();
     let back_to_type = to_convert.collect::<Vec<PointXYZ>>();
     assert_eq!(copy, back_to_type);
 }

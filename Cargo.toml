@@ -1,29 +1,65 @@
 [package]
 name = "ros_pointcloud2"
-version = "0.4.0"
+version = "1.0.0-rc.1"
 edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
 repository = "https://github.com/stelzo/ros_pointcloud2"
 license = "MIT"
 keywords = ["ros", "pointcloud2", "pointcloud", "message"]
-categories = ["science::robotics", "encoding", "data-structures", "api-bindings"]
+categories = [
+    "science::robotics",
+    "encoding",
+    "data-structures",
+    "api-bindings",
+]
 readme = "README.md"
 documentation = "https://docs.rs/ros_pointcloud2"
 homepage = "https://github.com/stelzo/ros_pointcloud2"
-exclude = ["**/tests/**", "**/examples/**", "**/benches/**", "**/target/**", "**/build/**", "**/dist/**", "**/docs/**", "**/doc/**", "package.xml"]
+exclude = [
+    "**/tests/**",
+    "**/examples/**",
+    "**/benches/**",
+    "**/target/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/docs/**",
+    "**/doc/**",
+]
 
 [dependencies]
 rosrust_msg = { version = "0.1", optional = true }
 rosrust = { version = "0.9.11", optional = true }
 r2r = { version = "0.8.4", optional = true }
+rayon = { version = "1", optional = true }
+nalgebra = { version = "0", optional = true }
+rpcl2_derive = { path = "./rpcl2_derive", optional = true }
+type-layout = { version = "0.2", optional = true }
 
 sensor_msgs = { version = "*", optional = true }
 std_msgs = { version = "*", optional = true }
 builtin_interfaces = { version = "*", optional = true }
 
+[dev-dependencies]
+rand = "0.8"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "roundtrip"
+harness = false
+
 [features]
-default = ["rclrs_msg"]
+rclrs_msg = ["dep:sensor_msgs", "dep:std_msgs", "dep:builtin_interfaces"]
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
+rayon = ["dep:rayon"]
+derive = ["dep:rpcl2_derive", "dep:type-layout"]
+nalgebra = ["dep:nalgebra"]
+
+default = ["rclrs_msg"]
+
+[package.metadata.docs.rs]
+features = ["derive", "nalgebra", "rayon"]
+default-target = "x86_64-unknown-linux-gnu"
+
 rclrs_msg = ["dep:sensor_msgs", "dep:std_msgs", "dep:builtin_interfaces"]

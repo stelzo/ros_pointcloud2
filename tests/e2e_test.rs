@@ -1,80 +1,109 @@
-use ros_pointcloud2::pcl_utils::*;
-use ros_pointcloud2::reader::*;
-use ros_pointcloud2::ros_types::PointCloud2Msg;
-use ros_pointcloud2::writer::*;
-use ros_pointcloud2::*;
+use ros_pointcloud2::prelude::*;
+
+#[cfg(feature = "derive")]
 use std::fmt::Debug;
 
 macro_rules! convert_from_into {
-    ($reader:ty, $writer:ty, $point:ty, $cloud:expr) => {
-        convert_from_into_in_out_cloud!(
-            $reader,
-            $writer,
-            $point,
-            $cloud.clone(),
-            $point,
-            $cloud,
-            $point
-        );
+    ($point:ty, $cloud:expr) => {
+        convert_from_into_in_out_cloud!($cloud, $point, $cloud, $point);
+    };
+}
+
+#[cfg(feature = "derive")]
+macro_rules! convert_from_into_vec {
+    ($point:ty, $cloud:expr) => {
+        convert_from_into_in_out_cloud_vec!($cloud, $point, $cloud, $point);
     };
 }
 
 macro_rules! convert_from_into_in_out_cloud {
-    ($reader:ty, $writer:ty, $point:ty, $in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
-        let msg: Result<PointCloud2Msg, _> = <$writer>::from($in_cloud).try_into();
-        assert!(msg.is_ok());
-        let to_p_type = <$reader>::try_from(msg.unwrap());
+    ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
+        let msg = PointCloud2Msg::try_from_iter($in_cloud.clone().into_iter());
+        assert!(msg.is_ok(), "{:?}", msg);
+        let msg = msg.unwrap();
+        let to_p_type = msg.try_into_iter();
         assert!(to_p_type.is_ok());
         let to_p_type = to_p_type.unwrap();
         let back_to_type = to_p_type.collect::<Vec<$out_point>>();
-        assert_eq!($out_cloud, back_to_type);
+        let orig_cloud: Vec<$out_point> = $out_cloud.iter().cloned().collect();
+        assert_eq!(orig_cloud, back_to_type);
+    };
+}
+
+#[cfg(feature = "derive")]
+macro_rules! convert_from_into_in_out_cloud_vec {
+    ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
+        let msg = PointCloud2Msg::try_from_vec($in_cloud.clone());
+        assert!(msg.is_ok(), "{:?}", msg);
+        let msg = msg.unwrap();
+        let to_p_type = msg.try_into_iter();
+        assert!(to_p_type.is_ok());
+        let to_p_type = to_p_type.unwrap();
+        let back_to_type = to_p_type.collect::<Vec<$out_point>>();
+        let orig_cloud: Vec<$out_point> = $out_cloud.iter().cloned().collect();
+        assert_eq!(orig_cloud, back_to_type);
     };
 }
 
 #[test]
-fn custom_xyz_f32() {
-    const DIM: usize = 3;
-    const METADIM: usize = 0;
+fn write_cloud() {
+    let cloud = vec![
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
+    ];
 
-    #[derive(Debug, PartialEq, Clone)]
+    let msg = PointCloud2Msg::try_from_iter(cloud);
+    assert!(msg.is_ok());
+}
+
+#[test]
+#[cfg(feature = "derive")]
+fn write_cloud_from_vec() {
+    let cloud = vec![
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
+    ];
+
+    let msg = PointCloud2Msg::try_from_vec(cloud);
+    assert!(msg.is_ok());
+
+    let msg = msg.unwrap();
+    println!("{:?}", msg);
+}
+
+#[test]
+#[cfg(feature = "derive")]
+fn write_empty_cloud_vec() {
+    let cloud: Vec<PointXYZ> = vec![];
+    let msg = PointCloud2Msg::try_from_vec(cloud);
+    assert!(msg.is_ok());
+    assert!(msg.unwrap().data.is_empty());
+}
+
+#[test]
+fn write_empty_cloud_iter() {
+    let cloud: Vec<PointXYZ> = vec![];
+    let msg = PointCloud2Msg::try_from_iter(cloud);
+    assert!(msg.is_ok());
+    assert!(msg.unwrap().data.is_empty());
+}
+
+#[test]
+#[cfg(feature = "derive")]
+fn custom_xyz_f32() {
+    #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
+    #[repr(C)]
     struct CustomPoint {
         x: f32,
         y: f32,
         z: f32,
     }
 
-    type MyReader = ReaderF32<DIM, METADIM, CustomPoint>;
-    type MyWriter = WriterF32<DIM, METADIM, CustomPoint>;
-
-    impl From<Point<f32, 3, 0>> for CustomPoint {
-        fn from(point: Point<f32, 3, 0>) -> Self {
-            Self {
-                x: point.coords[0],
-                y: point.coords[1],
-                z: point.coords[2],
-            }
-        }
-    }
-
-    impl From<CustomPoint> for Point<f32, 3, 0> {
-        fn from(point: CustomPoint) -> Self {
-            Point {
-                coords: [point.x, point.y, point.z],
-                meta: [],
-            }
-        }
-    }
-
-    impl MetaNames<METADIM> for CustomPoint {
-        fn meta_names() -> [&'static str; METADIM] {
-            []
-        }
-    }
-    impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 0> for CustomPoint {}
-
     convert_from_into!(
-        MyReader,
-        MyWriter,
         CustomPoint,
         vec![
             CustomPoint {
@@ -97,84 +126,52 @@ fn custom_xyz_f32() {
 }
 
 #[test]
+#[cfg(feature = "derive")]
 fn custom_xyzi_f32() {
-    type Xyz = f32;
-    const XYZ_S: usize = std::mem::size_of::<Xyz>();
-    const DIM: usize = 3;
-    const METADIM: usize = 1;
-    #[derive(Debug, PartialEq, Clone)]
-    struct CustomPoint {
-        x: f32,
-        y: f32,
-        z: f32,
-        i: u8,
-    }
-
-    impl From<Point<f32, 3, 1>> for CustomPoint {
-        fn from(point: Point<f32, 3, 1>) -> Self {
-            Self {
-                x: point.coords[0],
-                y: point.coords[1],
-                z: point.coords[2],
-                i: point.meta[0].get(),
-            }
-        }
-    }
-
-    impl From<CustomPoint> for Point<f32, 3, 1> {
-        fn from(point: CustomPoint) -> Self {
-            Point {
-                coords: [point.x, point.y, point.z],
-                meta: [point.i.into()],
-            }
-        }
-    }
-
-    impl MetaNames<METADIM> for CustomPoint {
-        fn meta_names() -> [&'static str; METADIM] {
-            ["intensity"]
-        }
-    }
-
-    type MyReader = reader::Reader<Xyz, XYZ_S, DIM, METADIM, CustomPoint>;
-    type MyWriter = writer::Writer<Xyz, XYZ_S, DIM, METADIM, CustomPoint>;
-
-    impl PointConvertible<Xyz, XYZ_S, DIM, METADIM> for CustomPoint {}
-
-    let cloud = vec![
-        CustomPoint {
+    let cloud: Vec<CustomPointXYZI> = vec![
+        CustomPointXYZI {
             x: 0.0,
             y: 1.0,
             z: 5.0,
             i: 0,
         },
-        CustomPoint {
+        CustomPointXYZI {
             x: 1.0,
             y: 1.5,
             z: 5.0,
             i: 1,
         },
-        CustomPoint {
+        CustomPointXYZI {
             x: 1.3,
             y: 1.6,
             z: 5.7,
             i: 2,
         },
-        CustomPoint {
+        CustomPointXYZI {
             x: f32::MAX,
             y: f32::MIN,
             z: f32::MAX,
             i: u8::MAX,
         },
     ];
-    convert_from_into!(MyReader, MyWriter, CustomPoint, cloud);
+
+    #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
+    #[repr(C)]
+    struct CustomPointXYZI {
+        x: f32,
+        y: f32,
+        z: f32,
+        i: u8,
+    }
+
+    convert_from_into!(CustomPointXYZI, cloud);
 }
 
 #[test]
+#[cfg(feature = "derive")]
 fn custom_rgba_f32() {
-    const DIM: usize = 3;
-    const METADIM: usize = 4;
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
+    #[repr(C)]
     struct CustomPoint {
         x: f32,
         y: f32,
@@ -184,43 +181,7 @@ fn custom_rgba_f32() {
         b: u8,
         a: u8,
     }
-    type MyReader = reader::Reader<f32, { std::mem::size_of::<f32>() }, DIM, METADIM, CustomPoint>;
-    type MyWriter = writer::Writer<f32, { std::mem::size_of::<f32>() }, DIM, METADIM, CustomPoint>;
 
-    impl From<Point<f32, 3, 4>> for CustomPoint {
-        fn from(point: Point<f32, 3, 4>) -> Self {
-            Self {
-                x: point.coords[0],
-                y: point.coords[1],
-                z: point.coords[2],
-                r: point.meta[0].get(),
-                g: point.meta[1].get(),
-                b: point.meta[2].get(),
-                a: point.meta[3].get(),
-            }
-        }
-    }
-
-    impl From<CustomPoint> for Point<f32, 3, 4> {
-        fn from(point: CustomPoint) -> Self {
-            Point {
-                coords: [point.x, point.y, point.z],
-                meta: [
-                    point.r.into(),
-                    point.g.into(),
-                    point.b.into(),
-                    point.a.into(),
-                ],
-            }
-        }
-    }
-
-    impl MetaNames<METADIM> for CustomPoint {
-        fn meta_names() -> [&'static str; METADIM] {
-            ["r", "g", "b", "a"]
-        }
-    }
-    impl PointConvertible<f32, { std::mem::size_of::<f32>() }, DIM, METADIM> for CustomPoint {}
     let cloud = vec![
         CustomPoint {
             x: 0.0,
@@ -259,80 +220,38 @@ fn custom_rgba_f32() {
             a: u8::MAX,
         },
     ];
-    convert_from_into!(MyReader, MyWriter, CustomPoint, cloud);
+    convert_from_into!(CustomPoint, cloud);
 }
 
 #[test]
 fn converterxyz() {
     let cloud = vec![
-        PointXYZ {
-            x: 0.0,
-            y: 1.0,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.0,
-            y: 1.5,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.3,
-            y: 1.6,
-            z: 5.7,
-        },
-        PointXYZ {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-        },
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
-    convert_from_into!(ReaderXYZ, WriterXYZ, PointXYZ, cloud);
+    convert_from_into!(PointXYZ, cloud);
 }
 
 #[test]
 fn converterxyzrgba() {
     convert_from_into!(
-        ReaderXYZRGBA,
-        WriterXYZRGBA,
         PointXYZRGBA,
         vec![
-            PointXYZRGBA {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 0,
-            },
-            PointXYZRGBA {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                r: 1,
-                g: 1,
-                b: 1,
-                a: 1,
-            },
-            PointXYZRGBA {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                r: 2,
-                g: 2,
-                b: 2,
-                a: 2,
-            },
-            PointXYZRGBA {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                r: u8::MAX,
-                g: u8::MAX,
-                b: u8::MAX,
-                a: u8::MAX,
-            },
+            PointXYZRGBA::new(0.0, 1.0, 5.0, 0, 0, 0, 0),
+            PointXYZRGBA::new(1.0, 1.5, 5.0, 1, 1, 1, 1),
+            PointXYZRGBA::new(1.3, 1.6, 5.7, 2, 2, 2, 2),
+            PointXYZRGBA::new(
+                f32::MAX,
+                f32::MIN,
+                f32::MAX,
+                u8::MAX,
+                u8::MAX,
+                u8::MAX,
+                u8::MAX
+            ),
         ]
     );
 }
@@ -340,46 +259,11 @@ fn converterxyzrgba() {
 #[test]
 fn converterxyzinormal() {
     convert_from_into!(
-        ReaderXYZINormal,
-        WriterXYZINormal,
         PointXYZINormal,
         vec![
-            PointXYZINormal {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                intensity: 0.0,
-                normal_x: 0.0,
-                normal_y: 0.0,
-                normal_z: 0.0,
-            },
-            PointXYZINormal {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                intensity: 1.0,
-                normal_x: 1.0,
-                normal_y: 1.0,
-                normal_z: 1.0,
-            },
-            PointXYZINormal {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                intensity: 2.0,
-                normal_x: 2.0,
-                normal_y: 2.0,
-                normal_z: 2.0,
-            },
-            PointXYZINormal {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                intensity: f32::MAX,
-                normal_x: f32::MAX,
-                normal_y: f32::MAX,
-                normal_z: f32::MAX,
-            },
+            PointXYZINormal::new(0.0, 1.0, 5.0, 0.0, 0.0, 0.0, 0.0),
+            PointXYZINormal::new(1.0, 1.5, 5.0, 1.0, 1.0, 1.0, 1.0),
+            PointXYZINormal::new(1.3, 1.6, 5.7, 2.0, 2.0, 2.0, 2.0),
         ]
     );
 }
@@ -387,54 +271,20 @@ fn converterxyzinormal() {
 #[test]
 fn converterxyzrgbnormal() {
     convert_from_into!(
-        ReaderXYZRGBNormal,
-        WriterXYZRGBNormal,
         PointXYZRGBNormal,
         vec![
-            PointXYZRGBNormal {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                r: 0,
-                g: 0,
-                b: 0,
-                normal_x: 0.0,
-                normal_y: 0.0,
-                normal_z: 0.0,
-            },
-            PointXYZRGBNormal {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                r: 1,
-                g: 1,
-                b: 1,
-                normal_x: 1.0,
-                normal_y: 1.0,
-                normal_z: 1.0,
-            },
-            PointXYZRGBNormal {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                r: 2,
-                g: 2,
-                b: 2,
-                normal_x: 2.0,
-                normal_y: 2.0,
-                normal_z: 2.0,
-            },
-            PointXYZRGBNormal {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                r: u8::MAX,
-                g: u8::MAX,
-                b: u8::MAX,
-                normal_x: f32::MAX,
-                normal_y: f32::MAX,
-                normal_z: f32::MAX,
-            },
+            PointXYZRGBNormal::new(0.0, 1.0, 5.0, RGB::new(0, 0, 0), 0.0, 0.0, 0.0),
+            PointXYZRGBNormal::new(1.0, 1.5, 5.0, RGB::new(1, 1, 1), 1.0, 1.0, 1.0),
+            PointXYZRGBNormal::new(1.3, 1.6, 5.7, RGB::new(2, 2, 2), 2.0, 2.0, 2.0),
+            PointXYZRGBNormal::new(
+                f32::MAX,
+                f32::MIN,
+                f32::MAX,
+                RGB::new(u8::MAX, u8::MAX, u8::MAX),
+                f32::MAX,
+                f32::MAX,
+                f32::MAX,
+            ),
         ]
     );
 }
@@ -442,42 +292,12 @@ fn converterxyzrgbnormal() {
 #[test]
 fn converterxyznormal() {
     convert_from_into!(
-        ReaderXYZNormal,
-        WriterXYZNormal,
         PointXYZNormal,
         vec![
-            PointXYZNormal {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                normal_x: 0.0,
-                normal_y: 0.0,
-                normal_z: 0.0,
-            },
-            PointXYZNormal {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                normal_x: 1.0,
-                normal_y: 1.0,
-                normal_z: 1.0,
-            },
-            PointXYZNormal {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                normal_x: 2.0,
-                normal_y: 2.0,
-                normal_z: 2.0,
-            },
-            PointXYZNormal {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                normal_x: f32::MAX,
-                normal_y: f32::MAX,
-                normal_z: f32::MAX,
-            },
+            PointXYZNormal::new(0.0, 1.0, 5.0, 0.0, 0.0, 0.0),
+            PointXYZNormal::new(1.0, 1.5, 5.0, 1.0, 1.0, 1.0),
+            PointXYZNormal::new(1.3, 1.6, 5.7, 2.0, 2.0, 2.0),
+            PointXYZNormal::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX, f32::MAX, f32::MAX),
         ]
     );
 }
@@ -485,46 +305,20 @@ fn converterxyznormal() {
 #[test]
 fn converterxyzrgbl() {
     convert_from_into!(
-        ReaderXYZRGBL,
-        WriterXYZRGBL,
         PointXYZRGBL,
         vec![
-            PointXYZRGBL {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                r: 0,
-                g: 0,
-                b: 0,
-                label: 0,
-            },
-            PointXYZRGBL {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                r: 1,
-                g: 1,
-                b: 1,
-                label: 1,
-            },
-            PointXYZRGBL {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                r: 2,
-                g: 2,
-                b: 2,
-                label: 2,
-            },
-            PointXYZRGBL {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                r: u8::MAX,
-                g: u8::MAX,
-                b: u8::MAX,
-                label: u32::MAX,
-            },
+            PointXYZRGBL::new(0.0, 1.0, 5.0, 0, 0, 0, 0),
+            PointXYZRGBL::new(1.0, 1.5, 5.0, 1, 1, 1, 1),
+            PointXYZRGBL::new(1.3, 1.6, 5.7, 2, 2, 2, 2),
+            PointXYZRGBL::new(
+                f32::MAX,
+                f32::MIN,
+                f32::MAX,
+                u8::MAX,
+                u8::MAX,
+                u8::MAX,
+                u32::MAX
+            ),
         ]
     );
 }
@@ -532,42 +326,25 @@ fn converterxyzrgbl() {
 #[test]
 fn converterxyzrgb() {
     convert_from_into!(
-        ReaderXYZRGB,
-        WriterXYZRGB,
         PointXYZRGB,
         vec![
-            PointXYZRGB {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                r: 0,
-                g: 0,
-                b: 0,
-            },
-            PointXYZRGB {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                r: 1,
-                g: 1,
-                b: 1,
-            },
-            PointXYZRGB {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                r: 2,
-                g: 2,
-                b: 2,
-            },
-            PointXYZRGB {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                r: u8::MAX,
-                g: u8::MAX,
-                b: u8::MAX,
-            },
+            PointXYZRGB::new(0.0, 1.0, 5.0, 0, 0, 0),
+            PointXYZRGB::new(1.0, 1.5, 5.0, 1, 1, 1),
+            PointXYZRGB::new(1.3, 1.6, 5.7, 2, 2, 2),
+            PointXYZRGB::new(f32::MAX, f32::MIN, f32::MAX, u8::MAX, u8::MAX, u8::MAX),
+        ]
+    );
+}
+
+#[test]
+#[cfg(feature = "derive")]
+fn converterxyzrgb_from_vec() {
+    convert_from_into_vec!(
+        PointXYZRGB,
+        vec![
+            PointXYZRGB::new(0.0, 1.0, 5.0, 0, 0, 0),
+            PointXYZRGB::new(1.3, 1.6, 5.7, 2, 2, 2),
+            PointXYZRGB::new(f32::MAX, f32::MIN, f32::MAX, u8::MAX, u8::MAX, u8::MAX),
         ]
     );
 }
@@ -575,34 +352,12 @@ fn converterxyzrgb() {
 #[test]
 fn converterxyzl() {
     convert_from_into!(
-        ReaderXYZL,
-        WriterXYZL,
         PointXYZL,
         vec![
-            PointXYZL {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                label: 0,
-            },
-            PointXYZL {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                label: 1,
-            },
-            PointXYZL {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                label: 2,
-            },
-            PointXYZL {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                label: u32::MAX,
-            },
+            PointXYZL::new(0.0, 1.0, 5.0, 0),
+            PointXYZL::new(1.0, 1.5, 5.0, 1),
+            PointXYZL::new(1.3, 1.6, 5.7, 2),
+            PointXYZL::new(f32::MAX, f32::MIN, f32::MAX, u32::MAX),
         ]
     );
 }
@@ -610,34 +365,12 @@ fn converterxyzl() {
 #[test]
 fn converterxyzi() {
     convert_from_into!(
-        ReaderXYZI,
-        WriterXYZI,
         PointXYZI,
         vec![
-            PointXYZI {
-                x: 0.0,
-                y: 1.0,
-                z: 5.0,
-                intensity: 0.0,
-            },
-            PointXYZI {
-                x: 1.0,
-                y: 1.5,
-                z: 5.0,
-                intensity: 1.0,
-            },
-            PointXYZI {
-                x: 1.3,
-                y: 1.6,
-                z: 5.7,
-                intensity: 2.0,
-            },
-            PointXYZI {
-                x: f32::MAX,
-                y: f32::MIN,
-                z: f32::MAX,
-                intensity: f32::MAX,
-            },
+            PointXYZI::new(0.0, 1.0, 5.0, 0.0),
+            PointXYZI::new(1.0, 1.5, 5.0, 1.0),
+            PointXYZI::new(1.3, 1.6, 5.7, 2.0),
+            PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX),
         ]
     );
 }
@@ -645,72 +378,47 @@ fn converterxyzi() {
 #[test]
 fn write_xyzi_read_xyz() {
     let write_cloud = vec![
-        PointXYZI {
-            x: 0.0,
-            y: 1.0,
-            z: 5.0,
-            intensity: 0.0,
-        },
-        PointXYZI {
-            x: 1.0,
-            y: 1.5,
-            z: 5.0,
-            intensity: 1.0,
-        },
-        PointXYZI {
-            x: 1.3,
-            y: 1.6,
-            z: 5.7,
-            intensity: 2.0,
-        },
-        PointXYZI {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-            intensity: f32::MAX,
-        },
+        PointXYZI::new(0.0, 1.0, 5.0, 0.0),
+        PointXYZI::new(1.0, 1.5, 5.0, 1.0),
+        PointXYZI::new(1.3, 1.6, 5.7, 2.0),
+        PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX),
     ];
 
-    let read_cloud = vec![
-        PointXYZ {
-            x: 0.0,
-            y: 1.0,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.0,
-            y: 1.5,
-            z: 5.0,
-        },
-        PointXYZ {
-            x: 1.3,
-            y: 1.6,
-            z: 5.7,
-        },
-        PointXYZ {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-        },
+    let read_cloud = [
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
-    convert_from_into_in_out_cloud!(
-        ReaderXYZ,
-        WriterXYZI,
-        PointXYZI,
-        write_cloud,
-        PointXYZI,
-        read_cloud,
-        PointXYZ
-    );
+    convert_from_into_in_out_cloud!(write_cloud, PointXYZI, read_cloud, PointXYZ);
 }
 
 #[test]
-fn write_less_than_available() {
-    const DIM: usize = 3;
-    const METADIM: usize = 0;
+#[cfg(feature = "derive")]
+fn write_xyzi_read_xyz_vec() {
+    let write_cloud = vec![
+        PointXYZI::new(0.0, 1.0, 5.0, 0.0),
+        PointXYZI::new(1.0, 1.5, 5.0, 1.0),
+        PointXYZI::new(1.3, 1.6, 5.7, 2.0),
+        PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX),
+    ];
 
-    #[derive(Debug, PartialEq, Clone)]
+    let read_cloud = [
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
+    ];
+
+    convert_from_into_in_out_cloud_vec!(write_cloud, PointXYZI, read_cloud, PointXYZ);
+}
+
+#[test]
+#[cfg(feature = "derive")]
+fn write_less_than_available() {
+    #[derive(Debug, PartialEq, Clone, Default, TypeLayout)]
+    #[repr(C)]
     struct CustomPoint {
         x: f32,
         y: f32,
@@ -718,35 +426,30 @@ fn write_less_than_available() {
         dummy: f32,
     }
 
-    type MyReader = ReaderF32<DIM, METADIM, CustomPoint>;
-    type MyWriter = WriterF32<DIM, METADIM, CustomPoint>;
-
-    impl From<Point<f32, 3, 0>> for CustomPoint {
-        fn from(point: Point<f32, 3, 0>) -> Self {
+    impl From<RPCL2Point<3>> for CustomPoint {
+        fn from(point: RPCL2Point<3>) -> Self {
             Self {
-                x: point.coords[0],
-                y: point.coords[1],
-                z: point.coords[2],
+                x: point[0].get(),
+                y: point[1].get(),
+                z: point[2].get(),
                 dummy: 0.0,
             }
         }
     }
 
-    impl From<CustomPoint> for Point<f32, 3, 0> {
+    impl From<CustomPoint> for RPCL2Point<3> {
         fn from(point: CustomPoint) -> Self {
-            Point {
-                coords: [point.x, point.y, point.z],
-                meta: [],
-            }
+            [point.x.into(), point.y.into(), point.z.into()].into()
         }
     }
 
-    impl MetaNames<METADIM> for CustomPoint {
-        fn meta_names() -> [&'static str; METADIM] {
-            []
+    impl Fields<3> for CustomPoint {
+        fn field_names_ordered() -> [&'static str; 3] {
+            ["x", "y", "z"]
         }
     }
-    impl PointConvertible<f32, { std::mem::size_of::<f32>() }, 3, 0> for CustomPoint {}
+
+    impl PointConvertible<3> for CustomPoint {}
 
     let write_cloud = vec![
         CustomPoint {
@@ -769,7 +472,7 @@ fn write_less_than_available() {
         },
     ];
 
-    let read_cloud = vec![
+    let read_cloud = [
         CustomPoint {
             x: 1.0,
             y: 2.0,
@@ -790,62 +493,38 @@ fn write_less_than_available() {
         },
     ];
 
-    convert_from_into_in_out_cloud!(
-        MyReader,
-        MyWriter,
-        CustomPoint,
-        write_cloud,
-        CustomPoint,
-        read_cloud,
-        CustomPoint
-    );
+    convert_from_into_in_out_cloud!(write_cloud, CustomPoint, read_cloud, CustomPoint);
 }
 
 #[test]
+#[cfg(feature = "derive")]
+#[allow(unused_variables)]
 fn readme() {
-    use ros_pointcloud2::{
-        pcl_utils::PointXYZ, reader::ReaderXYZ, writer::WriterXYZ, PointCloud2Msg,
-    };
+    use ros_pointcloud2::prelude::*;
 
-    // Your points (here using the predefined type PointXYZ).
+    // PointXYZ (and many others) are provided by the crate.
     let cloud_points = vec![
-        PointXYZ {
-            x: 1337.0,
-            y: 42.0,
-            z: 69.0,
-        },
-        PointXYZ {
-            x: f32::MAX,
-            y: f32::MIN,
-            z: f32::MAX,
-        },
+        PointXYZI::new(91.486, -4.1, 42.0001, 0.1),
+        PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MIN),
     ];
 
-    // For equality test later
-    let cloud_copy = cloud_points.clone();
+    let out_msg = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
 
-    // Vector -> Writer -> Message
-    let internal_msg: PointCloud2Msg = WriterXYZ::from(cloud_points)
-        .try_into() // iterating points here O(n)
-        .unwrap();
-
-    // Convert to your ROS crate message type, we will use r2r here.
-    // let msg: r2r::sensor_msgs::msg::PointCloud2 = internal_msg.into();
-
+    // Convert the ROS crate message type, we will use r2r here.
+    // let msg: r2r::sensor_msgs::msg::PointCloud2 = out_msg.into();
     // Publish ...
-
     // ... now incoming from a topic.
-    // let internal_msg: PointCloud2Msg = msg.into();
+    // let in_msg: PointCloud2Msg = msg.into();
+    let in_msg = out_msg;
 
-    // Message -> Reader. The Reader implements the Iterator trait.
-    let reader = ReaderXYZ::try_from(internal_msg).unwrap();
-    let new_cloud_points = reader
+    let processed_cloud = in_msg
+        .try_into_iter()
+        .unwrap()
         .map(|point: PointXYZ| {
-            // Some logic here
+            // Define the info you want to have from the Msg.
+            // Some logic here ...
 
             point
         })
-        .collect::<Vec<PointXYZ>>();
-
-    assert_eq!(new_cloud_points, cloud_copy);
+        .collect::<Vec<_>>();
 }

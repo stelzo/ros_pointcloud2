@@ -25,4 +25,4 @@ jobs:
       - name: Linting
         run: cargo clippy --all-targets -- -D warnings
       - name: Tests
-        run: cargo test
+        run: cargo test --features derive,nalgebra,rayon
