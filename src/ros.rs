@@ -32,7 +32,14 @@ pub struct TimeMsg {
 }
 
 #[cfg(feature = "rosrust_msg")]
-pub use rosrust::Time as TimeMsg;
+impl From<rosrust::Time> for TimeMsg {
+    fn from(time: rosrust::Time) -> Self {
+        Self {
+            sec: time.sec as i32,
+            nanosec: time.nsec,
+        }
+    }
+}
 
 /// Represents the [header of a ROS message](https://docs.ros2.org/latest/api/std_msgs/msg/Header.html).
 #[derive(Clone, Debug, Default)]
@@ -178,9 +185,9 @@ impl From<rosrust_msg::sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
             row_step: msg.row_step,
             data: msg.data,
             dense: if msg.is_dense {
-                crate::convert::Denseness::Dense
+                crate::Denseness::Dense
             } else {
-                crate::convert::Denseness::Sparse
+                crate::Denseness::Sparse
             },
         }
     }
@@ -218,7 +225,7 @@ impl From<crate::PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
             point_step: msg.point_step,
             row_step: msg.row_step,
             data: msg.data,
-            is_dense: if msg.dense == crate::convert::Denseness::Dense {
+            is_dense: if msg.dense == crate::Denseness::Dense {
                 true
             } else {
                 false
