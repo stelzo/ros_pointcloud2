@@ -16,6 +16,6 @@ jobs:
   tests_iron:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - run: docker build . --file ./tests/Dockerfile_rclrs_iron --tag rclrs_iron
-    - run: docker run rclrs_iron cargo test --features derive,nalgebra,rayon
+      - uses: actions/checkout@v2
+      - run: docker build . --file ./tests/Dockerfile_rclrs_iron --tag rclrs_iron
+      - run: docker run rclrs_iron cargo test --features derive,nalgebra,rayon
