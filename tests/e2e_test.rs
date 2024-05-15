@@ -70,9 +70,6 @@ fn write_cloud_from_vec() {
 
     let msg = PointCloud2Msg::try_from_vec(cloud);
     assert!(msg.is_ok());
-
-    let msg = msg.unwrap();
-    println!("{:?}", msg);
 }
 
 #[test]
@@ -90,6 +87,47 @@ fn write_empty_cloud_iter() {
     let msg = PointCloud2Msg::try_from_iter(cloud);
     assert!(msg.is_ok());
     assert!(msg.unwrap().data.is_empty());
+}
+
+#[test]
+#[cfg(all(feature = "derive", feature = "rayon"))]
+fn conv_cloud_par_iter() {
+    let cloud = vec![
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+    ];
+    let copy = cloud.clone();
+
+    let msg: Result<PointCloud2Msg, MsgConversionError> = PointCloud2Msg::try_from_vec(cloud);
+    assert!(msg.is_ok());
+    let msg = msg.unwrap();
+    let to_p_type = msg.try_into_par_iter();
+    assert!(to_p_type.is_ok());
+    let to_p_type = to_p_type.unwrap();
+    let back_to_type = to_p_type.collect::<Vec<PointXYZ>>();
+    assert_eq!(copy, back_to_type);
+}
+
+#[test]
+#[cfg(all(feature = "derive", feature = "rayon"))]
+fn conv_cloud_par_par_iter() {
+    let cloud = vec![
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
+    ];
+    let copy = cloud.clone();
+
+    let msg = PointCloud2Msg::try_from_par_iter(cloud.into_par_iter());
+    assert!(msg.is_ok());
+    let msg = msg.unwrap();
+    let to_p_type = msg.try_into_par_iter();
+    assert!(to_p_type.is_ok());
+    let to_p_type = to_p_type.unwrap();
+    let back_to_type = to_p_type.collect::<Vec<PointXYZ>>();
+    assert_eq!(copy, back_to_type);
 }
 
 #[test]

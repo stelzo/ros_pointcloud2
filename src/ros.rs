@@ -23,6 +23,9 @@
 //! }
 //! ```
 
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
+
 /// [Time](https://docs.ros2.org/latest/api/builtin_interfaces/msg/Time.html) representation for ROS messages.
 #[cfg(not(any(feature = "rclrs_msg")))]
 #[derive(Clone, Debug, Default)]

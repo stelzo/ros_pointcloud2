@@ -95,6 +95,10 @@ The results are measured on an Intel i7-14700 with benchmarks from [this reposit
 
 For minimizing the conversion overhead in general, always use the functions that best fit your use case.
 
+## `#[no_std]`
+
+The `_iter` conversions are compatible with `#[no_std]` environments when an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate.
+
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
