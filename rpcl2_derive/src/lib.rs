@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, DeriveInput};
+use syn::{parenthesized, parse_macro_input, DeriveInput, LitStr};
 
 fn get_allowed_types() -> HashMap<&'static str, usize> {
     let mut allowed_datatypes = HashMap::<&'static str, usize>::new();
@@ -19,28 +19,6 @@ fn get_allowed_types() -> HashMap<&'static str, usize> {
     allowed_datatypes
 }
 
-// Given a field, get the value of the `rpcl2` renaming attribute like
-// #[rpcl2(name = "new_name")]
-fn get_ros_fields_attribute(attrs: &[syn::Attribute]) -> Option<syn::Lit> {
-    for attr in attrs {
-        if attr.path.is_ident("rpcl2") {
-            let meta = attr.parse_meta().unwrap();
-            if let syn::Meta::List(meta_list) = meta {
-                for nested_meta in meta_list.nested {
-                    if let syn::NestedMeta::Meta(meta) = nested_meta {
-                        if let syn::Meta::NameValue(meta_name_value) = meta {
-                            if meta_name_value.path.is_ident("name") {
-                                return Some(meta_name_value.lit);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    None
-}
-
 fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
     let fields = match input.data {
         syn::Data::Struct(ref data) => match data.fields {
@@ -50,31 +28,39 @@ fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
         _ => panic!("StructNames can only be derived for structs"),
     };
 
-    fields
-        .iter()
-        .map(|field| {
-            let field_name = field.ident.as_ref().unwrap();
-            let ros_fields_attr = get_ros_fields_attribute(&field.attrs);
-            match ros_fields_attr {
-                Some(ros_fields) => match ros_fields {
-                    syn::Lit::Str(lit_str) => {
-                        let val = lit_str.value();
-                        if val.is_empty() {
-                            panic!("Empty string literals are not allowed for the rpcl2 attribute");
+    let mut field_names = Vec::with_capacity(fields.len());
+    for f in fields.iter() {
+        if f.attrs.len() == 0 {
+            field_names.push(f.ident.as_ref().unwrap().to_token_stream().to_string());
+        } else {
+            f.attrs.iter().for_each(|attr| {
+                if attr.path().is_ident("rpcl2") {
+                    let res = attr.parse_nested_meta(|meta| {
+                        if meta.path.is_ident("rename") {
+                            let new_name;
+                            parenthesized!(new_name in meta.input);
+                            let lit: LitStr = new_name.parse()?;
+                            field_names.push(lit.value());
+                            Ok(())
+                        } else {
+                            panic!("expected `name` attribute");
                         }
-                        val
+                    });
+                    if let Err(err) = res {
+                        panic!("Error parsing attribute: {}", err);
                     }
-                    _ => {
-                        panic!("Only string literals are allowed for the rpcl2 attribute")
-                    }
-                },
-                None => String::from(field_name.to_token_stream().to_string()),
-            }
-        })
-        .collect()
+                }
+            });
+        }
+    }
+
+    field_names
 }
 
-/// This macro will implement the `Fields` trait for your struct so you can use your point for the PointCloud2 conversion.
+/// This macro implements the `Fields` trait which is a subset of the `PointConvertible` trait.
+/// It is useful for points that convert the `From` trait themselves but want to use this macro for not repeating the field names.
+///
+/// You can rename the fields with the `rename` attribute.
 ///
 /// Use the rename attribute if your struct field name should be different to the ROS field name.
 #[proc_macro_derive(Fields, attributes(rpcl2))]
@@ -104,11 +90,14 @@ pub fn ros_point_fields_derive(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-/// This macro will fully implement the `PointConvertible` trait for your struct so you can use your point for the PointCloud2 conversion.
+/// This macro implements the `PointConvertible` trait for your struct so you can use your point for the PointCloud2 conversion.
+///
+/// The struct field names are used in the message if you do not use the `rename` attribute for a custom name.
 ///
 /// Note that the repr(C) attribute is required for the struct to work efficiently with C++ PCL.
 /// With Rust layout optimizations, the struct might not work with the PCL library but the message still conforms to the description of PointCloud2.
 /// Furthermore, Rust layout can lead to smaller messages to be send over the network.
+///
 #[proc_macro_derive(PointConvertible, attributes(rpcl2))]
 pub fn ros_point_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
