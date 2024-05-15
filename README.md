@@ -38,8 +38,8 @@ let processed_cloud = in_msg.try_into_iter().unwrap()
       // Some logic here ...
 
       point
-    })
-    .collect::<Vec<_>>();
+  })
+  .collect::<Vec<_>>();
 ```
 
 ## Integrations
