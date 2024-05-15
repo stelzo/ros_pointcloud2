@@ -1,6 +1,6 @@
 [package]
 name = "ros_pointcloud2"
-version = "1.0.0-rc.1"
+version = "0.5.0-rc.1"
 edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
@@ -53,7 +53,7 @@ derive = ["dep:rpcl2_derive", "dep:type-layout"]
 nalgebra = ["dep:nalgebra"]
 std = []
 
-default = ["derive", "std"]
+default = ["std", "derive"]
 
 [package.metadata.docs.rs]
 features = ["derive", "nalgebra", "rayon"]

@@ -1,5 +1,5 @@
 > [!NOTE]  
-> This library is currently in preparation for v1. For the documentation of the current crates.io v0.4, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/).
+> This library is currently in preparation for v0.5 with many breaking changes. For the documentation of the current crates.io v0.4.0, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/). Since rclrs still needs a workaround, the version number must be changed to your desired version which supports rclrs (currently only v0.4.0) — regardless of the version number shown in this Readme.
 
 <p align="center">
   <h3 align="center">ROS PointCloud2</h3>
@@ -10,7 +10,7 @@
 
 ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
-Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/1.0.0-rc.1/) for a complete guide.
+Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/0.5.0-rc.1/) for a complete guide.
 
 ## Quickstart
 
@@ -71,7 +71,7 @@ Features do not work properly with `rcrls` because the messages are linked exter
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.4.0_rclrs" }
+ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.0-rc.1_rclrs" }
 ```
 
 Also, indicate the following dependencies to your linker inside the `package.xml` of your package.
@@ -96,7 +96,7 @@ For minimizing the conversion overhead in general, always use the functions that
 
 ## `no_std` Environments
 
-The `_iter` conversions are compatible with `#[no_std]` environments when an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate.
+The `_iter` conversions are compatible with `#[no_std]` environments if an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate.
 
 ## License
 

@@ -128,7 +128,7 @@
 //! ```
 #![crate_type = "lib"]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/1.0.0-rc.1")]
+#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.5.0-rc.1")]
 #![warn(clippy::print_stderr)]
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unwrap_used)]
@@ -148,16 +148,12 @@ pub mod iterator;
 
 use crate::ros::{HeaderMsg, PointFieldMsg};
 
+#[cfg(feature = "derive")]
 use core::str::FromStr;
 
-#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
-
-#[cfg(not(feature = "std"))]
 use alloc::string::String;
-
-#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
 /// All errors that can occur while converting to or from the message type.
@@ -1474,7 +1470,6 @@ mod tests {
     use super::Fields;
     use rpcl2_derive::Fields;
 
-    #[cfg(not(feature = "std"))]
     use alloc::string::String;
 
     #[allow(dead_code)]

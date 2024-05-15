@@ -4,7 +4,7 @@ use crate::{Fields, PointConvertible, RPCL2Point};
 #[cfg(feature = "derive")]
 use type_layout::TypeLayout;
 
-#[cfg(all(not(feature = "std"), feature = "derive"))]
+#[cfg(feature = "derive")]
 use alloc::vec::Vec;
 
 /// A packed RGB color encoding as used in ROS tools.
