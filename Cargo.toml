@@ -26,6 +26,7 @@ exclude = [
     "**/docs/**",
     "**/doc/**",
 ]
+rust-version = "1.63"
 
 [dependencies]
 rosrust_msg = { version = "0.1", optional = true }
