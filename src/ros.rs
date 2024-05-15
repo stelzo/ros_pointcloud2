@@ -3,7 +3,7 @@
 //! This intermediate layer allows various ROS libraries to be integrated to the conversion process.
 //!
 //! There are 2 functions needed to be implemented for a new ROS message library:
-//! - `From` for converting from the library-generated message to [`crate::PointCloud2Msg`].
+//! - `From` for converting from the library-generated message to [`PointCloud2Msg`](crate::PointCloud2Msg).
 //! ```
 //! #[cfg(feature = "fancy_ros_msg")]
 //! impl From<fancy_ros::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
@@ -13,7 +13,7 @@
 //! }
 //! ```
 //!
-//! - `From` for converting from the [`crate::PointCloud2Msg`] to the library-generated message type.
+//! - `From` for converting from the [`PointCloud2Msg`](crate::PointCloud2Msg) to the library-generated message type.
 //! ```
 //! #[cfg(feature = "fancy_ros_msg")]
 //! impl From<crate::PointCloud2Msg> for fancy_ros::sensor_msgs::msg::PointCloud2 {
