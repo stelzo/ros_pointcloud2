@@ -58,3 +58,5 @@ default = ["derive", "std"]
 [package.metadata.docs.rs]
 features = ["derive", "nalgebra", "rayon"]
 default-target = "x86_64-unknown-linux-gnu"
+rustdoc-args = ["--cfg", "docsrs"]
+
