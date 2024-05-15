@@ -1,10 +1,19 @@
-//! Iterator implementations for PointCloud2Msg including a parallel iterator for rayon.
+//! Iterator implementations for [`PointCloud2Msg`] including a parallel iterator for rayon.
 use crate::{
     Endian, FieldDatatype, Fields, MsgConversionError, PointCloud2Msg, PointConvertible, PointData,
     RPCL2Point,
 };
 
-/// The PointCloudIterator provides a an iterator abstraction of the PointCloud2Msg.
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
+
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
+#[cfg(not(feature = "std"))]
+use alloc::borrow::ToOwned;
+
+/// The PointCloudIterator provides a an iterator abstraction of the [`PointCloud2Msg`].
 ///
 /// The iterator is defined at compile time, so the point has to be described via template arguments.
 ///
@@ -19,7 +28,7 @@ use crate::{
 /// let msg: r2r::sensor_msgs::msg::PointCloud2 = internal_msg.into();
 /// let converted: ros_pointcloud2::PointCloud2Msg = msg.into();
 ///
-/// ros_pointcloud2 supports r2r, rclrs and rosrust as conversion targets out of the box via feature flags.
+/// `ros_pointcloud2` supports r2r, rclrs and rosrust as conversion targets out of the box via feature flags.
 ///
 pub struct PointCloudIterator<const N: usize, C>
 where
@@ -28,7 +37,7 @@ where
     iteration: usize,
     iteration_back: usize,
     data: ByteBufferView<N>,
-    phantom_c: std::marker::PhantomData<C>, // internally used for pdata names array
+    phantom_c: core::marker::PhantomData<C>, // internally used for pdata names array
 }
 
 #[cfg(feature = "rayon")]
@@ -156,7 +165,10 @@ where
 }
 
 struct ByteBufferView<const N: usize> {
+    #[cfg(feature = "rayon")]
     data: std::sync::Arc<[u8]>,
+    #[cfg(not(feature = "rayon"))]
+    data: Vec<u8>,
     start_point_idx: usize,
     end_point_idx: usize,
     point_step_size: usize,
@@ -176,7 +188,10 @@ impl<const N: usize> ByteBufferView<N> {
         endian: Endian,
     ) -> Self {
         Self {
+            #[cfg(feature = "rayon")]
             data: std::sync::Arc::<[u8]>::from(data),
+            #[cfg(not(feature = "rayon"))]
+            data,
             start_point_idx,
             end_point_idx,
             point_step_size,
@@ -191,7 +206,7 @@ impl<const N: usize> ByteBufferView<N> {
         self.end_point_idx - self.start_point_idx + 1
     }
 
-    #[inline(always)]
+    #[inline]
     fn point_at(&self, idx: usize) -> RPCL2Point<N> {
         let offset = (self.start_point_idx + idx) * self.point_step_size;
         let mut pdata = [PointData::default(); N];
@@ -244,8 +259,8 @@ where
 {
     type Error = MsgConversionError;
 
-    /// Convert a PointCloud2Msg into an iterator.
-    /// Converting a PointCloud2Msg into an iterator is a fallible operation since the message could contain a subset of the required fields.
+    /// Convert a [`PointCloud2Msg`] into an iterator.
+    /// The conversion to an iterator is a fallible operation since the message could contain a subset of the required fields.
     ///
     /// The theoretical time complexity is O(n) where n is the number of fields defined in the message for a single point which is typically small.
     /// It therefore has a constant time complexity O(1) for practical purposes.
@@ -332,7 +347,7 @@ where
             iteration: 0,
             iteration_back: cloud_length - 1,
             data,
-            phantom_c: std::marker::PhantomData,
+            phantom_c: core::marker::PhantomData,
         })
     }
 }
@@ -342,16 +357,18 @@ where
     C: Fields<N>,
 {
     #[inline]
+    #[must_use]
     fn from_byte_buffer_view(data: ByteBufferView<N>) -> Self {
         Self {
             iteration: 0,
             iteration_back: data.len() - 1,
             data,
-            phantom_c: std::marker::PhantomData,
+            phantom_c: core::marker::PhantomData,
         }
     }
 
     #[inline]
+    #[must_use]
     pub fn split_at(self, point_index: usize) -> (Self, Self) {
         let (left_data, right_data) = self.data.split_at(point_index);
         (
