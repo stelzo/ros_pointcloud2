@@ -28,7 +28,7 @@ where
     iteration: usize,
     iteration_back: usize,
     data: ByteBufferView<N>,
-    phantom_c: std::marker::PhantomData<C>, // internally used for meta names array
+    phantom_c: std::marker::PhantomData<C>, // internally used for pdata names array
 }
 
 #[cfg(feature = "rayon")]
@@ -133,7 +133,6 @@ where
     }
 }
 
-/// Implementation of the iterator trait.
 impl<const N: usize, C> Iterator for PointCloudIterator<N, C>
 where
     C: PointConvertible<N>,
@@ -162,7 +161,7 @@ struct ByteBufferView<const N: usize> {
     end_point_idx: usize,
     point_step_size: usize,
     offsets: [usize; N],
-    meta: Vec<(String, FieldDatatype)>,
+    pdata: Vec<(String, FieldDatatype)>,
     endian: Endian,
 }
 
@@ -173,7 +172,7 @@ impl<const N: usize> ByteBufferView<N> {
         start_point_idx: usize,
         end_point_idx: usize,
         offsets: [usize; N],
-        meta: Vec<(String, FieldDatatype)>,
+        pdata: Vec<(String, FieldDatatype)>,
         endian: Endian,
     ) -> Self {
         Self {
@@ -182,7 +181,7 @@ impl<const N: usize> ByteBufferView<N> {
             end_point_idx,
             point_step_size,
             offsets,
-            meta,
+            pdata,
             endian,
         }
     }
@@ -195,22 +194,21 @@ impl<const N: usize> ByteBufferView<N> {
     #[inline(always)]
     fn point_at(&self, idx: usize) -> RPCL2Point<N> {
         let offset = (self.start_point_idx + idx) * self.point_step_size;
-
-        // TODO memcpy entire point at once, then extract fields?
-        let mut meta = [PointData::default(); N];
-        meta.iter_mut()
+        let mut pdata = [PointData::default(); N];
+        pdata
+            .iter_mut()
             .zip(self.offsets.iter())
-            .zip(self.meta.iter())
-            .for_each(|((p_meta, in_point_offset), (_, meta_type))| {
-                *p_meta = PointData::from_buffer(
+            .zip(self.pdata.iter())
+            .for_each(|((pdata_entry, in_point_offset), (_, pdata_type))| {
+                *pdata_entry = PointData::from_buffer(
                     &self.data,
                     offset + in_point_offset,
-                    *meta_type,
+                    *pdata_type,
                     self.endian,
                 );
             });
 
-        RPCL2Point { fields: meta }
+        pdata.into()
     }
 
     #[inline]
@@ -221,7 +219,7 @@ impl<const N: usize> ByteBufferView<N> {
             end_point_idx: start + size - 1,
             point_step_size: self.point_step_size,
             offsets: self.offsets,
-            meta: self.meta.clone(),
+            pdata: self.pdata.clone(),
             endian: self.endian,
         }
     }
@@ -231,9 +229,8 @@ impl<const N: usize> ByteBufferView<N> {
         let left_start = self.start_point_idx;
         let left_size = point_index;
 
-        let right_start = point_index;
+        let right_start = self.start_point_idx + point_index;
         let right_size = self.len() - point_index;
-
         (
             self.clone_with_bounds(left_start, left_size),
             self.clone_with_bounds(right_start, right_size),
@@ -248,12 +245,12 @@ where
     type Error = MsgConversionError;
 
     /// Convert a PointCloud2Msg into an iterator.
-    /// Converting a PointCloud2Msg into an iterator is a fallible operation since the message can contain only a subset of the required fields.
+    /// Converting a PointCloud2Msg into an iterator is a fallible operation since the message could contain a subset of the required fields.
     ///
     /// The theoretical time complexity is O(n) where n is the number of fields defined in the message for a single point which is typically small.
     /// It therefore has a constant time complexity O(1) for practical purposes.
     fn try_from(cloud: PointCloud2Msg) -> Result<Self, Self::Error> {
-        let mut meta_with_offsets = vec![(String::default(), FieldDatatype::default(), 0); N];
+        let mut pdata_with_offsets = vec![(String::default(), FieldDatatype::default(), 0); N];
 
         let not_found_fieldnames = C::field_names_ordered()
             .into_iter()
@@ -273,7 +270,7 @@ where
         }
 
         let ordered_fieldnames = C::field_names_ordered();
-        for (field, with_offset) in cloud.fields.iter().zip(meta_with_offsets.iter_mut()) {
+        for (field, with_offset) in cloud.fields.iter().zip(pdata_with_offsets.iter_mut()) {
             if ordered_fieldnames.contains(&field.name.as_str()) {
                 *with_offset = (
                     field.name.clone(),
@@ -283,25 +280,26 @@ where
             }
         }
 
-        meta_with_offsets.sort_unstable_by(|(_, _, offset1), (_, _, offset2)| offset1.cmp(offset2));
+        pdata_with_offsets
+            .sort_unstable_by(|(_, _, offset1), (_, _, offset2)| offset1.cmp(offset2));
 
         debug_assert!(
-            meta_with_offsets.len() == N,
+            pdata_with_offsets.len() == N,
             "Not all fields were found in the message. Expected {} but found {}.",
             N,
-            meta_with_offsets.len()
+            pdata_with_offsets.len()
         );
 
         let mut offsets = [usize::default(); N];
-        let mut meta = vec![(String::default(), FieldDatatype::default()); N];
+        let mut pdata = vec![(String::default(), FieldDatatype::default()); N];
 
-        meta_with_offsets
+        pdata_with_offsets
             .into_iter()
-            .zip(meta.iter_mut())
+            .zip(pdata.iter_mut())
             .zip(offsets.iter_mut())
-            .for_each(|(((name, datatype, offset), meta), meta_offset)| {
-                *meta = (name, datatype);
-                *meta_offset = offset;
+            .for_each(|(((name, datatype, offset), pdata), pdata_offset)| {
+                *pdata = (name, datatype);
+                *pdata_offset = offset;
             });
 
         let point_step_size = cloud.point_step as usize;
@@ -312,9 +310,9 @@ where
 
         let last_offset = offsets.last().expect("Dimensionality is 0.");
 
-        let last_meta = meta.last().expect("Dimensionality is 0.");
-        let size_with_last_meta = last_offset + last_meta.1.size();
-        if size_with_last_meta > point_step_size {
+        let last_pdata = pdata.last().expect("Dimensionality is 0.");
+        let size_with_last_pdata = last_offset + last_pdata.1.size();
+        if size_with_last_pdata > point_step_size {
             return Err(MsgConversionError::DataLengthMismatch);
         }
 
@@ -326,7 +324,7 @@ where
             0,
             cloud_length - 1,
             offsets,
-            meta,
+            pdata,
             cloud.endian,
         );
 

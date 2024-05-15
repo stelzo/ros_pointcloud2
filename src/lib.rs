@@ -72,7 +72,7 @@
 //!     pub x: f32,
 //!     pub y: f32,
 //!     pub z: f32,
-//!     #[cfg_attr(feature = "derive", rpcl2(name = "i"))]
+//!     #[cfg_attr(feature = "derive", rpcl2(rename("i")))]
 //!     pub intensity: f32,
 //! }
 //!
@@ -121,7 +121,7 @@
 //!     pub x: f32,
 //!     pub y: f32,
 //!     pub z: f32,
-//!     #[rpcl2(name = "i")]
+//!     #[rpcl2(rename("i"))]
 //!     pub intensity: f32,
 //! }
 //! ```
@@ -457,33 +457,33 @@ impl PointCloud2Msg {
             let field_names = C::field_names_ordered();
             debug_assert!(field_names.len() == N);
 
-            let mut meta_offsets_acc: u32 = 0;
+            let mut pdata_offsets_acc: u32 = 0;
             let mut fields = vec![PointFieldMsg::default(); N];
             let field_count: u32 = 1;
-            for ((meta_value, field_name), field_val) in point
+            for ((pdata_entry, field_name), field_val) in point
                 .fields
                 .into_iter()
                 .zip(field_names.into_iter())
                 .zip(fields.iter_mut())
             {
-                let datatype_code = meta_value.datatype.into();
+                let datatype_code = pdata_entry.datatype.into();
                 let _ = FieldDatatype::try_from(datatype_code)?;
 
                 *field_val = PointFieldMsg {
                     name: field_name.into(),
-                    offset: meta_offsets_acc,
+                    offset: pdata_offsets_acc,
                     datatype: datatype_code,
                     count: 1,
                 };
 
-                meta_offsets_acc += field_count * meta_value.datatype.size() as u32;
+                pdata_offsets_acc += field_count * pdata_entry.datatype.size() as u32;
             }
 
             (
                 PointCloud2MsgBuilder::new()
                     .fields(fields)
-                    .point_step(meta_offsets_acc),
-                meta_offsets_acc,
+                    .point_step(pdata_offsets_acc),
+                pdata_offsets_acc,
             )
         };
         let mut cloud_width = 0;
@@ -491,9 +491,9 @@ impl PointCloud2Msg {
         iterable.into_iter().for_each(|pointdata| {
             let point: RPCL2Point<N> = pointdata.into();
 
-            point.fields.iter().for_each(|meta| {
+            point.fields.iter().for_each(|pdata| {
                 let truncated_bytes = unsafe {
-                    std::slice::from_raw_parts(meta.bytes.as_ptr(), meta.datatype.size())
+                    std::slice::from_raw_parts(pdata.bytes.as_ptr(), pdata.datatype.size())
                 };
                 cloud.data.extend_from_slice(truncated_bytes);
             });
@@ -706,7 +706,7 @@ impl PointCloud2Msg {
     }
 }
 
-/// Internal point representation. It is used to store the coordinates and meta data of a point.
+/// Internal point representation. It is used to store the point data entries.
 ///
 /// In each iteration, an internal point representation is converted to the desired point type.
 /// Implement the `From` traits for your point type to use the conversion.
@@ -779,7 +779,7 @@ impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
 /// ```
 #[cfg(not(feature = "derive"))]
 pub trait PointConvertible<const N: usize>:
-    From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Fields<N> + Clone + 'static + Default
+    From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Fields<N> + Clone + Default
 {
 }
 
@@ -840,7 +840,7 @@ pub trait PointConvertible<const N: usize>:
 /// ```
 #[cfg(feature = "derive")]
 pub trait PointConvertible<const N: usize>:
-    type_layout::TypeLayout + From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Fields<N> + 'static + Default
+    type_layout::TypeLayout + From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Fields<N> + Default
 {
 }
 
@@ -926,8 +926,8 @@ impl TryFrom<type_layout::TypeLayoutInfo> for TypeLayoutInfo {
 /// use ros_pointcloud2::PointData;
 ///
 /// let original_data: f64 = 1.0;
-/// let meta = PointData::new(original_data);
-/// let my_data: f64 = meta.get();
+/// let pdata = PointData::new(original_data);
+/// let my_data: f64 = pdata.get();
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct PointData {
@@ -951,7 +951,7 @@ impl PointData {
     ///
     /// # Example
     /// ```
-    /// let meta = ros_pointcloud2::PointData::new(1.0);
+    /// let pdata = ros_pointcloud2::PointData::new(1.0);
     /// ```
     #[inline(always)]
     pub fn new<T: FromBytes>(value: T) -> Self {
@@ -984,8 +984,8 @@ impl PointData {
     /// # Example
     /// ```
     /// let original_data: f64 = 1.0;
-    /// let meta = ros_pointcloud2::PointData::new(original_data);
-    /// let my_data: f64 = meta.get();
+    /// let pdata = ros_pointcloud2::PointData::new(original_data);
+    /// let my_data: f64 = pdata.get();
     /// ```
     pub fn get<T: FromBytes>(&self) -> T {
         match self.endian {
@@ -1408,7 +1408,7 @@ mod tests {
     #[derive(Fields)]
     struct TestStruct {
         field1: String,
-        #[rpcl2(name = "renamed_field")]
+        #[rpcl2(rename("renamed_field"))]
         field2: i32,
         field3: f64,
         field4: bool,
