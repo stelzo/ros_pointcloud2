@@ -1,5 +1,5 @@
 > [!NOTE]  
-> This library is currently in development for v1. For the documentation of the current live version v0.4, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/).
+> This library is currently in preparation for v1. For the documentation of the current crates.io v0.4, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/).
 
 <p align="center">
   <h3 align="center">ROS PointCloud2</h3>
@@ -10,7 +10,7 @@
 
 ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
-Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/1.0.0/ros_pointcloud2/) for a complete guide.
+Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/1.0.0-rc.1/) for a complete guide.
 
 ## Quickstart
 
@@ -100,9 +100,17 @@ The `_iter` conversions are compatible with `#[no_std]` environments when an all
 
 ## License
 
-Dual licensed under your choice of either of:
+Licensed under either of
 
-- [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
-- [MIT License](https://opensource.org/licenses/MIT)
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
+
+### type-layout
+For compatibility reasons, a patched version of `type-layout` is included in this repository. The original crate can be found [here](https://crates.io/crates/type-layout). After the patch is applied on the original `type-layout` crate ([PR](https://github.com/LPGhatguy/type-layout/pull/9)), the local dependency will be changed to the original crate.
+
+`type-layout` is licensed under MIT or Apache-2.0 and Copyright by Lucien Greathouse. The changes are highlighted in the diff of the PR.
+
+### Contribution
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
