@@ -1,6 +1,5 @@
-## !! Note !!
-
-This library is currently in development for v1.0.0, for the documentation of v0.4.0 on crates.io, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/).
+> [!NOTE]  
+> This library is currently in development for v1. For the documentation of the current live version v0.4, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/).
 
 <p align="center">
   <h3 align="center">ROS PointCloud2</h3>
@@ -95,10 +94,15 @@ The results are measured on an Intel i7-14700 with benchmarks from [this reposit
 
 For minimizing the conversion overhead in general, always use the functions that best fit your use case.
 
-## `#[no_std]`
+## `no_std` Environments
 
 The `_iter` conversions are compatible with `#[no_std]` environments when an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate.
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
+Dual licensed under your choice of either of:
+
+- [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+- [MIT License](https://opensource.org/licenses/MIT)
+
+at your option.

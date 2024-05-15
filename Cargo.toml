@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
 repository = "https://github.com/stelzo/ros_pointcloud2"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 keywords = ["ros", "pointcloud2", "pointcloud", "message"]
 categories = [
     "science::robotics",
@@ -35,7 +35,7 @@ r2r = { version = "0.8.4", optional = true }
 rayon = { version = "1", optional = true }
 nalgebra = { version = "0", optional = true }
 rpcl2_derive = { path = "./rpcl2_derive", optional = true }
-type-layout = { git = "https://github.com/stelzo/type-layout", branch = "syn2", optional = true }
+type-layout = { path = "type-layout", optional = true }
 
 [dev-dependencies]
 rand = "0.8"
