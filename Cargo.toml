@@ -35,7 +35,7 @@ r2r = { version = "0.8.4", optional = true }
 rayon = { version = "1", optional = true }
 nalgebra = { version = "0", optional = true }
 rpcl2_derive = { path = "./rpcl2_derive", optional = true }
-type-layout = { version = "0.2", optional = true }
+type-layout = { git = "https://github.com/stelzo/type-layout", branch = "syn2", optional = true }
 
 [dev-dependencies]
 rand = "0.8"
@@ -51,8 +51,9 @@ r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2_derive", "dep:type-layout"]
 nalgebra = ["dep:nalgebra"]
+std = []
 
-default = ["derive"]
+default = ["derive", "std"]
 
 [package.metadata.docs.rs]
 features = ["derive", "nalgebra", "rayon"]

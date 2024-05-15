@@ -4,6 +4,9 @@ use crate::{Fields, PointConvertible, RPCL2Point};
 #[cfg(feature = "derive")]
 use type_layout::TypeLayout;
 
+#[cfg(all(not(feature = "std"), feature = "derive"))]
+use alloc::vec::Vec;
+
 /// A packed RGB color encoding as used in ROS tools.
 #[derive(Clone, Copy)]
 #[repr(C)]
@@ -28,13 +31,13 @@ impl PartialEq for RGB {
 }
 
 impl core::fmt::Display for RGB {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "#{:02X}{:02X}{:02X}", self.r(), self.g(), self.b())
     }
 }
 
 impl core::fmt::Debug for RGB {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("RGB")
             .field("r", &self.r())
             .field("g", &self.g())
@@ -44,32 +47,39 @@ impl core::fmt::Debug for RGB {
 }
 
 impl RGB {
+    #[must_use]
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self {
             unpacked: [b, g, r, 0],
         }
     }
 
+    #[must_use]
     pub fn new_from_packed_f32(packed: f32) -> Self {
         Self { packed }
     }
 
+    #[must_use]
     pub fn new_from_packed(packed: u32) -> Self {
         Self::new_from_packed_f32(f32::from_bits(packed))
     }
 
+    #[must_use]
     pub fn raw(&self) -> f32 {
         unsafe { self.packed }
     }
 
+    #[must_use]
     pub fn r(&self) -> u8 {
         unsafe { self.unpacked[2] }
     }
 
+    #[must_use]
     pub fn g(&self) -> u8 {
         unsafe { self.unpacked[1] }
     }
 
+    #[must_use]
     pub fn b(&self) -> u8 {
         unsafe { self.unpacked[0] }
     }
@@ -129,6 +139,7 @@ impl From<PointXYZ> for nalgebra::Point3<f32> {
 }
 
 impl PointXYZ {
+    #[must_use]
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
@@ -289,19 +300,23 @@ pub struct PointXYZRGB {
 }
 
 impl PointXYZRGB {
+    #[must_use]
     pub fn new(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8) -> Self {
         let rgb = RGB::new(r, g, b);
         Self { x, y, z, rgb }
     }
 
+    #[must_use]
     pub fn r(&self) -> u8 {
         self.rgb.r()
     }
 
+    #[must_use]
     pub fn g(&self) -> u8 {
         self.rgb.g()
     }
 
+    #[must_use]
     pub fn b(&self) -> u8 {
         self.rgb.b()
     }
@@ -361,19 +376,23 @@ pub struct PointXYZRGBA {
 }
 
 impl PointXYZRGBA {
+    #[must_use]
     pub fn new(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8, a: u8) -> Self {
         let rgb = RGB::new(r, g, b);
         Self { x, y, z, rgb, a }
     }
 
+    #[must_use]
     pub fn r(&self) -> u8 {
         self.rgb.r()
     }
 
+    #[must_use]
     pub fn g(&self) -> u8 {
         self.rgb.g()
     }
 
+    #[must_use]
     pub fn b(&self) -> u8 {
         self.rgb.b()
     }
@@ -436,6 +455,7 @@ pub struct PointXYZRGBNormal {
 }
 
 impl PointXYZRGBNormal {
+    #[must_use]
     pub fn new(
         x: f32,
         y: f32,
@@ -456,14 +476,17 @@ impl PointXYZRGBNormal {
         }
     }
 
+    #[must_use]
     pub fn r(&self) -> u8 {
         self.rgb.r()
     }
 
+    #[must_use]
     pub fn g(&self) -> u8 {
         self.rgb.g()
     }
 
+    #[must_use]
     pub fn b(&self) -> u8 {
         self.rgb.b()
     }
@@ -530,6 +553,7 @@ pub struct PointXYZINormal {
 }
 
 impl PointXYZINormal {
+    #[must_use]
     pub fn new(
         x: f32,
         y: f32,
@@ -613,6 +637,7 @@ unsafe impl Send for PointXYZRGBL {}
 unsafe impl Sync for PointXYZRGBL {}
 
 impl PointXYZRGBL {
+    #[must_use]
     pub fn new(x: f32, y: f32, z: f32, r: u8, g: u8, b: u8, label: u32) -> Self {
         let rgb = RGB::new(r, g, b);
         Self {
@@ -624,14 +649,17 @@ impl PointXYZRGBL {
         }
     }
 
+    #[must_use]
     pub fn r(&self) -> u8 {
         self.rgb.r()
     }
 
+    #[must_use]
     pub fn g(&self) -> u8 {
         self.rgb.g()
     }
 
+    #[must_use]
     pub fn b(&self) -> u8 {
         self.rgb.b()
     }
@@ -690,6 +718,7 @@ pub struct PointXYZNormal {
 }
 
 impl PointXYZNormal {
+    #[must_use]
     pub fn new(x: f32, y: f32, z: f32, normal_x: f32, normal_y: f32, normal_z: f32) -> Self {
         Self {
             x,

@@ -23,6 +23,9 @@
 //! }
 //! ```
 
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
+
 /// [Time](https://docs.ros2.org/latest/api/builtin_interfaces/msg/Time.html) representation for ROS messages.
 #[derive(Clone, Debug, Default)]
 pub struct TimeMsg {
