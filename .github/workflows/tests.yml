@@ -23,6 +23,8 @@ jobs:
           rustc --version
           cargo --version
       - name: Linting
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --all-targets --features derive,nalgebra,rayon -- -D warnings
       - name: Tests
         run: cargo test --features derive,nalgebra,rayon
+      - name: no_std Tests
+        run: cargo test --no-default-features --features nalgebra

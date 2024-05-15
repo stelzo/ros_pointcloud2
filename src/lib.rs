@@ -3,24 +3,24 @@
 //! The library provides the [`PointCloud2Msg`] type, which implements conversions to and from `Vec` and (parallel) iterators.
 //!
 //! Vector conversions are optimized for direct copy. They are useful when you just move similar data around. They are usually a good default.
-//! - [`PointCloud2Msg::try_from_vec`] requires `derive` feature (enabled by default)
-//! - [`PointCloud2Msg::try_into_vec`] requires `derive` feature (enabled by default)
+//! - [`try_from_vec`](PointCloud2Msg::try_from_vec) requires `derive` feature (enabled by default)
+//! - [`try_into_vec`](PointCloud2Msg::try_into_vec) requires `derive` feature (enabled by default)
 //!
 //! You can use the iterator functions for more control over the conversion process.
-//! - [`PointCloud2Msg::try_from_iter`]
-//! - [`PointCloud2Msg::try_into_iter`]
+//! - [`try_from_iter`](PointCloud2Msg::try_from_iter)
+//! - [`try_into_iter`](PointCloud2Msg::try_into_iter)
 //!
 //! These feature predictable performance but they do not scale well with large clouds. Learn more about that in the [performance section](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#performance) of the repository.
 //! The iterators are useful when your conversions are more complex than a simple copy or you the cloud is small enough.
 //!
 //! When the cloud is getting larger or you are doing a lot of processing per point, switch to the parallel iterators.
-//! - [`PointCloud2Msg::try_into_par_iter`] requires `rayon` feature
-//! - [`PointCloud2Msg::try_from_par_iter`] requires `rayon` + `derive` feature
+//! - [`try_into_par_iter`](PointCloud2Msg::try_into_par_iter) requires `rayon` feature
+//! - [`try_from_par_iter`](PointCloud2Msg::try_from_par_iter) requires `rayon` + `derive` feature
 //!
 //! For ROS interoperability, there are integrations avialable with feature flags. If you miss a message type, please open an issue or a PR.
 //! See the [`ros`] module for more information on how to integrate more libraries.
 //!
-//! Common point types like [`points::PointXYZ`] or [`points::PointXYZI`] are provided. You can easily add any additional custom type.
+//! Common point types like [`PointXYZ`](points::PointXYZ) or [`PointXYZI`](points::PointXYZI) are provided. See the full list [`here`](points). You can easily add any additional custom type.
 //! See [custom_enum_field_filter.rs](https://github.com/stelzo/ros_pointcloud2/blob/main/examples/custom_enum_field_filter.rs) for an example.
 //!
 //! # Minimal Example
@@ -58,8 +58,8 @@
 //! - (rclrs_msg) — Integration for ROS2 [rclrs](https://github.com/ros2-rust/ros2_rust) but it currently needs [this workaround](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#rclrs-ros2_rust).
 //! - derive *(enabled by default)* — Enables the `_vec` functions and offers helpful custom point derive macros for the [`PointConvertible`] trait.
 //! - rayon — Parallel iterator support for `_par_iter` functions. [`PointCloud2Msg::try_from_par_iter`] additionally needs the 'derive' feature.
-//! - nalgebra — Predefined points offer a nalgebra typed getter for coordinates (e.g. [`points::PointXYZ::xyz`]).
-//! - std *(enabled by default)* — Use the standard library. Disable *all* features for `no_std` environments.
+//! - nalgebra — Predefined points offer a nalgebra typed getter for coordinates (e.g. [`xyz`](points::PointXYZ::xyz)).
+//! - std *(enabled by default)* — Use the standard library. `no_std` only works standalone or with the 'nalgebra' feature.
 //!
 //! # Custom Points
 //! Implement [`PointConvertible`] for your point with the `derive` feature or manually.
@@ -128,7 +128,7 @@
 //! ```
 #![crate_type = "lib"]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/1.0.0-rc.1")]
+#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.5.0-rc.1")]
 #![warn(clippy::print_stderr)]
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unwrap_used)]
@@ -148,16 +148,12 @@ pub mod iterator;
 
 use crate::ros::{HeaderMsg, PointFieldMsg};
 
+#[cfg(feature = "derive")]
 use core::str::FromStr;
 
-#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
-
-#[cfg(not(feature = "std"))]
 use alloc::string::String;
-
-#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
 /// All errors that can occur while converting to or from the message type.
@@ -1104,7 +1100,7 @@ impl From<i16> for PointData {
     }
 }
 
-/// Datatypes from the [`ros::PointFieldMsg`].
+/// Datatypes from the [`PointFieldMsg`].
 #[derive(Default, Clone, Debug, PartialEq, Copy)]
 pub enum FieldDatatype {
     F32,
@@ -1118,7 +1114,7 @@ pub enum FieldDatatype {
     I16,
 
     /// While RGB is not officially supported by ROS, it is used in the tooling as a packed f32.
-    /// To make it easy to work with and avoid packing code, the [`points::RGB`] union is supported here and handled like a f32.
+    /// To make it easy to work with and avoid packing code, the [`RGB`](points::RGB) union is supported here and handled like a f32.
     RGB,
 }
 
@@ -1266,7 +1262,7 @@ impl TryFrom<&ros::PointFieldMsg> for FieldDatatype {
 
 /// Byte buffer alias for endian-aware point data reading and writing.
 ///
-/// It uses a fixed size buffer of 8 bytes since the largest supported datatype for [`ros::PointFieldMsg`] is f64.
+/// It uses a fixed size buffer of 8 bytes since the largest supported datatype for [`PointFieldMsg`] is f64.
 pub struct PointDataBuffer([u8; 8]);
 
 impl core::ops::Index<usize> for PointDataBuffer {
@@ -1368,7 +1364,7 @@ impl From<points::RGB> for PointDataBuffer {
 }
 
 /// This trait is used to convert a byte slice to a primitive type.
-/// All [`ros::PointFieldMsg`] types are supported.
+/// All [`PointFieldMsg`] types are supported.
 pub trait FromBytes: Default + Sized + Copy + GetFieldDatatype + Into<PointDataBuffer> {
     fn from_be_bytes(bytes: PointDataBuffer) -> Self;
     fn from_le_bytes(bytes: PointDataBuffer) -> Self;
@@ -1474,7 +1470,6 @@ mod tests {
     use super::Fields;
     use rpcl2_derive::Fields;
 
-    #[cfg(not(feature = "std"))]
     use alloc::string::String;
 
     #[allow(dead_code)]

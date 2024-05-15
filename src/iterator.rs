@@ -4,14 +4,9 @@ use crate::{
     RPCL2Point,
 };
 
-#[cfg(not(feature = "std"))]
-use alloc::string::String;
-
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-
-#[cfg(not(feature = "std"))]
 use alloc::borrow::ToOwned;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// The PointCloudIterator provides a an iterator abstraction of the [`PointCloud2Msg`].
 ///
@@ -166,7 +161,7 @@ where
 
 struct ByteBufferView<const N: usize> {
     #[cfg(feature = "rayon")]
-    data: std::sync::Arc<[u8]>,
+    data: alloc::sync::Arc<[u8]>,
     #[cfg(not(feature = "rayon"))]
     data: Vec<u8>,
     start_point_idx: usize,
@@ -189,7 +184,7 @@ impl<const N: usize> ByteBufferView<N> {
     ) -> Self {
         Self {
             #[cfg(feature = "rayon")]
-            data: std::sync::Arc::<[u8]>::from(data),
+            data: alloc::sync::Arc::<[u8]>::from(data),
             #[cfg(not(feature = "rayon"))]
             data,
             start_point_idx,
@@ -380,6 +375,7 @@ where
 
 #[cfg(feature = "rayon")]
 mod test {
+    #![allow(clippy::unwrap_used)]
 
     #[test]
     fn test_double_ended_iter() {
