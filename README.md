@@ -96,7 +96,7 @@ For minimizing the conversion overhead in general, always use the functions that
 
 ## `no_std` Environments
 
-The `_iter` conversions are compatible with `#[no_std]` environments if an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate.
+The `_iter` conversions are compatible with `#[no_std]` environments if an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate. Only `nalgebra` can be added as an additional feature in this case.
 
 ## License
 
