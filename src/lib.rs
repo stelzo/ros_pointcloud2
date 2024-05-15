@@ -53,12 +53,13 @@
 //! ```
 //!
 //! # Features
-//! - **r2r_msg** — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
-//! - **(rclrs_msg)** — Integration for ROS2 [rclrs](https://github.com/ros2-rust/ros2_rust) but it needs this [workaround](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#rclrs-ros2_rust) instead of a feature flag.
-//! - **rosrust_msg** — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
-//! - **derive** (default) — Needed for the `_vec` functions and helpful custom point derive macros for the [`PointConvertible`] trait.
-//! - **rayon** — Parallel iterator support for `_par_iter` functions. [`PointCloud2Msg::try_from_par_iter`] additionally needs the 'derive' feature to be enabled.
-//! - **nalgebra** — When enabled, predefined points offer a `xyz()` getter returning `nalgebra::Point3`.
+//! - r2r_msg — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
+//! - rosrust_msg — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
+//! - (rclrs_msg) — Integration for ROS2 [rclrs](https://github.com/ros2-rust/ros2_rust) but it currently needs [this workaround](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#rclrs-ros2_rust).
+//! - derive *(enabled by default)* — Enables the `_vec` functions and offers helpful custom point derive macros for the [`PointConvertible`] trait.
+//! - rayon — Parallel iterator support for `_par_iter` functions. [`PointCloud2Msg::try_from_par_iter`] additionally needs the 'derive' feature.
+//! - nalgebra — Predefined points offer a nalgebra typed getter for coordinates (e.g. [`points::PointXYZ::xyz`]).
+//! - std *(enabled by default)* — Use the standard library. Disable *all* features for `no_std` environments.
 //!
 //! # Custom Points
 //! Implement [`PointConvertible`] for your point with the `derive` feature or manually.
@@ -126,8 +127,18 @@
 //! }
 //! ```
 #![crate_type = "lib"]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.5.0-rc.1")]
 #![warn(clippy::print_stderr)]
 #![warn(clippy::print_stdout)]
+#![warn(clippy::unwrap_used)]
+#![warn(clippy::cargo)]
+#![warn(clippy::std_instead_of_core)]
+#![warn(clippy::alloc_instead_of_core)]
+#![warn(clippy::std_instead_of_alloc)]
+#![cfg_attr(not(feature = "std"), no_std)]
+// Setup an allocator with #[global_allocator]
+// see: https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html
 #![warn(clippy::unwrap_used)]
 #![warn(clippy::cargo)]
 #![warn(clippy::std_instead_of_core)]
@@ -145,16 +156,12 @@ pub mod iterator;
 
 use crate::ros::{HeaderMsg, PointFieldMsg};
 
+#[cfg(feature = "derive")]
 use core::str::FromStr;
 
-#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
-
-#[cfg(not(feature = "std"))]
 use alloc::string::String;
-
-#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
 /// All errors that can occur while converting to or from the message type.
@@ -551,6 +558,7 @@ impl PointCloud2Msg {
 
     /// Create a PointCloud2Msg from a parallel iterator. Requires the `rayon` and `derive` feature to be enabled.
     #[cfg(all(feature = "rayon", feature = "derive"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "rayon", feature = "derive"))))]
     pub fn try_from_par_iter<const N: usize, C>(
         iterable: impl rayon::iter::ParallelIterator<Item = C>,
     ) -> Result<Self, MsgConversionError>
@@ -578,6 +586,7 @@ impl PointCloud2Msg {
     /// # Errors
     /// Returns an error if the byte buffer does not match the expected layout or the message contains other discrepancies.
     #[cfg(feature = "derive")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
     pub fn try_from_vec<const N: usize, C>(vec: Vec<C>) -> Result<Self, MsgConversionError>
     where
         C: PointConvertible<N>,
@@ -666,6 +675,7 @@ impl PointCloud2Msg {
     /// # Errors
     /// Returns an error if the byte buffer does not match the expected layout or the message contains other discrepancies.
     #[cfg(feature = "derive")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
     pub fn try_into_vec<const N: usize, C>(self) -> Result<Vec<C>, MsgConversionError>
     where
         C: PointConvertible<N>,
@@ -746,6 +756,7 @@ impl PointCloud2Msg {
     /// let cloud_points_out = msg_out.try_into_par_iter().unwrap().collect::<Vec<PointXYZ>>();
     /// assert_eq!(2, cloud_points_out.len());
     /// ```
+    #[cfg_attr(docsrs, doc(cfg(feature = "rayon")))]
     #[cfg(feature = "rayon")]
     pub fn try_into_par_iter<const N: usize, C>(
         self,
@@ -828,6 +839,7 @@ impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
 ///
 /// impl PointConvertible<4> for MyPointXYZI {}
 /// ```
+#[cfg_attr(docsrs, doc(cfg(not(feature = "derive"))))]
 #[cfg(not(feature = "derive"))]
 pub trait PointConvertible<const N: usize>:
     From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Fields<N> + Clone + Default
@@ -889,6 +901,7 @@ pub trait PointConvertible<const N: usize>:
 ///
 /// impl PointConvertible<4> for MyPointXYZI {}
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
 #[cfg(feature = "derive")]
 pub trait PointConvertible<const N: usize>:
     type_layout::TypeLayout + From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Fields<N> + Default
@@ -1359,7 +1372,7 @@ impl From<points::RGB> for PointDataBuffer {
 }
 
 /// This trait is used to convert a byte slice to a primitive type.
-/// All [`PointField`] types are supported.
+/// All [`ros::PointFieldMsg`] types are supported.
 pub trait FromBytes: Default + Sized + Copy + GetFieldDatatype + Into<PointDataBuffer> {
     fn from_be_bytes(bytes: PointDataBuffer) -> Self;
     fn from_le_bytes(bytes: PointDataBuffer) -> Self;
@@ -1465,7 +1478,6 @@ mod tests {
     use super::Fields;
     use rpcl2_derive::Fields;
 
-    #[cfg(not(feature = "std"))]
     use alloc::string::String;
 
     #[allow(dead_code)]

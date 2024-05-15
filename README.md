@@ -1,6 +1,5 @@
-## !! Note !!
-
-This library is currently in development for v1.0.0, for the documentation of v0.4.0 on crates.io, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/).
+> [!NOTE]  
+> This library is currently in preparation for v0.5 with many breaking changes. For the documentation of the current crates.io v0.4.0, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/). Since rclrs still needs a workaround, the version number must be changed to your desired version which supports rclrs (currently only v0.4.0) — regardless of the version number shown in this Readme.
 
 <p align="center">
   <h3 align="center">ROS PointCloud2</h3>
@@ -11,7 +10,7 @@ This library is currently in development for v1.0.0, for the documentation of v0
 
 ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
-Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/1.0.0/ros_pointcloud2/) for a complete guide.
+Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/0.5.0-rc.1/) for a complete guide.
 
 ## Quickstart
 
@@ -72,7 +71,7 @@ Features do not work properly with `rcrls` because the messages are linked exter
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.4.0_rclrs" }
+ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.0-rc.1_rclrs" }
 ```
 
 Also, indicate the following dependencies to your linker inside the `package.xml` of your package.
@@ -95,10 +94,23 @@ The results are measured on an Intel i7-14700 with benchmarks from [this reposit
 
 For minimizing the conversion overhead in general, always use the functions that best fit your use case.
 
-## `#[no_std]`
+## `no_std` Environments
 
-The `_iter` conversions are compatible with `#[no_std]` environments when an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate.
+The `_iter` conversions are compatible with `#[no_std]` environments if an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate.
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
+Licensed under either of
+
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+### type-layout
+For compatibility reasons, a patched version of `type-layout` is included in this repository. The original crate can be found [here](https://crates.io/crates/type-layout). After the patch is applied on the original `type-layout` crate ([PR](https://github.com/LPGhatguy/type-layout/pull/9)), the local dependency will be changed to the original crate.
+
+`type-layout` is licensed under MIT or Apache-2.0 and Copyright by Lucien Greathouse. The changes are highlighted in the diff of the PR.
+
+### Contribution
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.

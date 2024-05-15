@@ -4,7 +4,7 @@ use crate::{Fields, PointConvertible, RPCL2Point};
 #[cfg(feature = "derive")]
 use type_layout::TypeLayout;
 
-#[cfg(all(not(feature = "std"), feature = "derive"))]
+#[cfg(feature = "derive")]
 use alloc::vec::Vec;
 
 /// A packed RGB color encoding as used in ROS tools.
@@ -144,7 +144,9 @@ impl PointXYZ {
         Self { x, y, z }
     }
 
+    /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
@@ -190,7 +192,9 @@ impl PointXYZI {
         Self { x, y, z, intensity }
     }
 
+    /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
@@ -247,7 +251,9 @@ impl PointXYZL {
         Self { x, y, z, label }
     }
 
+    /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
@@ -321,7 +327,9 @@ impl PointXYZRGB {
         self.rgb.b()
     }
 
+    /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
@@ -397,7 +405,9 @@ impl PointXYZRGBA {
         self.rgb.b()
     }
 
+    /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
@@ -491,7 +501,9 @@ impl PointXYZRGBNormal {
         self.rgb.b()
     }
 
+    /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
@@ -574,7 +586,9 @@ impl PointXYZINormal {
         }
     }
 
+    /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
@@ -664,7 +678,9 @@ impl PointXYZRGBL {
         self.rgb.b()
     }
 
+    /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
@@ -730,7 +746,9 @@ impl PointXYZNormal {
         }
     }
 
+    /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
