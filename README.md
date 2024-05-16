@@ -1,12 +1,12 @@
-> [!NOTE]  
-> This library is currently in preparation for v0.5 with many breaking changes. For the documentation of the current crates.io v0.4.0, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/). Since rclrs still needs a workaround, the version number must be changed to your desired version which supports rclrs — regardless of the version number shown in this Readme. The supported versions are marked with the `_rclrs` postfix as can be seen [here](https://github.com/stelzo/ros_pointcloud2/tags).
-
 <p align="center">
   <h3 align="center">ROS PointCloud2</h3>
   <p align="center">A PointCloud2 message conversion library.</p>
   <p align="center"><a href="https://crates.io/crates/ros_pointcloud2"><img src="https://img.shields.io/crates/v/ros_pointcloud2.svg" alt=""></a> <a href="https://github.com/stelzo/ros_pointcloud2/tree/main/tests"><img src="https://github.com/stelzo/ros_pointcloud2/actions/workflows/tests.yml/badge.svg" alt=""></a>
   </p>
 </p>
+
+> [!NOTE]  
+> This library is currently in preparation for v0.5 with many breaking changes. It is currently available as v0.5.0-rc.1. For the documentation of v0.4.0, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/). Since rclrs still needs a workaround, the version number must be changed to your desired version which supports rclrs — regardless of the version number shown in this Readme. The supported versions are marked with the `_rclrs` postfix as can be seen [here](https://github.com/stelzo/ros_pointcloud2/tags).
 
 ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
