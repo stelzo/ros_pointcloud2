@@ -1,3 +1,4 @@
+//! This crate provides macros for `ros_pointcloud2` and should be used in combination with said crate.
 extern crate proc_macro;
 
 use std::collections::HashMap;
@@ -30,7 +31,7 @@ fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
 
     let mut field_names = Vec::with_capacity(fields.len());
     for f in fields.iter() {
-        if f.attrs.len() == 0 {
+        if f.attrs.is_empty() {
             field_names.push(f.ident.as_ref().unwrap().to_token_stream().to_string());
         } else {
             f.attrs.iter().for_each(|attr| {
@@ -186,12 +187,10 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
         impl ros_pointcloud2::PointConvertible<#field_len_token> for #name {}
     };
 
-    let out = TokenStream::from(quote! {
+    TokenStream::from(quote! {
         #field_impl
         #from_my_point
         #from_custom_point
         #convertible
-    });
-
-    TokenStream::from(out)
+    })
 }

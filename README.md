@@ -107,12 +107,6 @@ Licensed under either of
 
 at your option.
 
-### type-layout
-
-For compatibility reasons, a patched version of `type-layout` is included in this repository. The original crate can be found [here](https://crates.io/crates/type-layout). After the patch is applied on the original `type-layout` crate ([PR](https://github.com/LPGhatguy/type-layout/pull/9)), the local dependency will be changed to the original crate.
-
-`type-layout` is licensed under MIT or Apache-2.0 and Copyright by Lucien Greathouse. The changes are highlighted in the diff of the PR.
-
 ### Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.

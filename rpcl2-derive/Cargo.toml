@@ -1,0 +1,24 @@
+[package]
+name = "rpcl2-derive"
+description = "Derive macros for ros_pointcloud2 crate."
+version = "0.1.0"
+edition = "2021"
+authors = ["Christopher Sieh <stelzo@steado.de>"]
+homepage = "https://github.com/stelzo/ros_pointcloud2"
+license = "MIT OR Apache-2.0"
+keywords = ["ros", "pointcloud2", "ros_pointcloud2"]
+categories = [
+    "science::robotics",
+    "encoding",
+    "data-structures",
+    "api-bindings",
+]
+repository = "https://github.com/stelzo/ros_pointcloud2"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "2.0"
+quote = "1.0"
+proc-macro2 = "1.0"
