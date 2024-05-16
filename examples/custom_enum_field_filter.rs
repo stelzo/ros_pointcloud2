@@ -89,7 +89,7 @@ impl From<RPCL2Point<5>> for CustomPoint {
     }
 }
 
-// Define wow we want to name the fields in the message.
+// Define how we want to name the fields in the message.
 impl Fields<5> for CustomPoint {
     fn field_names_ordered() -> [&'static str; 5] {
         ["x", "y", "z", "intensity", "my_custom_label"]
