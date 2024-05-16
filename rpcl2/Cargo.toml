@@ -13,7 +13,7 @@ categories = [
     "data-structures",
     "api-bindings",
 ]
-readme = "README.md"
+readme = "../README.md"
 documentation = "https://docs.rs/ros_pointcloud2"
 homepage = "https://github.com/stelzo/ros_pointcloud2"
 exclude = [
