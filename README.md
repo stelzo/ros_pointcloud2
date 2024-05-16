@@ -1,5 +1,5 @@
 > [!NOTE]  
-> This library is currently in preparation for v0.5 with many breaking changes. For the documentation of the current crates.io v0.4.0, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/). Since rclrs still needs a workaround, the version number must be changed to your desired version which supports rclrs (currently only v0.4.0) — regardless of the version number shown in this Readme.
+> This library is currently in preparation for v0.5 with many breaking changes. For the documentation of the current crates.io v0.4.0, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/). Since rclrs still needs a workaround, the version number must be changed to your desired version which supports rclrs — regardless of the version number shown in this Readme. The supported versions are marked with the `_rclrs` postfix as can be seen [here](https://github.com/stelzo/ros_pointcloud2/tags).
 
 <p align="center">
   <h3 align="center">ROS PointCloud2</h3>
@@ -108,9 +108,11 @@ Licensed under either of
 at your option.
 
 ### type-layout
+
 For compatibility reasons, a patched version of `type-layout` is included in this repository. The original crate can be found [here](https://crates.io/crates/type-layout). After the patch is applied on the original `type-layout` crate ([PR](https://github.com/LPGhatguy/type-layout/pull/9)), the local dependency will be changed to the original crate.
 
 `type-layout` is licensed under MIT or Apache-2.0 and Copyright by Lucien Greathouse. The changes are highlighted in the diff of the PR.
 
 ### Contribution
+
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
