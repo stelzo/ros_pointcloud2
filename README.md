@@ -64,14 +64,11 @@ ros_pointcloud2 = { version = "*", features = ["rosrust_msg", "derive"]}
 
 ### rclrs (ros2_rust)
 
-> [!NOTE]  
-> rclrs is currently not supported with v0.5.x due to some effects in how it generates messages. We will add back support for it as soon as [a new message pipeline](https://github.com/ros2-rust/ros2_rust/issues/394) is implemented. You can still write the conversions to the message yourself or use v0.4.0 in the meantime.
-
 Features do not work properly with `rcrls` because the messages are linked externally. You need to use tags instead:
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.4.0_rclrs" }
+ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.0-rc.1_rclrs" }
 ```
 
 Also, indicate the following dependencies to your linker inside the `package.xml` of your package.
