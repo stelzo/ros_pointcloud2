@@ -148,6 +148,8 @@
 // Setup an allocator with #[global_allocator]
 // see: https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html
 
+extern crate type_layout;
+
 pub mod points;
 pub mod prelude;
 pub mod ros;
