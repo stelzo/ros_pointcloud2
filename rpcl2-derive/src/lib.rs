@@ -4,8 +4,9 @@ extern crate proc_macro;
 use std::collections::HashMap;
 
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
-use syn::{parenthesized, parse_macro_input, DeriveInput, LitStr};
+use proc_macro2::{Ident, Literal};
+use quote::{quote, quote_spanned, ToTokens};
+use syn::{parenthesized, parse_macro_input, spanned::Spanned, Data, DeriveInput, Fields, LitStr};
 
 fn get_allowed_types() -> HashMap<&'static str, usize> {
     let mut allowed_datatypes = HashMap::<&'static str, usize>::new();
@@ -193,4 +194,79 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
         #from_custom_point
         #convertible
     })
+}
+
+#[proc_macro_derive(TypeLayout)]
+pub fn derive_type_layout(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = input.ident;
+
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let layout = layout_of_type(&name, &input.data);
+
+    let expanded = quote! {
+        impl #impl_generics ::ros_pointcloud2::TypeLayout for #name #ty_generics #where_clause {
+            fn layout() -> ::ros_pointcloud2::LayoutDescription {
+                let mut last_field_end = 0;
+                let mut fields = Vec::new();
+
+                #layout
+
+                ::ros_pointcloud2::LayoutDescription::new(fields.as_slice())
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+fn layout_of_type(struct_name: &Ident, data: &Data) -> proc_macro2::TokenStream {
+    match data {
+        Data::Struct(data) => match &data.fields {
+            Fields::Named(fields) => {
+                let values = fields.named.iter().map(|field| {
+                    let field_name = field.ident.as_ref().unwrap();
+                    let field_name_str = Literal::string(&field_name.to_string());
+                    let field_ty = &field.ty;
+                    let field_ty_str = Literal::string(&field_ty.to_token_stream().to_string());
+
+                    quote_spanned! { field.span() =>
+                        #[allow(unused_assignments)]
+                        {
+                            let size = ::std::mem::size_of::<#field_ty>();
+                            let offset = ::ros_pointcloud2::memoffset::offset_of!(#struct_name, #field_name);
+
+                            if offset > last_field_end {
+                                fields.push(::ros_pointcloud2::LayoutField::Padding {
+                                    size: offset - last_field_end
+                                });
+                            }
+
+                            fields.push(::ros_pointcloud2::LayoutField::Field {
+                                name: ::std::borrow::Cow::Borrowed(#field_name_str),
+                                ty: ::std::borrow::Cow::Borrowed(#field_ty_str),
+                                size,
+                            });
+
+                            last_field_end = offset + size;
+                        }
+                    }
+                });
+
+                quote! {
+                    #(#values)*
+
+                    let struct_size = ::std::mem::size_of::<#struct_name>();
+                    if struct_size > last_field_end {
+                        fields.push(::ros_pointcloud2::LayoutField::Padding {
+                            size: struct_size - last_field_end,
+                        });
+                    }
+                }
+            }
+            Fields::Unnamed(_) => unimplemented!(),
+            Fields::Unit => unimplemented!(),
+        },
+        Data::Enum(_) | Data::Union(_) => unimplemented!("type-layout only supports structs"),
+    }
 }

@@ -162,7 +162,6 @@ pub fn heavy_computing(point: &PointXYZ, iterations: u32) -> f32 {
     result
 }
 
-#[cfg(feature = "derive")]
 fn roundtrip_vec(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
@@ -180,7 +179,6 @@ fn roundtrip(cloud: Vec<PointXYZB>) -> bool {
     orig_len == total.len()
 }
 
-#[cfg(feature = "derive")]
 fn roundtrip_filter_vec(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
     let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
@@ -243,7 +241,6 @@ fn roundtrip_computing_par_par(cloud: Vec<PointXYZB>) -> bool {
     total > 0.0
 }
 
-#[cfg(feature = "derive")]
 fn roundtrip_computing_vec(cloud: Vec<PointXYZB>) -> bool {
     let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
     let total: f32 = internal_msg
@@ -339,7 +336,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("16k vec", |b| {
         b.iter(|| {
             black_box(roundtrip_vec(cloud_points_16k.clone()));
@@ -367,7 +363,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("16k vec_filter", |b| {
         b.iter(|| {
             roundtrip_filter_vec(black_box(cloud_points_16k.clone()));
@@ -395,7 +390,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("16k vec_compute", |b| {
         b.iter(|| {
             roundtrip_computing_vec(black_box(cloud_points_16k.clone()));
@@ -425,7 +419,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("60k vec", |b| {
         b.iter(|| {
             black_box(roundtrip_vec(cloud_points_60k.clone()));
@@ -455,7 +448,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("120k vec", |b| {
         b.iter(|| {
             black_box(roundtrip_vec(cloud_points_120k.clone()));
@@ -483,7 +475,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("120k vec_filter", |b| {
         b.iter(|| {
             roundtrip_filter_vec(black_box(cloud_points_120k.clone()));
@@ -511,7 +502,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("120k vec_compute", |b| {
         b.iter(|| {
             roundtrip_computing_vec(black_box(cloud_points_120k.clone()));
@@ -541,7 +531,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("500k vec", |b| {
         b.iter(|| {
             black_box(roundtrip_vec(cloud_points_500k.clone()));
@@ -569,7 +558,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("500k vec_filter", |b| {
         b.iter(|| {
             roundtrip_filter_vec(black_box(cloud_points_500k.clone()));
@@ -597,7 +585,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("500k vec_compute", |b| {
         b.iter(|| {
             roundtrip_computing_vec(black_box(cloud_points_500k.clone()));
@@ -627,7 +614,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("1.5m vec", |b| {
         b.iter(|| {
             black_box(roundtrip_vec(cloud_points_1_5m.clone()));
@@ -655,7 +641,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("1.5m vec_filter", |b| {
         b.iter(|| {
             roundtrip_filter_vec(black_box(cloud_points_1_5m.clone()));
@@ -683,7 +668,6 @@ fn roundtrip_benchmark(c: &mut Criterion) {
         })
     });
 
-    #[cfg(feature = "derive")]
     c.bench_function("1.5m vec_compute", |b| {
         b.iter(|| {
             roundtrip_computing_vec(black_box(cloud_points_1_5m.clone()));

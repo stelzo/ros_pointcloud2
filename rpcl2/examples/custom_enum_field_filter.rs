@@ -20,6 +20,7 @@ enum Label {
 // Define a custom point with an enum.
 // This is normally not supported by PointCloud2 but we will explain the library how to handle it.
 #[derive(Debug, PartialEq, Clone, Default)]
+#[repr(C)]
 struct CustomPoint {
     x: f32,
     y: f32,
@@ -93,6 +94,18 @@ impl From<RPCL2Point<5>> for CustomPoint {
 impl Fields<5> for CustomPoint {
     fn field_names_ordered() -> [&'static str; 5] {
         ["x", "y", "z", "intensity", "my_custom_label"]
+    }
+}
+
+// C representation of the struct hardcoded without using the derive feature.
+impl TypeLayout for CustomPoint {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("intensity", "f32", 4),
+        ])
     }
 }
 

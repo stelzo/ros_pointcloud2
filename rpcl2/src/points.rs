@@ -1,11 +1,5 @@
 //! Predefined point types commonly used in ROS.
-use crate::{Fields, PointConvertible, RPCL2Point};
-
-#[cfg(feature = "derive")]
-use type_layout::TypeLayout;
-
-#[cfg(feature = "derive")]
-use alloc::vec::Vec;
+use crate::{Fields, LayoutDescription, LayoutField, PointConvertible, RPCL2Point, TypeLayout};
 
 /// A packed RGB color encoding as used in ROS tools.
 #[derive(Clone, Copy)]
@@ -112,12 +106,21 @@ impl From<f32> for RGB {
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZ {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+}
+
+impl TypeLayout for PointXYZ {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+        ])
+    }
 }
 
 #[cfg(feature = "nalgebra")]
@@ -178,13 +181,23 @@ impl PointConvertible<3> for PointXYZ {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an intensity value.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZI {
     pub x: f32,
     pub y: f32,
     pub z: f32,
     pub intensity: f32,
+}
+
+impl TypeLayout for PointXYZI {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("intensity", "f32", 4),
+        ])
+    }
 }
 
 impl PointXYZI {
@@ -237,13 +250,23 @@ impl PointConvertible<4> for PointXYZI {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZL {
     pub x: f32,
     pub y: f32,
     pub z: f32,
     pub label: u32,
+}
+
+impl TypeLayout for PointXYZL {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("label", "u32", 4),
+        ])
+    }
 }
 
 impl PointXYZL {
@@ -296,13 +319,23 @@ impl PointConvertible<4> for PointXYZL {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and an RGB color value.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZRGB {
     pub x: f32,
     pub y: f32,
     pub z: f32,
     pub rgb: RGB,
+}
+
+impl TypeLayout for PointXYZRGB {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("rgb", "RGB", 4),
+        ])
+    }
 }
 
 impl PointXYZRGB {
@@ -373,7 +406,6 @@ impl PointConvertible<4> for PointXYZRGB {}
 /// This is a 3D point with x, y, z coordinates and an RGBA color value.
 /// The alpha channel is commonly used as padding but this crate uses every channel and no padding.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZRGBA {
     pub x: f32,
@@ -381,6 +413,19 @@ pub struct PointXYZRGBA {
     pub z: f32,
     pub rgb: RGB,
     pub a: u8,
+}
+
+impl TypeLayout for PointXYZRGBA {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("rgb", "RGB", 4),
+            LayoutField::new("a", "u8", 1),
+            LayoutField::padding(3),
+        ])
+    }
 }
 
 impl PointXYZRGBA {
@@ -452,7 +497,6 @@ impl PointConvertible<5> for PointXYZRGBA {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an RGB color value and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZRGBNormal {
     pub x: f32,
@@ -462,6 +506,20 @@ pub struct PointXYZRGBNormal {
     pub normal_x: f32,
     pub normal_y: f32,
     pub normal_z: f32,
+}
+
+impl TypeLayout for PointXYZRGBNormal {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("rgb", "RGB", 4),
+            LayoutField::new("normal_x", "f32", 4),
+            LayoutField::new("normal_y", "f32", 4),
+            LayoutField::new("normal_z", "f32", 4),
+        ])
+    }
 }
 
 impl PointXYZRGBNormal {
@@ -552,7 +610,6 @@ impl PointConvertible<7> for PointXYZRGBNormal {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an intensity value and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZINormal {
     pub x: f32,
@@ -562,6 +619,20 @@ pub struct PointXYZINormal {
     pub normal_x: f32,
     pub normal_y: f32,
     pub normal_z: f32,
+}
+
+impl TypeLayout for PointXYZINormal {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("intensity", "f32", 4),
+            LayoutField::new("normal_x", "f32", 4),
+            LayoutField::new("normal_y", "f32", 4),
+            LayoutField::new("normal_z", "f32", 4),
+        ])
+    }
 }
 
 impl PointXYZINormal {
@@ -637,7 +708,6 @@ impl PointConvertible<7> for PointXYZINormal {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZRGBL {
     pub x: f32,
@@ -645,6 +715,18 @@ pub struct PointXYZRGBL {
     pub z: f32,
     pub rgb: RGB,
     pub label: u32,
+}
+
+impl TypeLayout for PointXYZRGBL {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("rgb", "RGB", 4),
+            LayoutField::new("label", "u32", 4),
+        ])
+    }
 }
 
 unsafe impl Send for PointXYZRGBL {}
@@ -722,7 +804,6 @@ impl PointConvertible<5> for PointXYZRGBL {}
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[cfg_attr(feature = "derive", derive(TypeLayout))]
 #[repr(C)]
 pub struct PointXYZNormal {
     pub x: f32,
@@ -731,6 +812,19 @@ pub struct PointXYZNormal {
     pub normal_x: f32,
     pub normal_y: f32,
     pub normal_z: f32,
+}
+
+impl TypeLayout for PointXYZNormal {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("normal_x", "f32", 4),
+            LayoutField::new("normal_y", "f32", 4),
+            LayoutField::new("normal_z", "f32", 4),
+        ])
+    }
 }
 
 impl PointXYZNormal {

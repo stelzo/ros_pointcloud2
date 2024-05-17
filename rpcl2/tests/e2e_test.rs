@@ -9,7 +9,6 @@ macro_rules! convert_from_into {
     };
 }
 
-#[cfg(feature = "derive")]
 macro_rules! convert_from_into_vec {
     ($point:ty, $cloud:expr) => {
         convert_from_into_in_out_cloud_vec!($cloud, $point, $cloud, $point);
@@ -30,7 +29,6 @@ macro_rules! convert_from_into_in_out_cloud {
     };
 }
 
-#[cfg(feature = "derive")]
 macro_rules! convert_from_into_in_out_cloud_vec {
     ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
         let msg = PointCloud2Msg::try_from_vec($in_cloud.clone());
@@ -59,7 +57,6 @@ fn write_cloud() {
 }
 
 #[test]
-#[cfg(feature = "derive")]
 fn write_cloud_from_vec() {
     let cloud = vec![
         PointXYZ::new(0.0, 1.0, 5.0),
@@ -73,7 +70,6 @@ fn write_cloud_from_vec() {
 }
 
 #[test]
-#[cfg(feature = "derive")]
 fn write_empty_cloud_vec() {
     let cloud: Vec<PointXYZ> = vec![];
     let msg = PointCloud2Msg::try_from_vec(cloud);
@@ -90,7 +86,7 @@ fn write_empty_cloud_iter() {
 }
 
 #[test]
-#[cfg(all(feature = "derive", feature = "rayon"))]
+#[cfg(feature = "rayon")]
 fn conv_cloud_par_iter() {
     let cloud = vec![
         PointXYZ::new(0.0, 1.0, 5.0),
@@ -110,7 +106,7 @@ fn conv_cloud_par_iter() {
 }
 
 #[test]
-#[cfg(all(feature = "derive", feature = "rayon"))]
+#[cfg(feature = "rayon")]
 fn conv_cloud_par_par_iter() {
     let cloud = vec![
         PointXYZ::new(0.0, 1.0, 5.0),
@@ -375,7 +371,6 @@ fn converterxyzrgb() {
 }
 
 #[test]
-#[cfg(feature = "derive")]
 fn converterxyzrgb_from_vec() {
     convert_from_into_vec!(
         PointXYZRGB,
@@ -433,7 +428,6 @@ fn write_xyzi_read_xyz() {
 }
 
 #[test]
-#[cfg(feature = "derive")]
 fn write_xyzi_read_xyz_vec() {
     let write_cloud = vec![
         PointXYZI::new(0.0, 1.0, 5.0, 0.0),
@@ -532,37 +526,4 @@ fn write_less_than_available() {
     ];
 
     convert_from_into_in_out_cloud!(write_cloud, CustomPoint, read_cloud, CustomPoint);
-}
-
-#[test]
-#[cfg(feature = "derive")]
-#[allow(unused_variables)]
-fn readme() {
-    use ros_pointcloud2::prelude::*;
-
-    // PointXYZ (and many others) are provided by the crate.
-    let cloud_points = vec![
-        PointXYZI::new(91.486, -4.1, 42.0001, 0.1),
-        PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MIN),
-    ];
-
-    let out_msg = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
-
-    // Convert the ROS crate message type, we will use r2r here.
-    // let msg: r2r::sensor_msgs::msg::PointCloud2 = out_msg.into();
-    // Publish ...
-    // ... now incoming from a topic.
-    // let in_msg: PointCloud2Msg = msg.into();
-    let in_msg = out_msg;
-
-    let processed_cloud = in_msg
-        .try_into_iter()
-        .unwrap()
-        .map(|point: PointXYZ| {
-            // Define the info you want to have from the Msg.
-            // Some logic here ...
-
-            point
-        })
-        .collect::<Vec<_>>();
 }

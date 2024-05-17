@@ -35,8 +35,8 @@ rosrust = { version = "0.9.11", optional = true }
 r2r = { version = "0.8.4", optional = true }
 rayon = { version = "1", optional = true }
 nalgebra = { version = "0.32.5", optional = true, default-features = false }
-type-layout = { version = "0.2", package = "type-layout-syn2", optional = true }
 rpcl2-derive = { version = "0.1.0", optional = true, path = "../rpcl2-derive" }
+memoffset = { version = "0.9", optional = true }
 
 [dev-dependencies]
 rand = "0.8"
@@ -51,11 +51,11 @@ path = "benches/roundtrip.rs"
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
-derive = ["dep:rpcl2-derive", "dep:type-layout"]
+derive = ["dep:rpcl2-derive", "dep:memoffset"]
 nalgebra = ["dep:nalgebra"]
 std = ["nalgebra/std"]
 
-default = ["std", "derive"]
+default = ["std"]
 
 [package.metadata.docs.rs]
 features = ["derive", "nalgebra", "rayon"]

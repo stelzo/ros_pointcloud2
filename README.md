@@ -57,9 +57,9 @@ You can use `rosrust` and `r2r` by enabling the respective feature:
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { version = "*", features = ["r2r_msg", "derive"]}
+ros_pointcloud2 = { version = "*", features = ["r2r_msg"]}
 # or
-ros_pointcloud2 = { version = "*", features = ["rosrust_msg", "derive"]}
+ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]}
 ```
 
 ### rclrs (ros2_rust)
