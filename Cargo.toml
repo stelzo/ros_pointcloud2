@@ -35,8 +35,8 @@ rosrust = { version = "0.9.11", optional = true }
 r2r = { version = "0.8.4", optional = true }
 rayon = { version = "1", optional = true }
 nalgebra = { version = "0.32.5", optional = true, default-features = false }
-rpcl2_derive = { path = "rpcl2_derive", optional = true }
-type-layout = { path = "type-layout", optional = true }
+rpcl2-derive = { version = "0.1", optional = true }
+type-layout = { version = "0.2", package = "type-layout-syn2", optional = true }
 
 sensor_msgs = { version = "*", optional = true }
 std_msgs = { version = "*", optional = true }
@@ -46,16 +46,12 @@ builtin_interfaces = { version = "*", optional = true }
 rand = "0.8"
 criterion = { version = "0.5", features = ["html_reports"] }
 
-[[bench]]
-name = "roundtrip"
-harness = false
-
 [features]
 rclrs_msg = ["dep:sensor_msgs", "dep:std_msgs", "dep:builtin_interfaces"]
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
-derive = ["dep:rpcl2_derive", "dep:type-layout"]
+derive = ["dep:rpcl2-derive", "dep:type-layout"]
 nalgebra = ["dep:nalgebra"]
 std = ["nalgebra/std"]
 
@@ -65,4 +61,3 @@ default = ["std", "derive", "rclrs_msg"]
 features = ["derive", "nalgebra", "rayon"]
 default-target = "x86_64-unknown-linux-gnu"
 rustdoc-args = ["--cfg", "docsrs"]
-
