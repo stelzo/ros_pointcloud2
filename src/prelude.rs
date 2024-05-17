@@ -11,10 +11,7 @@ pub use crate::ros::*;
 pub use rayon::prelude::*;
 
 #[cfg(feature = "derive")]
-pub extern crate type_layout;
-
-#[cfg(feature = "derive")]
-pub use type_layout::TypeLayout;
+pub use type_layout::*;
 
 #[cfg(feature = "derive")]
 pub use rpcl2_derive::*;
