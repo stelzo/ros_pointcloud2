@@ -38,16 +38,11 @@ nalgebra = { version = "0.32.5", optional = true, default-features = false }
 rpcl2-derive = { version = "0.1", optional = true }
 type-layout = { version = "0.2", package = "type-layout-syn2", optional = true }
 
-sensor_msgs = { version = "*", optional = true }
-std_msgs = { version = "*", optional = true }
-builtin_interfaces = { version = "*", optional = true }
-
 [dev-dependencies]
 rand = "0.8"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [features]
-rclrs_msg = ["dep:sensor_msgs", "dep:std_msgs", "dep:builtin_interfaces"]
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
@@ -55,7 +50,7 @@ derive = ["dep:rpcl2-derive", "dep:type-layout"]
 nalgebra = ["dep:nalgebra"]
 std = ["nalgebra/std"]
 
-default = ["std", "derive", "rclrs_msg"]
+default = ["std", "derive"]
 
 [package.metadata.docs.rs]
 features = ["derive", "nalgebra", "rayon"]
