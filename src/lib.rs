@@ -149,7 +149,7 @@
 // see: https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html
 
 #[cfg(feature = "derive")]
-extern crate type_layout;
+pub extern crate type_layout;
 
 pub mod points;
 pub mod prelude;
