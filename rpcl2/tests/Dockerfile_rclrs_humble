@@ -30,5 +30,5 @@ COPY . .
 WORKDIR /ros2_rust_build
 RUN . $HOME/.cargo/env && . /opt/ros/humble/setup.sh && colcon build
 
-RUN chmod +x /ros2_rust_build/src/ros_pointcloud2_tests/tests/rclrs_test.bash
-ENTRYPOINT [ "/ros2_rust_build/src/ros_pointcloud2_tests/tests/rclrs_test.bash" ]
+RUN chmod +x /ros2_rust_build/src/ros_pointcloud2_tests/rpcl2/tests/rclrs_test.bash
+ENTRYPOINT [ "/ros2_rust_build/src/ros_pointcloud2_tests/rpcl2/tests/rclrs_test.bash" ]
