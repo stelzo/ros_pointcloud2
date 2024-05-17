@@ -5,9 +5,6 @@
   </p>
 </p>
 
-> [!NOTE]  
-> This library is currently in preparation for v0.5 with many breaking changes. It is currently available as v0.5.0-rc.1. For the documentation of v0.4.0, visit the [docs](https://docs.rs/ros_pointcloud2/0.4.0/ros_pointcloud2/). Since rclrs still needs a workaround, the version number must be changed to your desired version which supports rclrs — regardless of the version number shown in this Readme. The supported versions are marked with the `_rclrs` postfix as can be seen [here](https://github.com/stelzo/ros_pointcloud2/tags).
-
 ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
 Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/0.5.0-rc.1/) for a complete guide.
@@ -67,11 +64,14 @@ ros_pointcloud2 = { version = "*", features = ["rosrust_msg", "derive"]}
 
 ### rclrs (ros2_rust)
 
+> [!NOTE]  
+> rclrs is currently not supported with v0.5.x due to some effects in how it generates messages. We will add back support for it as soon as [a new message pipeline](https://github.com/ros2-rust/ros2_rust/issues/394) is implemented. You can still write the conversions to the message yourself or use v0.4.0 in the meantime.
+
 Features do not work properly with `rcrls` because the messages are linked externally. You need to use tags instead:
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.0-rc.1_rclrs" }
+ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.4.0_rclrs" }
 ```
 
 Also, indicate the following dependencies to your linker inside the `package.xml` of your package.
