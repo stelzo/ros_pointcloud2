@@ -1,12 +1,12 @@
-//! This crate provides macros for `ros_pointcloud2` and should be used in combination with said crate.
+//! This crate provides macros for `ros_pointcloud2`.
 extern crate proc_macro;
 
 use std::collections::HashMap;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Literal};
-use quote::{quote, quote_spanned, ToTokens};
-use syn::{parenthesized, parse_macro_input, spanned::Spanned, Data, DeriveInput, Fields, LitStr};
+use quote::{quote, ToTokens};
+use syn::{parenthesized, parse_macro_input, Data, DeriveInput, Fields, LitStr};
 
 fn get_allowed_types() -> HashMap<&'static str, usize> {
     let mut allowed_datatypes = HashMap::<&'static str, usize>::new();
@@ -59,39 +59,6 @@ fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
     field_names
 }
 
-/// This macro implements the `Fields` trait which is a subset of the `PointConvertible` trait.
-/// It is useful for points that convert the `From` trait themselves but want to use this macro for not repeating the field names.
-///
-/// You can rename the fields with the `rename` attribute.
-///
-/// Use the rename attribute if your struct field name should be different to the ROS field name.
-#[proc_macro_derive(Fields, attributes(rpcl2))]
-pub fn ros_point_fields_derive(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let struct_name = &input.ident;
-
-    let field_names = struct_field_rename_array(&input)
-        .into_iter()
-        .map(|field_name| {
-            quote! { #field_name }
-        });
-
-    let field_names_len = field_names.len();
-
-    let expanded = quote! {
-        impl Fields<#field_names_len> for #struct_name {
-            fn field_names_ordered() -> [&'static str; #field_names_len] {
-                [
-                    #(#field_names,)*
-                ]
-            }
-        }
-    };
-
-    // Return the generated implementation
-    expanded.into()
-}
-
 /// This macro implements the `PointConvertible` trait for your struct so you can use your point for the PointCloud2 conversion.
 ///
 /// The struct field names are used in the message if you do not use the `rename` attribute for a custom name.
@@ -124,6 +91,11 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
 
     for field in fields.iter() {
         let ty = field.ty.to_token_stream().to_string();
+        if ty.contains("RGB") || ty.contains("rgb") {
+            return syn::Error::new_spanned(field, "RGB can not be guaranteed to have the correct type or layout. Implement PointConvertible manual or use predefined points instead.")
+                .to_compile_error()
+                .into();
+        }
         if !allowed_datatypes.contains_key(&ty.as_str()) {
             return syn::Error::new_spanned(field, "Field type not allowed")
                 .to_compile_error()
@@ -132,19 +104,32 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
     }
 
     let field_len_token: usize = fields.len();
+    let rename_arr = struct_field_rename_array(&input);
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let layout = layout_of_type(&name, &input.data);
 
-    let field_names = struct_field_rename_array(&input)
-        .into_iter()
-        .map(|field_name| {
-            quote! { #field_name }
-        });
+    let expanded = quote! {
+        impl #impl_generics ::ros_pointcloud2::PointConvertible<#field_len_token> for #name #ty_generics #where_clause {
+            fn layout() -> ::ros_pointcloud2::LayoutDescription {
+                let mut last_field_end = 0;
+                let mut fields = Vec::new();
 
-    let field_impl = quote! {
-        impl ros_pointcloud2::Fields<#field_len_token> for #name {
-            fn field_names_ordered() -> [&'static str; #field_len_token] {
-                [
-                    #(#field_names,)*
-                ]
+                #layout
+
+                let mut rename_idx = 0;
+                let rename_arr = vec![#(#rename_arr),*];
+                let field_info: Vec<::ros_pointcloud2::LayoutField> = fields.into_iter().map(|field| {
+                    match field {
+                        (0, ty, size) => {
+                            rename_idx += 1;
+                            ::ros_pointcloud2::LayoutField::new(rename_arr[rename_idx - 1], ty, size)
+                        },
+                        (1, _, size) => ::ros_pointcloud2::LayoutField::padding(size),
+                        _ => unreachable!(),
+                    }
+                }).collect();
+
+                ::ros_pointcloud2::LayoutDescription::new(field_info.as_slice())
             }
         }
     };
@@ -184,40 +169,11 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
         }
     };
 
-    let convertible = quote! {
-        impl ros_pointcloud2::PointConvertible<#field_len_token> for #name {}
-    };
-
     TokenStream::from(quote! {
-        #field_impl
+        #expanded
         #from_my_point
         #from_custom_point
-        #convertible
     })
-}
-
-#[proc_macro_derive(TypeLayout)]
-pub fn derive_type_layout(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let name = input.ident;
-
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let layout = layout_of_type(&name, &input.data);
-
-    let expanded = quote! {
-        impl #impl_generics ::ros_pointcloud2::TypeLayout for #name #ty_generics #where_clause {
-            fn layout() -> ::ros_pointcloud2::LayoutDescription {
-                let mut last_field_end = 0;
-                let mut fields = Vec::new();
-
-                #layout
-
-                ::ros_pointcloud2::LayoutDescription::new(fields.as_slice())
-            }
-        }
-    };
-
-    TokenStream::from(expanded)
 }
 
 fn layout_of_type(struct_name: &Ident, data: &Data) -> proc_macro2::TokenStream {
@@ -226,30 +182,18 @@ fn layout_of_type(struct_name: &Ident, data: &Data) -> proc_macro2::TokenStream 
             Fields::Named(fields) => {
                 let values = fields.named.iter().map(|field| {
                     let field_name = field.ident.as_ref().unwrap();
-                    let field_name_str = Literal::string(&field_name.to_string());
                     let field_ty = &field.ty;
                     let field_ty_str = Literal::string(&field_ty.to_token_stream().to_string());
+                    let field_ty = &field.ty;
 
-                    quote_spanned! { field.span() =>
-                        #[allow(unused_assignments)]
-                        {
-                            let size = ::std::mem::size_of::<#field_ty>();
-                            let offset = ::ros_pointcloud2::memoffset::offset_of!(#struct_name, #field_name);
-
-                            if offset > last_field_end {
-                                fields.push(::ros_pointcloud2::LayoutField::Padding {
-                                    size: offset - last_field_end
-                                });
-                            }
-
-                            fields.push(::ros_pointcloud2::LayoutField::Field {
-                                name: ::std::borrow::Cow::Borrowed(#field_name_str),
-                                ty: ::std::borrow::Cow::Borrowed(#field_ty_str),
-                                size,
-                            });
-
-                            last_field_end = offset + size;
+                    quote! {
+                        let size = ::core::mem::size_of::<#field_ty>();
+                        let offset = ::ros_pointcloud2::memoffset::offset_of!(#struct_name, #field_name);
+                        if offset > last_field_end {
+                            fields.push((1, "", offset - last_field_end));
                         }
+                        fields.push((0, #field_ty_str, size));
+                        last_field_end = offset + size;
                     }
                 });
 
@@ -258,9 +202,7 @@ fn layout_of_type(struct_name: &Ident, data: &Data) -> proc_macro2::TokenStream 
 
                     let struct_size = ::std::mem::size_of::<#struct_name>();
                     if struct_size > last_field_end {
-                        fields.push(::ros_pointcloud2::LayoutField::Padding {
-                            size: struct_size - last_field_end,
-                        });
+                        fields.push((1, "", struct_size - last_field_end));
                     }
                 }
             }

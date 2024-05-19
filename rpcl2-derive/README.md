@@ -5,4 +5,4 @@
   </p>
 </p>
 
-This crate should be used in combination with the `ros_pointcloud2` crate.
+This crate is within `ros_pointcloud2` to implement the `PointConvertible` trait for custom points. The layouting part of it is heavily inspired by the [type-layout](https://crates.io/crates/type-layout) crate.
