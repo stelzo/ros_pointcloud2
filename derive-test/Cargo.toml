@@ -2,6 +2,17 @@
 name = "derive-test"
 version = "0.1.0"
 edition = "2021"
+readme = "../README.md"
+description = "Test package for the derive feature of ros_pointcloud2"
+repository = "https://github.com/stelzo/ros_pointcloud2"
+license = "MIT OR Apache-2.0"
+keywords = ["ros", "pointcloud2", "pointcloud", "message"]
+categories = [
+    "science::robotics",
+    "encoding",
+    "data-structures",
+    "api-bindings",
+]
 
 [dependencies]
 ros_pointcloud2 = { path = "../rpcl2", features = ["std", "derive"] }
