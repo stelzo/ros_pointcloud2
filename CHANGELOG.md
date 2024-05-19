@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.0-rc.1 -> v0.5.0-rc.2
+
+- `PointConvertible` now includes the information for `TypeLayout` and `Fields`, which reduces boilerplate code for custom points. The respective derive macro is updated to work with the updated trait.
+- `_vec` functions now work without the `derive` feature and thus are always available.
+- The `derive` feature now is disabled by default but it is still strongly recommended for custom points to avoid layout errors. This also makes procmacro dependencies optional for the functionality, since every conversion can be called without them.
+- The alignment of all predefined points is increased for SSE optimization and optimized copies between C++ PCL and Rust.
+
 ## v0.4.0 -> v0.5.0-rc.1
 
 Most of the library is rewritten to be simpler and more expandable while adding mostly performance focused features to motivate the breaking changes.

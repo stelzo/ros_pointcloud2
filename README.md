@@ -7,7 +7,7 @@
 
 ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
-Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/0.5.0-rc.1/) for a complete guide.
+Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/0.5.0-rc.2/) for a complete guide.
 
 ## Quickstart
 
@@ -68,7 +68,7 @@ Features do not work properly with `rcrls` because the messages are linked exter
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.0-rc.1_rclrs" }
+ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.0-rc.2_rclrs" }
 ```
 
 Also, indicate the following dependencies to your linker inside the `package.xml` of your package.

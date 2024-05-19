@@ -1,6 +1,6 @@
 [package]
 name = "ros_pointcloud2"
-version = "0.5.0-rc.1"
+version = "0.5.0-rc.2"
 edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
