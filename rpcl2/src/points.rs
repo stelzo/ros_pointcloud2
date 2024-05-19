@@ -1,12 +1,12 @@
 //! Predefined point types commonly used in ROS.
-use crate::{Fields, LayoutDescription, LayoutField, PointConvertible, RPCL2Point, TypeLayout};
+use crate::{LayoutDescription, LayoutField, PointConvertible, RPCL2Point};
 
 /// A packed RGB color encoding as used in ROS tools.
 #[derive(Clone, Copy)]
-#[repr(C)]
+#[repr(C, align(4))]
 pub union RGB {
     packed: f32,
-    unpacked: [u8; 4], // 1 byte padding
+    unpacked: [u8; 4], // Padding
 }
 
 unsafe impl Send for RGB {}
@@ -106,21 +106,11 @@ impl From<f32> for RGB {
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[repr(C)]
+#[repr(C, align(16))]
 pub struct PointXYZ {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-}
-
-impl TypeLayout for PointXYZ {
-    fn layout() -> LayoutDescription {
-        LayoutDescription::new(&[
-            LayoutField::new("x", "f32", 4),
-            LayoutField::new("y", "f32", 4),
-            LayoutField::new("z", "f32", 4),
-        ])
-    }
 }
 
 #[cfg(feature = "nalgebra")]
@@ -158,12 +148,6 @@ impl PointXYZ {
 unsafe impl Send for PointXYZ {}
 unsafe impl Sync for PointXYZ {}
 
-impl Fields<3> for PointXYZ {
-    fn field_names_ordered() -> [&'static str; 3] {
-        ["x", "y", "z"]
-    }
-}
-
 impl From<RPCL2Point<3>> for PointXYZ {
     fn from(point: RPCL2Point<3>) -> Self {
         Self::new(point[0].get(), point[1].get(), point[2].get())
@@ -176,28 +160,26 @@ impl From<PointXYZ> for RPCL2Point<3> {
     }
 }
 
-impl PointConvertible<3> for PointXYZ {}
-
-/// Predefined point type commonly used in ROS with PCL.
-/// This is a 3D point with x, y, z coordinates and an intensity value.
-#[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[repr(C)]
-pub struct PointXYZI {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub intensity: f32,
-}
-
-impl TypeLayout for PointXYZI {
+impl PointConvertible<3> for PointXYZ {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
             LayoutField::new("y", "f32", 4),
             LayoutField::new("z", "f32", 4),
-            LayoutField::new("intensity", "f32", 4),
+            LayoutField::padding(4),
         ])
     }
+}
+
+/// Predefined point type commonly used in ROS with PCL.
+/// This is a 3D point with x, y, z coordinates and an intensity value.
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C, align(16))]
+pub struct PointXYZI {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub intensity: f32,
 }
 
 impl PointXYZI {
@@ -215,12 +197,6 @@ impl PointXYZI {
 
 unsafe impl Send for PointXYZI {}
 unsafe impl Sync for PointXYZI {}
-
-impl Fields<4> for PointXYZI {
-    fn field_names_ordered() -> [&'static str; 4] {
-        ["x", "y", "z", "intensity"]
-    }
-}
 
 impl From<RPCL2Point<4>> for PointXYZI {
     fn from(point: RPCL2Point<4>) -> Self {
@@ -245,28 +221,26 @@ impl From<PointXYZI> for RPCL2Point<4> {
     }
 }
 
-impl PointConvertible<4> for PointXYZI {}
-
-/// Predefined point type commonly used in ROS with PCL.
-/// This is a 3D point with x, y, z coordinates and a label.
-#[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[repr(C)]
-pub struct PointXYZL {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub label: u32,
-}
-
-impl TypeLayout for PointXYZL {
+impl PointConvertible<4> for PointXYZI {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
             LayoutField::new("y", "f32", 4),
             LayoutField::new("z", "f32", 4),
-            LayoutField::new("label", "u32", 4),
+            LayoutField::new("intensity", "f32", 4),
         ])
     }
+}
+
+/// Predefined point type commonly used in ROS with PCL.
+/// This is a 3D point with x, y, z coordinates and a label.
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C, align(16))]
+pub struct PointXYZL {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub label: u32,
 }
 
 impl PointXYZL {
@@ -284,12 +258,6 @@ impl PointXYZL {
 
 unsafe impl Send for PointXYZL {}
 unsafe impl Sync for PointXYZL {}
-
-impl Fields<4> for PointXYZL {
-    fn field_names_ordered() -> [&'static str; 4] {
-        ["x", "y", "z", "label"]
-    }
-}
 
 impl From<RPCL2Point<4>> for PointXYZL {
     fn from(point: RPCL2Point<4>) -> Self {
@@ -314,28 +282,26 @@ impl From<PointXYZL> for RPCL2Point<4> {
     }
 }
 
-impl PointConvertible<4> for PointXYZL {}
-
-/// Predefined point type commonly used in ROS with PCL.
-/// This is a 3D point with x, y, z coordinates and an RGB color value.
-#[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[repr(C)]
-pub struct PointXYZRGB {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub rgb: RGB,
-}
-
-impl TypeLayout for PointXYZRGB {
+impl PointConvertible<4> for PointXYZL {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
             LayoutField::new("y", "f32", 4),
             LayoutField::new("z", "f32", 4),
-            LayoutField::new("rgb", "RGB", 4),
+            LayoutField::new("label", "u32", 4),
         ])
     }
+}
+
+/// Predefined point type commonly used in ROS with PCL.
+/// This is a 3D point with x, y, z coordinates and an RGB color value.
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C, align(16))]
+pub struct PointXYZRGB {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub rgb: RGB,
 }
 
 impl PointXYZRGB {
@@ -371,12 +337,6 @@ impl PointXYZRGB {
 unsafe impl Send for PointXYZRGB {}
 unsafe impl Sync for PointXYZRGB {}
 
-impl Fields<4> for PointXYZRGB {
-    fn field_names_ordered() -> [&'static str; 4] {
-        ["x", "y", "z", "rgb"]
-    }
-}
-
 impl From<RPCL2Point<4>> for PointXYZRGB {
     fn from(point: RPCL2Point<4>) -> Self {
         Self {
@@ -400,32 +360,28 @@ impl From<PointXYZRGB> for RPCL2Point<4> {
     }
 }
 
-impl PointConvertible<4> for PointXYZRGB {}
-
-/// Predefined point type commonly used in ROS with PCL.
-/// This is a 3D point with x, y, z coordinates and an RGBA color value.
-/// The alpha channel is commonly used as padding but this crate uses every channel and no padding.
-#[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[repr(C)]
-pub struct PointXYZRGBA {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub rgb: RGB,
-    pub a: u8,
-}
-
-impl TypeLayout for PointXYZRGBA {
+impl PointConvertible<4> for PointXYZRGB {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
             LayoutField::new("y", "f32", 4),
             LayoutField::new("z", "f32", 4),
             LayoutField::new("rgb", "RGB", 4),
-            LayoutField::new("a", "u8", 1),
-            LayoutField::padding(3),
         ])
     }
+}
+
+/// Predefined point type commonly used in ROS with PCL.
+/// This is a 3D point with x, y, z coordinates and an RGBA color value.
+/// The alpha channel is commonly used as padding but this crate uses every channel and no padding.
+#[derive(Clone, Debug, PartialEq, Copy, Default)]
+#[repr(C, align(16))]
+pub struct PointXYZRGBA {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub rgb: RGB,
+    pub a: u8,
 }
 
 impl PointXYZRGBA {
@@ -461,12 +417,6 @@ impl PointXYZRGBA {
 unsafe impl Send for PointXYZRGBA {}
 unsafe impl Sync for PointXYZRGBA {}
 
-impl Fields<5> for PointXYZRGBA {
-    fn field_names_ordered() -> [&'static str; 5] {
-        ["x", "y", "z", "rgb", "a"]
-    }
-}
-
 impl From<RPCL2Point<5>> for PointXYZRGBA {
     fn from(point: RPCL2Point<5>) -> Self {
         Self {
@@ -492,12 +442,23 @@ impl From<PointXYZRGBA> for RPCL2Point<5> {
     }
 }
 
-impl PointConvertible<5> for PointXYZRGBA {}
+impl PointConvertible<5> for PointXYZRGBA {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("rgb", "RGB", 4),
+            LayoutField::new("a", "u8", 1),
+            LayoutField::padding(15),
+        ])
+    }
+}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an RGB color value and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[repr(C)]
+#[repr(C, align(16))]
 pub struct PointXYZRGBNormal {
     pub x: f32,
     pub y: f32,
@@ -506,20 +467,6 @@ pub struct PointXYZRGBNormal {
     pub normal_x: f32,
     pub normal_y: f32,
     pub normal_z: f32,
-}
-
-impl TypeLayout for PointXYZRGBNormal {
-    fn layout() -> LayoutDescription {
-        LayoutDescription::new(&[
-            LayoutField::new("x", "f32", 4),
-            LayoutField::new("y", "f32", 4),
-            LayoutField::new("z", "f32", 4),
-            LayoutField::new("rgb", "RGB", 4),
-            LayoutField::new("normal_x", "f32", 4),
-            LayoutField::new("normal_y", "f32", 4),
-            LayoutField::new("normal_z", "f32", 4),
-        ])
-    }
 }
 
 impl PointXYZRGBNormal {
@@ -570,12 +517,6 @@ impl PointXYZRGBNormal {
 unsafe impl Send for PointXYZRGBNormal {}
 unsafe impl Sync for PointXYZRGBNormal {}
 
-impl Fields<7> for PointXYZRGBNormal {
-    fn field_names_ordered() -> [&'static str; 7] {
-        ["x", "y", "z", "rgb", "normal_x", "normal_y", "normal_z"]
-    }
-}
-
 impl From<RPCL2Point<7>> for PointXYZRGBNormal {
     fn from(point: RPCL2Point<7>) -> Self {
         Self {
@@ -605,12 +546,25 @@ impl From<PointXYZRGBNormal> for RPCL2Point<7> {
     }
 }
 
-impl PointConvertible<7> for PointXYZRGBNormal {}
+impl PointConvertible<7> for PointXYZRGBNormal {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("rgb", "RGB", 4),
+            LayoutField::new("normal_x", "f32", 4),
+            LayoutField::new("normal_y", "f32", 4),
+            LayoutField::new("normal_z", "f32", 4),
+            LayoutField::padding(4),
+        ])
+    }
+}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates, an intensity value and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[repr(C)]
+#[repr(C, align(16))]
 pub struct PointXYZINormal {
     pub x: f32,
     pub y: f32,
@@ -619,20 +573,6 @@ pub struct PointXYZINormal {
     pub normal_x: f32,
     pub normal_y: f32,
     pub normal_z: f32,
-}
-
-impl TypeLayout for PointXYZINormal {
-    fn layout() -> LayoutDescription {
-        LayoutDescription::new(&[
-            LayoutField::new("x", "f32", 4),
-            LayoutField::new("y", "f32", 4),
-            LayoutField::new("z", "f32", 4),
-            LayoutField::new("intensity", "f32", 4),
-            LayoutField::new("normal_x", "f32", 4),
-            LayoutField::new("normal_y", "f32", 4),
-            LayoutField::new("normal_z", "f32", 4),
-        ])
-    }
 }
 
 impl PointXYZINormal {
@@ -668,12 +608,6 @@ impl PointXYZINormal {
 unsafe impl Send for PointXYZINormal {}
 unsafe impl Sync for PointXYZINormal {}
 
-impl Fields<7> for PointXYZINormal {
-    fn field_names_ordered() -> [&'static str; 7] {
-        ["x", "y", "z", "i", "normal_x", "normal_y", "normal_z"]
-    }
-}
-
 impl From<RPCL2Point<7>> for PointXYZINormal {
     fn from(point: RPCL2Point<7>) -> Self {
         Self::new(
@@ -703,30 +637,31 @@ impl From<PointXYZINormal> for RPCL2Point<7> {
     }
 }
 
-impl PointConvertible<7> for PointXYZINormal {}
+impl PointConvertible<7> for PointXYZINormal {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("intensity", "f32", 4),
+            LayoutField::new("normal_x", "f32", 4),
+            LayoutField::new("normal_y", "f32", 4),
+            LayoutField::new("normal_z", "f32", 4),
+            LayoutField::padding(4),
+        ])
+    }
+}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a label.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[repr(C)]
+#[repr(C, align(16))]
 pub struct PointXYZRGBL {
     pub x: f32,
     pub y: f32,
     pub z: f32,
     pub rgb: RGB,
     pub label: u32,
-}
-
-impl TypeLayout for PointXYZRGBL {
-    fn layout() -> LayoutDescription {
-        LayoutDescription::new(&[
-            LayoutField::new("x", "f32", 4),
-            LayoutField::new("y", "f32", 4),
-            LayoutField::new("z", "f32", 4),
-            LayoutField::new("rgb", "RGB", 4),
-            LayoutField::new("label", "u32", 4),
-        ])
-    }
 }
 
 unsafe impl Send for PointXYZRGBL {}
@@ -768,12 +703,6 @@ impl PointXYZRGBL {
     }
 }
 
-impl Fields<5> for PointXYZRGBL {
-    fn field_names_ordered() -> [&'static str; 5] {
-        ["x", "y", "z", "rgb", "label"]
-    }
-}
-
 impl From<RPCL2Point<5>> for PointXYZRGBL {
     fn from(point: RPCL2Point<5>) -> Self {
         Self {
@@ -799,12 +728,23 @@ impl From<PointXYZRGBL> for RPCL2Point<5> {
     }
 }
 
-impl PointConvertible<5> for PointXYZRGBL {}
+impl PointConvertible<5> for PointXYZRGBL {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("rgb", "RGB", 4),
+            LayoutField::new("label", "u32", 4),
+            LayoutField::padding(12),
+        ])
+    }
+}
 
 /// Predefined point type commonly used in ROS with PCL.
 /// This is a 3D point with x, y, z coordinates and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
-#[repr(C)]
+#[repr(C, align(16))]
 pub struct PointXYZNormal {
     pub x: f32,
     pub y: f32,
@@ -812,19 +752,6 @@ pub struct PointXYZNormal {
     pub normal_x: f32,
     pub normal_y: f32,
     pub normal_z: f32,
-}
-
-impl TypeLayout for PointXYZNormal {
-    fn layout() -> LayoutDescription {
-        LayoutDescription::new(&[
-            LayoutField::new("x", "f32", 4),
-            LayoutField::new("y", "f32", 4),
-            LayoutField::new("z", "f32", 4),
-            LayoutField::new("normal_x", "f32", 4),
-            LayoutField::new("normal_y", "f32", 4),
-            LayoutField::new("normal_z", "f32", 4),
-        ])
-    }
 }
 
 impl PointXYZNormal {
@@ -850,12 +777,6 @@ impl PointXYZNormal {
 
 unsafe impl Send for PointXYZNormal {}
 unsafe impl Sync for PointXYZNormal {}
-
-impl Fields<6> for PointXYZNormal {
-    fn field_names_ordered() -> [&'static str; 6] {
-        ["x", "y", "z", "normal_x", "normal_y", "normal_z"]
-    }
-}
 
 impl From<RPCL2Point<6>> for PointXYZNormal {
     fn from(point: RPCL2Point<6>) -> Self {
@@ -884,4 +805,16 @@ impl From<PointXYZNormal> for RPCL2Point<6> {
     }
 }
 
-impl PointConvertible<6> for PointXYZNormal {}
+impl PointConvertible<6> for PointXYZNormal {
+    fn layout() -> LayoutDescription {
+        LayoutDescription::new(&[
+            LayoutField::new("x", "f32", 4),
+            LayoutField::new("y", "f32", 4),
+            LayoutField::new("z", "f32", 4),
+            LayoutField::new("normal_x", "f32", 4),
+            LayoutField::new("normal_y", "f32", 4),
+            LayoutField::new("normal_z", "f32", 4),
+            LayoutField::padding(8),
+        ])
+    }
+}

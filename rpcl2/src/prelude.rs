@@ -1,7 +1,7 @@
 //! Commonly used types and traits for predefined and custom point conversions.
 pub use crate::{
-    FieldDatatype, Fields, FromBytes, GetFieldDatatype, LayoutDescription, LayoutField,
-    MsgConversionError, PointCloud2Msg, PointConvertible, PointDataBuffer, RPCL2Point, TypeLayout,
+    FieldDatatype, FromBytes, GetFieldDatatype, LayoutDescription, LayoutField, MsgConversionError,
+    PointCloud2Msg, PointConvertible, PointDataBuffer, RPCL2Point,
 };
 
 pub use crate::points::*;

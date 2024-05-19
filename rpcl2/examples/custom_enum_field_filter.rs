@@ -90,28 +90,19 @@ impl From<RPCL2Point<5>> for CustomPoint {
     }
 }
 
-// Define how we want to name the fields in the message.
-impl Fields<5> for CustomPoint {
-    fn field_names_ordered() -> [&'static str; 5] {
-        ["x", "y", "z", "intensity", "my_custom_label"]
-    }
-}
-
 // C representation of the struct hardcoded without using the derive feature.
-impl TypeLayout for CustomPoint {
+impl PointConvertible<5> for CustomPoint {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
             LayoutField::new("y", "f32", 4),
             LayoutField::new("z", "f32", 4),
             LayoutField::new("intensity", "f32", 4),
+            LayoutField::new("my_custom_label", "u8", 1),
+            LayoutField::padding(3),
         ])
     }
 }
-
-// We implemented everything that is needed for PointConvertible so we declare it as a done.
-#[cfg(not(feature = "derive"))]
-impl PointConvertible<5> for CustomPoint {}
 
 // Now we tell the library how to encode and decode the label.
 // You don't need to do this if your CustomPoint has a field that is already supported by PointCloud2.

@@ -129,12 +129,38 @@ fn conv_cloud_par_par_iter() {
 #[test]
 #[cfg(feature = "derive")]
 fn custom_xyz_f32() {
-    #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
+    #[derive(Debug, PartialEq, Clone, Default)]
     #[repr(C)]
     struct CustomPoint {
         x: f32,
         y: f32,
         z: f32,
+    }
+
+    impl From<RPCL2Point<3>> for CustomPoint {
+        fn from(point: RPCL2Point<3>) -> Self {
+            Self {
+                x: point[0].get(),
+                y: point[1].get(),
+                z: point[2].get(),
+            }
+        }
+    }
+
+    impl From<CustomPoint> for RPCL2Point<3> {
+        fn from(point: CustomPoint) -> Self {
+            [point.x.into(), point.y.into(), point.z.into()].into()
+        }
+    }
+
+    impl PointConvertible<3> for CustomPoint {
+        fn layout() -> LayoutDescription {
+            LayoutDescription::new(&[
+                LayoutField::new("x", "f32", 4),
+                LayoutField::new("y", "f32", 4),
+                LayoutField::new("z", "f32", 4),
+            ])
+        }
     }
 
     convert_from_into!(
@@ -160,7 +186,6 @@ fn custom_xyz_f32() {
 }
 
 #[test]
-#[cfg(feature = "derive")]
 fn custom_xyzi_f32() {
     let cloud: Vec<CustomPointXYZI> = vec![
         CustomPointXYZI {
@@ -189,7 +214,7 @@ fn custom_xyzi_f32() {
         },
     ];
 
-    #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
+    #[derive(Debug, PartialEq, Clone, Default)]
     #[repr(C)]
     struct CustomPointXYZI {
         x: f32,
@@ -198,13 +223,48 @@ fn custom_xyzi_f32() {
         i: u8,
     }
 
+    impl From<RPCL2Point<4>> for CustomPointXYZI {
+        fn from(point: RPCL2Point<4>) -> Self {
+            Self {
+                x: point[0].get(),
+                y: point[1].get(),
+                z: point[2].get(),
+                i: point[3].get(),
+            }
+        }
+    }
+
+    impl From<CustomPointXYZI> for RPCL2Point<4> {
+        fn from(point: CustomPointXYZI) -> Self {
+            [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                point.i.into(),
+            ]
+            .into()
+        }
+    }
+
+    impl PointConvertible<4> for CustomPointXYZI {
+        fn layout() -> LayoutDescription {
+            LayoutDescription::new(&[
+                LayoutField::new("x", "f32", 4),
+                LayoutField::new("y", "f32", 4),
+                LayoutField::new("z", "f32", 4),
+                LayoutField::new("i", "u8", 1),
+                LayoutField::padding(3),
+            ])
+        }
+    }
+
     convert_from_into!(CustomPointXYZI, cloud);
 }
 
 #[test]
 #[cfg(feature = "derive")]
 fn custom_rgba_f32() {
-    #[derive(Debug, PartialEq, Clone, Default, PointConvertible, TypeLayout)]
+    #[derive(Debug, PartialEq, Clone, Default)]
     #[repr(C)]
     struct CustomPoint {
         x: f32,
@@ -214,6 +274,53 @@ fn custom_rgba_f32() {
         g: u8,
         b: u8,
         a: u8,
+    }
+
+    impl From<RPCL2Point<7>> for CustomPoint {
+        fn from(point: RPCL2Point<7>) -> Self {
+            Self {
+                x: point[0].get(),
+                y: point[1].get(),
+                z: point[2].get(),
+                r: point[3].get(),
+                g: point[4].get(),
+                b: point[5].get(),
+                a: point[6].get(),
+            }
+        }
+    }
+
+    impl From<CustomPoint> for RPCL2Point<7> {
+        fn from(point: CustomPoint) -> Self {
+            [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                point.r.into(),
+                point.g.into(),
+                point.b.into(),
+                point.a.into(),
+            ]
+            .into()
+        }
+    }
+
+    impl PointConvertible<7> for CustomPoint {
+        fn layout() -> LayoutDescription {
+            LayoutDescription::new(&[
+                LayoutField::new("x", "f32", 4),
+                LayoutField::new("y", "f32", 4),
+                LayoutField::new("z", "f32", 4),
+                LayoutField::new("r", "u8", 1),
+                LayoutField::padding(3),
+                LayoutField::new("g", "u8", 1),
+                LayoutField::padding(3),
+                LayoutField::new("b", "u8", 1),
+                LayoutField::padding(3),
+                LayoutField::new("a", "u8", 1),
+                LayoutField::padding(3),
+            ])
+        }
     }
 
     let cloud = vec![
@@ -447,9 +554,8 @@ fn write_xyzi_read_xyz_vec() {
 }
 
 #[test]
-#[cfg(feature = "derive")]
 fn write_less_than_available() {
-    #[derive(Debug, PartialEq, Clone, Default, TypeLayout)]
+    #[derive(Debug, PartialEq, Clone, Default)]
     #[repr(C)]
     struct CustomPoint {
         x: f32,
@@ -475,13 +581,15 @@ fn write_less_than_available() {
         }
     }
 
-    impl Fields<3> for CustomPoint {
-        fn field_names_ordered() -> [&'static str; 3] {
-            ["x", "y", "z"]
+    impl PointConvertible<3> for CustomPoint {
+        fn layout() -> LayoutDescription {
+            LayoutDescription::new(&[
+                LayoutField::new("x", "f32", 4),
+                LayoutField::new("y", "f32", 4),
+                LayoutField::new("z", "f32", 4),
+            ])
         }
     }
-
-    impl PointConvertible<3> for CustomPoint {}
 
     let write_cloud = vec![
         CustomPoint {

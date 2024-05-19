@@ -64,16 +64,27 @@
 //! # Custom Points
 //! Implement [`PointConvertible`] for your point with the `derive` feature or manually.
 //!
+//! ## Derive (recommended)
+//! ```ignore
+//! #[derive(Clone, Debug, PartialEq, Copy, Default, PointConvertible)]
+//! pub struct MyPointXYZI {
+//!     pub x: f32,
+//!     pub y: f32,
+//!     pub z: f32,
+//!     #[rpcl2(rename("i"))]
+//!     pub intensity: f32,
+//! }
+//! ```
+//!
+//! ## Manual
 //! ```
 //! use ros_pointcloud2::prelude::*;
 //!
-//! #[cfg_attr(feature = "derive", derive(PointConvertible, TypeLayout))]
 //! #[derive(Clone, Debug, PartialEq, Copy, Default)]
 //! pub struct MyPointXYZI {
 //!     pub x: f32,
 //!     pub y: f32,
 //!     pub z: f32,
-//!     #[cfg_attr(feature = "derive", rpcl2(rename("i")))]
 //!     pub intensity: f32,
 //! }
 //!
@@ -83,60 +94,34 @@
 //!     }
 //! }
 //!
-//! // Manual implementation of PointConvertible without derive.
-//! #[cfg(not(feature = "derive"))]
-//! impl Fields<4> for MyPointXYZI {
-//!     fn field_names_ordered() -> [&'static str; 4] {
-//!         ["x", "y", "z", "i"] // Note the different field name for intensity.
-//!     }
-//! }
-//!
-//! #[cfg(not(feature = "derive"))]
 //! impl From<RPCL2Point<4>> for MyPointXYZI {
 //!     fn from(point: RPCL2Point<4>) -> Self {
 //!         Self::new(point[0].get(), point[1].get(), point[2].get(), point[3].get())
 //!     }
 //! }
 //!
-//! #[cfg(not(feature = "derive"))]
 //! impl From<MyPointXYZI> for RPCL2Point<4> {
 //!     fn from(point: MyPointXYZI) -> Self {
 //!         [point.x.into(), point.y.into(), point.z.into(), point.intensity.into()].into()
 //!     }
 //! }
 //!
-//! #[cfg(not(feature = "derive"))]
-//! impl TypeLayout for MyPointXYZI {
+//! impl PointConvertible<4> for MyPointXYZI {
 //!     fn layout() -> LayoutDescription {
 //!         LayoutDescription::new(&[
 //!             LayoutField::new("x", "f32", 4),
 //!             LayoutField::new("y", "f32", 4),
 //!             LayoutField::new("z", "f32", 4),
-//!             LayoutField::new("intensity", "f32", 4), // Use the original name.
+//!             LayoutField::new("intensity", "f32", 4),
 //!         ])
 //!     }
 //! }
-//!
-//! #[cfg(not(feature = "derive"))]
-//! impl PointConvertible<4> for MyPointXYZI {}
 //!
 //! let first_p = MyPointXYZI::new(1.0, 2.0, 3.0, 0.5);
 //! let cloud_points = vec![first_p, MyPointXYZI::new(4.0, 5.0, 6.0, 0.5)];
 //! let msg_out = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
 //! let cloud_points_out: Vec<MyPointXYZI> = msg_out.try_into_iter().unwrap().collect();
 //! assert_eq!(first_p, *cloud_points_out.first().unwrap());
-//! ```
-//!
-//! An example without `#[cfg_attr]` looks like this:
-//! ```ignore
-//! #[derive(Clone, Debug, PartialEq, Copy, Default, PointConvertible, TypeLayout)]
-//! pub struct MyPointXYZI {
-//!     pub x: f32,
-//!     pub y: f32,
-//!     pub z: f32,
-//!     #[rpcl2(rename("i"))]
-//!     pub intensity: f32,
-//! }
 //! ```
 #![crate_type = "lib"]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -253,7 +238,7 @@ pub struct LayoutDescription(Vec<LayoutField>);
 
 impl LayoutDescription {
     pub fn new(fields: &[LayoutField]) -> Self {
-        Self(fields.to_vec())
+        Self(fields.into())
     }
 }
 
@@ -470,6 +455,29 @@ pub struct CloudDimensions {
     pub height: u32,
 }
 
+fn ordered_field_names<const N: usize, C: PointConvertible<N>>() -> Vec<String> {
+    C::layout()
+        .0
+        .iter()
+        .filter(|field| match field {
+            LayoutField::Field {
+                name: _,
+                ty: _,
+                size: _,
+            } => true,
+            _ => false,
+        })
+        .map(|field| match field {
+            LayoutField::Field {
+                name,
+                ty: _,
+                size: _,
+            } => name.to_string(),
+            _ => unreachable!("Fields must be filtered before."),
+        })
+        .collect()
+}
+
 impl PointCloud2Msg {
     #[inline]
     fn byte_similarity<const N: usize, C>(&self) -> Result<ByteSimilarity, MsgConversionError>
@@ -479,26 +487,26 @@ impl PointCloud2Msg {
         let point: RPCL2Point<N> = C::default().into();
         debug_assert!(point.fields.len() == N);
 
-        let field_names = C::field_names_ordered();
+        let field_names = ordered_field_names::<N, C>();
         debug_assert!(field_names.len() == N);
 
         let layout = KnownLayoutInfo::try_from(C::layout())?;
-        debug_assert!(field_names.len() == layout.fields.len());
+        debug_assert!(field_names.len() <= layout.fields.len());
 
         let mut offset: u32 = 0;
         let mut field_counter = 0;
-        for (f, msg_f) in layout.fields.iter().zip(self.fields.iter()) {
+        for f in layout.fields.iter() {
             match f {
                 PointField::Field {
                     datatype,
                     size,
                     count,
                 } => {
-                    let f_translated = String::from_str(field_names[field_counter])
-                        .expect("Field name is not a valid string.");
+                    let msg_f = &self.fields[field_counter];
+                    let f_translated = &field_names[field_counter];
                     field_counter += 1;
 
-                    if msg_f.name != f_translated
+                    if msg_f.name != *f_translated
                         || msg_f.offset != offset
                         || msg_f.datatype != *datatype
                         || msg_f.count != 1
@@ -544,7 +552,7 @@ impl PointCloud2Msg {
             let point: RPCL2Point<N> = C::default().into();
             debug_assert!(point.fields.len() == N);
 
-            let field_names = C::field_names_ordered();
+            let field_names = crate::ordered_field_names::<N, C>();
             debug_assert!(field_names.len() == N);
 
             let mut pdata_offsets_acc: u32 = 0;
@@ -636,17 +644,15 @@ impl PointCloud2Msg {
                     let point: RPCL2Point<N> = C::default().into();
                     debug_assert!(point.fields.len() == N);
 
-                    let field_names = C::field_names_ordered();
+                    let field_names = crate::ordered_field_names::<N, C>();
                     debug_assert!(field_names.len() == N);
 
                     let layout = KnownLayoutInfo::try_from(C::layout())?;
-                    debug_assert!(field_names.len() == layout.fields.len());
+                    debug_assert!(field_names.len() <= layout.fields.len());
 
                     let mut offset = 0;
-                    let mut fields: Vec<PointFieldMsg> = Vec::with_capacity(layout.fields.len());
+                    let mut fields: Vec<PointFieldMsg> = Vec::with_capacity(field_names.len());
                     for f in layout.fields.into_iter() {
-                        let f_translated = String::from_str(field_names[fields.len()])
-                            .expect("Field name is not a valid string.");
                         match f {
                             PointField::Field {
                                 datatype,
@@ -654,7 +660,7 @@ impl PointCloud2Msg {
                                 count,
                             } => {
                                 fields.push(PointFieldMsg {
-                                    name: f_translated,
+                                    name: field_names[fields.len()].clone(),
                                     offset,
                                     datatype,
                                     ..Default::default()
@@ -815,14 +821,6 @@ pub struct RPCL2Point<const N: usize> {
     fields: [PointData; N],
 }
 
-impl<const N: usize> Default for RPCL2Point<N> {
-    fn default() -> Self {
-        Self {
-            fields: [PointData::default(); N],
-        }
-    }
-}
-
 impl<const N: usize> core::ops::Index<usize> for RPCL2Point<N> {
     type Output = PointData;
 
@@ -840,113 +838,88 @@ impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
 /// Trait to enable point conversions on the fly.
 ///
 /// Implement this trait for your custom point you want to read or write in the message.
-/// For a more convenient way to implement this trait, enable the `derive` feature and use the `#[derive(PointConvertible, TypeLayout)]` macro.
+/// It is strongly recommended to enable the `derive` feature and use the `#[derive(PointConvertible)]` macro.
+/// This prevents common errors when implementing this trait by hand.
 ///
-/// # Derive Example
+/// Be aware that Rust does not guarantee the memory layout of structs. Learn more [here](https://doc.rust-lang.org/reference/type-layout.html).
+/// To make layouting more predictable and thus faster for C++ node interactions, use the `#[repr(C)]` attribute on your struct.
+/// An example for diverging point layouts with padding can be seen in the source code of [this](points::PointXYZRGBA::layout) implementation.
+///
+/// The generic parameter `N` is the number of fields in the point type. There can be more (hidden) fields that pad the layout but they do not count for the N.
+/// For
+///
+/// # Derive
+/// ```ignore
+/// use ros_pointcloud2::prelude::*;
+///
+/// #[derive(Clone, Debug, PartialEq, Copy, Default, PointConvertible)]
+/// #[repr(C, align(4))]
+/// pub struct MyPointXYZL {
+///     pub x: f32,
+///     pub y: f32,
+///     pub z: f32,
+///     #[rpcl2(rename("l"))]
+///     pub label: u8,
+/// }
+/// ```
+///
+/// # Manual
 /// ```
 /// use ros_pointcloud2::prelude::*;
 ///
 /// #[derive(Clone, Debug, PartialEq, Copy, Default)]
-/// pub struct MyPointXYZI {
+/// #[repr(C, align(4))]
+/// pub struct MyPointXYZL {
 ///     pub x: f32,
 ///     pub y: f32,
 ///     pub z: f32,
-///     pub intensity: f32,
-/// }
-/// ```
-///
-/// # Manual Example
-/// ```
-/// use ros_pointcloud2::prelude::*;
-///
-/// #[derive(Clone, Debug, PartialEq, Copy, Default)]
-/// pub struct MyPointXYZI {
-///     pub x: f32,
-///     pub y: f32,
-///     pub z: f32,
-///     pub intensity: f32,
+///     pub label: u8,
 /// }
 ///
-/// impl From<MyPointXYZI> for RPCL2Point<4> {
-///     fn from(point: MyPointXYZI) -> Self {
-///         [point.x.into(), point.y.into(), point.z.into(), point.intensity.into()].into()
+/// impl From<MyPointXYZL> for RPCL2Point<4> {
+///     fn from(point: MyPointXYZL) -> Self {
+///         [point.x.into(), point.y.into(), point.z.into(), point.label.into()].into()
 ///     }
 /// }
 ///
-/// impl From<RPCL2Point<4>> for MyPointXYZI {
+/// impl From<RPCL2Point<4>> for MyPointXYZL {
 ///     fn from(point: RPCL2Point<4>) -> Self {
 ///         Self {
 ///             x: point[0].get(),
 ///             y: point[1].get(),
 ///             z: point[2].get(),
-///             intensity: point[3].get(),
+///             label: point[3].get(),
 ///         }
 ///     }
 /// }
 ///
-/// impl Fields<4> for MyPointXYZI {
-///    fn field_names_ordered() -> [&'static str; 4] {
-///       ["x", "y", "z", "intensity"]
-///   }
-/// }
-///
-/// impl TypeLayout for MyPointXYZI {
+/// impl PointConvertible<4> for MyPointXYZL {
 ///     fn layout() -> LayoutDescription {
 ///         LayoutDescription::new(&[
 ///             LayoutField::new("x", "f32", 4),
 ///             LayoutField::new("y", "f32", 4),
 ///             LayoutField::new("z", "f32", 4),
-///             LayoutField::new("intensity", "f32", 4),
+///             LayoutField::new("l", "u8", 1),
+///             LayoutField::padding(3),
 ///         ])
 ///     }
 /// }
-///
-/// impl PointConvertible<4> for MyPointXYZI {}
 /// ```
 pub trait PointConvertible<const N: usize>:
-    TypeLayout + From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Fields<N> + Default
+    From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Default + Sized
 {
+    fn layout() -> LayoutDescription;
 }
 
-/// Matching field names from each data point.
-/// Always make sure to use the same order as in your conversion implementation to have a correct mapping.
-///
-/// This trait is needed to implement the `PointConvertible` trait.
-///
-/// # Example
-/// ```
-/// use ros_pointcloud2::prelude::*;
-///
-/// #[derive(Clone, Debug, PartialEq, Copy)]
-/// pub struct MyPointXYZI {
-///     pub x: f32,
-///     pub y: f32,
-///     pub z: f32,
-///     pub intensity: f32,
-/// }
-///
-/// impl Fields<4> for MyPointXYZI {
-///    fn field_names_ordered() -> [&'static str; 4] {
-///       ["x", "y", "z", "intensity"]
-///   }
-/// }
-/// ```
-pub trait Fields<const N: usize> {
-    fn field_names_ordered() -> [&'static str; N];
-}
-
+#[derive(Debug)]
 enum PointField {
     Padding(u32),
     Field { size: u32, datatype: u8, count: u32 },
 }
 
+#[derive(Debug)]
 struct KnownLayoutInfo {
     fields: Vec<PointField>,
-}
-
-/// Trait to enable the layout description for the point type for direct copy operations.
-pub trait TypeLayout {
-    fn layout() -> LayoutDescription;
 }
 
 impl TryFrom<LayoutField> for PointField {
@@ -1472,6 +1445,7 @@ impl FromBytes for u8 {
     }
 }
 
+/* TODO test in test crate
 #[cfg(test)]
 #[cfg(feature = "derive")]
 mod tests {
@@ -1495,4 +1469,4 @@ mod tests {
         let names = TestStruct::field_names_ordered();
         assert_eq!(names, ["field1", "renamed_field", "field3", "field4"]);
     }
-}
+}*/
