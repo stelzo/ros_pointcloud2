@@ -11,11 +11,11 @@
 //! - [`try_into_iter`](PointCloud2Msg::try_into_iter)
 //!
 //! These feature predictable performance but they do not scale well with large clouds. Learn more about that in the [performance section](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#performance) of the repository.
-//! The iterators are useful when your conversions are more complex than a simple copy or you the cloud is small enough.
+//! The iterators are useful when your conversions are more complex than a simple copy or the cloud is small enough.
 //!
 //! When the cloud is getting larger or you are doing a lot of processing per point, switch to the parallel iterators.
 //! - [`try_into_par_iter`](PointCloud2Msg::try_into_par_iter) requires `rayon` feature
-//! - [`try_from_par_iter`](PointCloud2Msg::try_from_par_iter) requires `rayon` + `derive` feature
+//! - [`try_from_par_iter`](PointCloud2Msg::try_from_par_iter) requires `rayon` feature
 //!
 //! For ROS interoperability, there are integrations avialable with feature flags. If you miss a message type, please open an issue or a PR.
 //! See the [`ros`] module for more information on how to integrate more libraries.
@@ -56,7 +56,7 @@
 //! - r2r_msg — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
 //! - rosrust_msg — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
 //! - (rclrs_msg) — Integration for ROS2 [rclrs](https://github.com/ros2-rust/ros2_rust) but it currently needs [this workaround](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#rclrs-ros2_rust).
-//! - derive *(enabled by default)* — Enables the `_vec` functions and offers helpful custom point derive macros for the [`PointConvertible`] trait.
+//! - derive — Offers implementations for the [`PointConvertible`] trait needed for custom points.
 //! - rayon — Parallel iterator support for `_par_iter` functions. [`PointCloud2Msg::try_from_par_iter`] additionally needs the 'derive' feature.
 //! - nalgebra — Predefined points offer a nalgebra typed getter for coordinates (e.g. [`xyz`](points::PointXYZ::xyz)).
 //! - std *(enabled by default)* — Use the standard library. `no_std` only works standalone or with the 'nalgebra' feature.
