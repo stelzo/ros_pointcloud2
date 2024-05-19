@@ -1,0 +1,8 @@
+[package]
+name = "derive-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ros_pointcloud2 = { path = "../rpcl2", features = ["std", "derive"] }
+rpcl2-derive = { path = "../rpcl2-derive" }

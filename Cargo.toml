@@ -1,5 +1,5 @@
 [workspace]
 
-members = ["rpcl2", "rpcl2-derive"]
+members = [ "derive-test","rpcl2", "rpcl2-derive"]
 
 resolver = "2"
