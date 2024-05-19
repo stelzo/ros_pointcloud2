@@ -459,13 +459,15 @@ fn ordered_field_names<const N: usize, C: PointConvertible<N>>() -> Vec<String> 
     C::layout()
         .0
         .iter()
-        .filter(|field| match field {
-            LayoutField::Field {
-                name: _,
-                ty: _,
-                size: _,
-            } => true,
-            _ => false,
+        .filter(|field| {
+            matches!(
+                field,
+                LayoutField::Field {
+                    name: _,
+                    ty: _,
+                    size: _,
+                }
+            )
         })
         .map(|field| match field {
             LayoutField::Field {
@@ -568,7 +570,7 @@ impl PointCloud2Msg {
                 let _ = FieldDatatype::try_from(datatype_code)?;
 
                 *field_val = PointFieldMsg {
-                    name: field_name.into(),
+                    name: field_name,
                     offset: pdata_offsets_acc,
                     datatype: datatype_code,
                     count: 1,
@@ -1444,29 +1446,3 @@ impl FromBytes for u8 {
         Self::from_le_bytes([bytes[0]])
     }
 }
-
-/* TODO test in test crate
-#[cfg(test)]
-#[cfg(feature = "derive")]
-mod tests {
-    use super::Fields;
-    use rpcl2_derive::Fields;
-
-    use alloc::string::String;
-
-    #[allow(dead_code)]
-    #[derive(Fields)]
-    struct TestStruct {
-        field1: String,
-        #[rpcl2(rename("renamed_field"))]
-        field2: i32,
-        field3: f64,
-        field4: bool,
-    }
-
-    #[test]
-    fn test_struct_names() {
-        let names = TestStruct::field_names_ordered();
-        assert_eq!(names, ["field1", "renamed_field", "field3", "field4"]);
-    }
-}*/
