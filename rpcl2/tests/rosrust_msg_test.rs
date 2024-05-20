@@ -1,4 +1,4 @@
-#[cfg(feature = "rosrust_msg")]
+#[cfg(rosrust)]
 #[test]
 fn convertxyz_rosrust_msg() {
     use ros_pointcloud2::{points::PointXYZ, PointCloud2Msg};

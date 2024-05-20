@@ -32,7 +32,7 @@ pub struct TimeMsg {
     pub nanosec: u32,
 }
 
-#[cfg(feature = "rosrust_msg")]
+#[cfg(rosrust)]
 impl From<rosrust::Time> for TimeMsg {
     fn from(time: rosrust::Time) -> Self {
         Self {
@@ -70,7 +70,7 @@ impl Default for PointFieldMsg {
     }
 }
 
-#[cfg(feature = "r2r_msg")]
+#[cfg(r2r)]
 impl From<r2r::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
     fn from(msg: r2r::sensor_msgs::msg::PointCloud2) -> Self {
         Self {
@@ -113,7 +113,7 @@ impl From<r2r::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
     }
 }
 
-#[cfg(feature = "r2r_msg")]
+#[cfg(r2r)]
 impl From<crate::PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
     fn from(msg: crate::PointCloud2Msg) -> Self {
         r2r::sensor_msgs::msg::PointCloud2 {
@@ -151,7 +151,7 @@ impl From<crate::PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
     }
 }
 
-#[cfg(feature = "rosrust_msg")]
+#[cfg(rosrust)]
 impl From<rosrust_msg::sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
     fn from(msg: rosrust_msg::sensor_msgs::PointCloud2) -> Self {
         Self {
@@ -194,7 +194,7 @@ impl From<rosrust_msg::sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
     }
 }
 
-#[cfg(feature = "rosrust_msg")]
+#[cfg(rosrust)]
 impl From<crate::PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
     fn from(msg: crate::PointCloud2Msg) -> Self {
         rosrust_msg::sensor_msgs::PointCloud2 {

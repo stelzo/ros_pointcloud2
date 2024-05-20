@@ -1,4 +1,4 @@
-#[cfg(feature = "r2r_msg")]
+#[cfg(r2r)]
 #[test]
 fn convertxyz_r2r_msg() {
     use ros_pointcloud2::{points::PointXYZ, PointCloud2Msg};
