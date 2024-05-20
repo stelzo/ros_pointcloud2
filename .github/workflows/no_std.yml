@@ -1,4 +1,4 @@
-name: Tests
+name: Build no_std
 
 on:
   push:
