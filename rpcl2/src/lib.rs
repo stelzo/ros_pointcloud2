@@ -57,9 +57,9 @@
 //! - rosrust_msg — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
 //! - (rclrs_msg) — Integration for ROS2 [rclrs](https://github.com/ros2-rust/ros2_rust) but it currently needs [this workaround](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#rclrs-ros2_rust).
 //! - derive — Offers implementations for the [`PointConvertible`] trait needed for custom points.
-//! - rayon — Parallel iterator support for `_par_iter` functions. [`PointCloud2Msg::try_from_par_iter`] additionally needs the 'derive' feature.
+//! - rayon — Parallel iterator support for `_par_iter` functions.
 //! - nalgebra — Predefined points offer a nalgebra typed getter for coordinates (e.g. [`xyz`](points::PointXYZ::xyz)).
-//! - std *(enabled by default)* — Use the standard library. `no_std` only works standalone or with the 'nalgebra' feature.
+//! - std *(enabled by default)* — Omit this feature to use this library in no_std environments. ROS integrations and 'rayon' will not work with no_std.
 //!
 //! # Custom Points
 //! Implement [`PointConvertible`] for your point with the `derive` feature or manually.
@@ -474,7 +474,7 @@ fn ordered_field_names<const N: usize, C: PointConvertible<N>>() -> Vec<String> 
                 name,
                 ty: _,
                 size: _,
-            } => name.to_string(),
+            } => name.as_ref().into(),
             _ => unreachable!("Fields must be filtered before."),
         })
         .collect()

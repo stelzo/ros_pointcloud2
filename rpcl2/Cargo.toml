@@ -26,6 +26,7 @@ exclude = [
     "**/dist/**",
     "**/docs/**",
     "**/doc/**",
+    "**/ensure_no_std/**",
 ]
 rust-version = "1.63"
 
