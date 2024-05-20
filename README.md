@@ -91,19 +91,17 @@ The results are measured on an Intel i7-14700 with benchmarks from [this reposit
 
 For minimizing the conversion overhead in general, always use the functions that best fit your use case.
 
-## `no_std` Environments
+### License
 
-The `_iter` conversions are compatible with `#[no_std]` environments if an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate. Only `nalgebra` can be added as an additional feature in this case.
+<sup>
+Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
+2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
+</sup>
 
-## License
+<br>
 
-Licensed under either of
-
-- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-
-at your option.
-
-### Contribution
-
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
+<sub>
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.
+</sub>
