@@ -11,11 +11,11 @@
 //! - [`try_into_iter`](PointCloud2Msg::try_into_iter)
 //!
 //! These feature predictable performance but they do not scale well with large clouds. Learn more about that in the [performance section](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#performance) of the repository.
-//! The iterators are useful when your conversions are more complex than a simple copy or you the cloud is small enough.
+//! The iterators are useful when your conversions are more complex than a simple copy or the cloud is small enough.
 //!
 //! When the cloud is getting larger or you are doing a lot of processing per point, switch to the parallel iterators.
 //! - [`try_into_par_iter`](PointCloud2Msg::try_into_par_iter) requires `rayon` feature
-//! - [`try_from_par_iter`](PointCloud2Msg::try_from_par_iter) requires `rayon` + `derive` feature
+//! - [`try_from_par_iter`](PointCloud2Msg::try_from_par_iter) requires `rayon` feature
 //!
 //! For ROS interoperability, there are integrations avialable with feature flags. If you miss a message type, please open an issue or a PR.
 //! See the [`ros`] module for more information on how to integrate more libraries.
@@ -56,10 +56,10 @@
 //! - r2r_msg — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
 //! - rosrust_msg — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
 //! - (rclrs_msg) — Integration for ROS2 [rclrs](https://github.com/ros2-rust/ros2_rust) but it currently needs [this workaround](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#rclrs-ros2_rust).
-//! - derive *(enabled by default)* — Enables the `_vec` functions and offers helpful custom point derive macros for the [`PointConvertible`] trait.
-//! - rayon — Parallel iterator support for `_par_iter` functions. [`PointCloud2Msg::try_from_par_iter`] additionally needs the 'derive' feature.
+//! - derive — Offers implementations for the [`PointConvertible`] trait needed for custom points.
+//! - rayon — Parallel iterator support for `_par_iter` functions.
 //! - nalgebra — Predefined points offer a nalgebra typed getter for coordinates (e.g. [`xyz`](points::PointXYZ::xyz)).
-//! - std *(enabled by default)* — Use the standard library. `no_std` only works standalone or with the 'nalgebra' feature.
+//! - std *(enabled by default)* — Omit this feature to use this library in no_std environments. ROS integrations and 'rayon' will not work with no_std.
 //!
 //! # Custom Points
 //! Implement [`PointConvertible`] for your point with the `derive` feature or manually.
@@ -125,10 +125,11 @@
 //! ```
 #![crate_type = "lib"]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.5.0-rc.2")]
+#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.5.0-rc.3")]
 #![warn(clippy::print_stderr)]
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unwrap_used)]
+#![warn(clippy::expect_used)]
 #![warn(clippy::cargo)]
 #![warn(clippy::std_instead_of_core)]
 #![warn(clippy::alloc_instead_of_core)]
@@ -474,7 +475,7 @@ fn ordered_field_names<const N: usize, C: PointConvertible<N>>() -> Vec<String> 
                 name,
                 ty: _,
                 size: _,
-            } => name.to_string(),
+            } => name.as_ref().into(),
             _ => unreachable!("Fields must be filtered before."),
         })
         .collect()
@@ -492,12 +493,13 @@ impl PointCloud2Msg {
         let field_names = ordered_field_names::<N, C>();
         debug_assert!(field_names.len() == N);
 
-        let layout = KnownLayoutInfo::try_from(C::layout())?;
-        debug_assert!(field_names.len() <= layout.fields.len());
+        let target_layout = KnownLayoutInfo::try_from(C::layout())?;
+        debug_assert!(field_names.len() <= target_layout.fields.len());
+        debug_assert!(self.fields.len() <= target_layout.fields.len());
 
         let mut offset: u32 = 0;
         let mut field_counter = 0;
-        for f in layout.fields.iter() {
+        for f in target_layout.fields.iter() {
             match f {
                 PointField::Field {
                     datatype,
@@ -913,13 +915,13 @@ pub trait PointConvertible<const N: usize>:
     fn layout() -> LayoutDescription;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum PointField {
     Padding(u32),
     Field { size: u32, datatype: u8, count: u32 },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct KnownLayoutInfo {
     fields: Vec<PointField>,
 }

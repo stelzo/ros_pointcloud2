@@ -319,9 +319,16 @@ where
             return Err(MsgConversionError::DataLengthMismatch);
         }
 
-        let last_offset = offsets.last().expect("Dimensionality is 0.");
+        let last_offset = match offsets.last() {
+            Some(offset) => *offset,
+            None => return Err(MsgConversionError::DataLengthMismatch),
+        };
 
-        let last_pdata = pdata.last().expect("Dimensionality is 0.");
+        let last_pdata = match pdata.last() {
+            Some(pdata) => pdata,
+            None => return Err(MsgConversionError::DataLengthMismatch),
+        };
+
         let size_with_last_pdata = last_offset + last_pdata.1.size();
         if size_with_last_pdata > point_step_size {
             return Err(MsgConversionError::DataLengthMismatch);
