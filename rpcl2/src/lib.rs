@@ -129,6 +129,7 @@
 #![warn(clippy::print_stderr)]
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unwrap_used)]
+#![warn(clippy::expect_used)]
 #![warn(clippy::cargo)]
 #![warn(clippy::std_instead_of_core)]
 #![warn(clippy::alloc_instead_of_core)]
@@ -492,12 +493,13 @@ impl PointCloud2Msg {
         let field_names = ordered_field_names::<N, C>();
         debug_assert!(field_names.len() == N);
 
-        let layout = KnownLayoutInfo::try_from(C::layout())?;
-        debug_assert!(field_names.len() <= layout.fields.len());
+        let target_layout = KnownLayoutInfo::try_from(C::layout())?;
+        debug_assert!(field_names.len() <= target_layout.fields.len());
+        debug_assert!(self.fields.len() <= target_layout.fields.len());
 
         let mut offset: u32 = 0;
         let mut field_counter = 0;
-        for f in layout.fields.iter() {
+        for f in target_layout.fields.iter() {
             match f {
                 PointField::Field {
                     datatype,
@@ -913,13 +915,13 @@ pub trait PointConvertible<const N: usize>:
     fn layout() -> LayoutDescription;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum PointField {
     Padding(u32),
     Field { size: u32, datatype: u8, count: u32 },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct KnownLayoutInfo {
     fields: Vec<PointField>,
 }
