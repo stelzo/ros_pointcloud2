@@ -1,0 +1,23 @@
+name: Nightly testing
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule: [cron: "40 1 * * *"]
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy
+      - name: Linting
+        run: cargo clippy --all-targets --features derive,nalgebra,rayon -- -D warnings
+      - name: Tests
+        run: cargo test --features derive,nalgebra,rayon
