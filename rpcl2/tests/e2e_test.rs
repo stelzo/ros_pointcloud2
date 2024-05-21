@@ -1,3 +1,4 @@
+use pretty_assertions::assert_eq;
 use ros_pointcloud2::prelude::*;
 
 #[cfg(feature = "derive")]
