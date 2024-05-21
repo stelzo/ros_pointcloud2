@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.0-rc.2 -> v0.5.0-rc.3
+
+- Bump r2r to 0.9.
+- Fixed building in `no_std` environments.
+- Removed `expect` calls.
+
 ## v0.5.0-rc.1 -> v0.5.0-rc.2
 
 - `PointConvertible` now includes the information for `TypeLayout` and `Fields`, which reduces boilerplate code for custom points. The respective derive macro is updated to work with the updated trait.
