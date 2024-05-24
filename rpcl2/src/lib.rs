@@ -1009,8 +1009,7 @@ impl PointData {
         let mut bytes = [u8::default(); core::mem::size_of::<f64>()];
         unsafe {
             let data_ptr = data.as_ptr().add(offset);
-            let bytes_ptr = bytes.as_mut_ptr() as *mut u8;
-            core::ptr::copy_nonoverlapping(data_ptr, bytes_ptr, datatype.size());
+            core::ptr::copy_nonoverlapping(data_ptr, bytes.as_mut_ptr(), datatype.size());
         }
 
         Self {
