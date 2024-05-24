@@ -687,7 +687,7 @@ impl PointCloud2Msg {
 
                 let bytes_total = vec.len() * point_step as usize;
                 cloud.data.resize(bytes_total, u8::default());
-                let raw_data: *mut C = cloud.data.as_ptr() as *mut C;
+                let raw_data: *mut C = cloud.data.as_mut_ptr() as *mut C;
                 unsafe {
                     core::ptr::copy_nonoverlapping(
                         vec.as_ptr().cast::<u8>(),
@@ -1006,10 +1006,10 @@ impl PointData {
     #[inline]
     fn from_buffer(data: &[u8], offset: usize, datatype: FieldDatatype, endian: Endian) -> Self {
         debug_assert!(data.len() >= offset + datatype.size());
-        let bytes = [u8::default(); core::mem::size_of::<f64>()];
+        let mut bytes = [u8::default(); core::mem::size_of::<f64>()];
         unsafe {
             let data_ptr = data.as_ptr().add(offset);
-            let bytes_ptr = bytes.as_ptr() as *mut u8;
+            let bytes_ptr = bytes.as_mut_ptr() as *mut u8;
             core::ptr::copy_nonoverlapping(data_ptr, bytes_ptr, datatype.size());
         }
 
