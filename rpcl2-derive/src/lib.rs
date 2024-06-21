@@ -109,7 +109,7 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
     let layout = layout_of_type(&name, &input.data);
 
     let expanded = quote! {
-        impl #impl_generics ::ros_pointcloud2::PointConvertible<#field_len_token> for #name #ty_generics #where_clause {
+        unsafe impl #impl_generics ::ros_pointcloud2::PointConvertible<#field_len_token> for #name #ty_generics #where_clause {
             fn layout() -> ::ros_pointcloud2::LayoutDescription {
                 let mut last_field_end = 0;
                 let mut fields = Vec::new();

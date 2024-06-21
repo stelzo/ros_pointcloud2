@@ -160,7 +160,7 @@ impl From<PointXYZ> for RPCL2Point<3> {
     }
 }
 
-impl PointConvertible<3> for PointXYZ {
+unsafe impl PointConvertible<3> for PointXYZ {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
@@ -221,7 +221,7 @@ impl From<PointXYZI> for RPCL2Point<4> {
     }
 }
 
-impl PointConvertible<4> for PointXYZI {
+unsafe impl PointConvertible<4> for PointXYZI {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
@@ -282,7 +282,7 @@ impl From<PointXYZL> for RPCL2Point<4> {
     }
 }
 
-impl PointConvertible<4> for PointXYZL {
+unsafe impl PointConvertible<4> for PointXYZL {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
@@ -360,7 +360,7 @@ impl From<PointXYZRGB> for RPCL2Point<4> {
     }
 }
 
-impl PointConvertible<4> for PointXYZRGB {
+unsafe impl PointConvertible<4> for PointXYZRGB {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
@@ -442,7 +442,7 @@ impl From<PointXYZRGBA> for RPCL2Point<5> {
     }
 }
 
-impl PointConvertible<5> for PointXYZRGBA {
+unsafe impl PointConvertible<5> for PointXYZRGBA {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
@@ -546,7 +546,7 @@ impl From<PointXYZRGBNormal> for RPCL2Point<7> {
     }
 }
 
-impl PointConvertible<7> for PointXYZRGBNormal {
+unsafe impl PointConvertible<7> for PointXYZRGBNormal {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
@@ -637,7 +637,7 @@ impl From<PointXYZINormal> for RPCL2Point<7> {
     }
 }
 
-impl PointConvertible<7> for PointXYZINormal {
+unsafe impl PointConvertible<7> for PointXYZINormal {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
@@ -728,7 +728,7 @@ impl From<PointXYZRGBL> for RPCL2Point<5> {
     }
 }
 
-impl PointConvertible<5> for PointXYZRGBL {
+unsafe impl PointConvertible<5> for PointXYZRGBL {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),
@@ -805,7 +805,7 @@ impl From<PointXYZNormal> for RPCL2Point<6> {
     }
 }
 
-impl PointConvertible<6> for PointXYZNormal {
+unsafe impl PointConvertible<6> for PointXYZNormal {
     fn layout() -> LayoutDescription {
         LayoutDescription::new(&[
             LayoutField::new("x", "f32", 4),

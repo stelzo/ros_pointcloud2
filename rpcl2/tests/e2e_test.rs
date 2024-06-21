@@ -56,6 +56,19 @@ fn write_cloud() {
     let msg = PointCloud2Msg::try_from_iter(cloud);
     assert!(msg.is_ok());
 }
+/*
+#[test]
+fn collect_vec() {
+    let cloud = vec![
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+        PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
+    ]
+    .into_iter();
+
+    let msg: Result<PointCloud2Msg, MsgConversionError> = cloud.collect();
+}*/
 
 #[test]
 fn write_cloud_from_vec() {
@@ -131,7 +144,7 @@ fn conv_cloud_par_par_iter() {
 #[cfg(feature = "derive")]
 fn custom_xyz_f32() {
     #[derive(Debug, PartialEq, Clone, Default)]
-    #[repr(C)]
+    #[repr(C, align(4))]
     struct CustomPoint {
         x: f32,
         y: f32,
@@ -154,7 +167,7 @@ fn custom_xyz_f32() {
         }
     }
 
-    impl PointConvertible<3> for CustomPoint {
+    unsafe impl PointConvertible<3> for CustomPoint {
         fn layout() -> LayoutDescription {
             LayoutDescription::new(&[
                 LayoutField::new("x", "f32", 4),
@@ -216,7 +229,7 @@ fn custom_xyzi_f32() {
     ];
 
     #[derive(Debug, PartialEq, Clone, Default)]
-    #[repr(C)]
+    #[repr(C, align(4))]
     struct CustomPointXYZI {
         x: f32,
         y: f32,
@@ -247,7 +260,7 @@ fn custom_xyzi_f32() {
         }
     }
 
-    impl PointConvertible<4> for CustomPointXYZI {
+    unsafe impl PointConvertible<4> for CustomPointXYZI {
         fn layout() -> LayoutDescription {
             LayoutDescription::new(&[
                 LayoutField::new("x", "f32", 4),
@@ -266,7 +279,7 @@ fn custom_xyzi_f32() {
 #[cfg(feature = "derive")]
 fn custom_rgba_f32() {
     #[derive(Debug, PartialEq, Clone, Default)]
-    #[repr(C)]
+    #[repr(C, align(4))]
     struct CustomPoint {
         x: f32,
         y: f32,
@@ -306,7 +319,7 @@ fn custom_rgba_f32() {
         }
     }
 
-    impl PointConvertible<7> for CustomPoint {
+    unsafe impl PointConvertible<7> for CustomPoint {
         fn layout() -> LayoutDescription {
             LayoutDescription::new(&[
                 LayoutField::new("x", "f32", 4),
@@ -557,7 +570,7 @@ fn write_xyzi_read_xyz_vec() {
 #[test]
 fn write_less_than_available() {
     #[derive(Debug, PartialEq, Clone, Default)]
-    #[repr(C)]
+    #[repr(C, align(4))]
     struct CustomPoint {
         x: f32,
         y: f32,
@@ -582,7 +595,7 @@ fn write_less_than_available() {
         }
     }
 
-    impl PointConvertible<3> for CustomPoint {
+    unsafe impl PointConvertible<3> for CustomPoint {
         fn layout() -> LayoutDescription {
             LayoutDescription::new(&[
                 LayoutField::new("x", "f32", 4),
