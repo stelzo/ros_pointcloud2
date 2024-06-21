@@ -225,8 +225,10 @@ impl core::fmt::Display for MsgConversionError {
     }
 }
 
-impl core::error::Error for MsgConversionError {
-    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+#[allow(clippy::std_instead_of_core)] // will be stable soon (https://github.com/rust-lang/rust/issues/103765)
+#[cfg(feature = "std")]
+impl std::error::Error for MsgConversionError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         None
     }
 }

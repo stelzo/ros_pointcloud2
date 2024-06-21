@@ -3,7 +3,7 @@
 ## v0.5.0-rc.3 -> v0.5.0
 
 - `PointConvertible` trait is now `unsafe` since the offset is used for raw memory access, where safety can not be guaranteed by the compiler.
-- std::error -> core::error for nightly clippy
+- Fixes clippy on nightly.
 - Fixes a bug when attempting to write larger types than available in the message. This now results in a `ExhaustedSource` error.
 - Adds `repr(C)` to docs where custom conversions are explained to encourage best practices for raw type descriptions.
 
