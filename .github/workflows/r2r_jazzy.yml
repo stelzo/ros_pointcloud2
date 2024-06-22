@@ -1,0 +1,21 @@
+name: r2r_jazzy
+
+on:
+  push:
+    branches-ignore:
+      - rclrs
+  pull_request:
+    branches-ignore:
+      - rclrs
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  tests_jazzy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: docker build . --file ./rpcl2/tests/Dockerfile_r2r_jazzy --tag r2r_jazzy
+      - run: docker run r2r_jazzy cargo test --features r2r_msg,derive,nalgebra,rayon
