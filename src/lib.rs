@@ -67,6 +67,7 @@
 //! ## Derive (recommended)
 //! ```ignore
 //! #[derive(Clone, Debug, PartialEq, Copy, Default, PointConvertible)]
+//! #[repr(C, align(4))]
 //! pub struct MyPointXYZI {
 //!     pub x: f32,
 //!     pub y: f32,
@@ -81,6 +82,7 @@
 //! use ros_pointcloud2::prelude::*;
 //!
 //! #[derive(Clone, Debug, PartialEq, Copy, Default)]
+//! #[repr(C, align(4))]
 //! pub struct MyPointXYZI {
 //!     pub x: f32,
 //!     pub y: f32,
@@ -106,7 +108,7 @@
 //!     }
 //! }
 //!
-//! impl PointConvertible<4> for MyPointXYZI {
+//! unsafe impl PointConvertible<4> for MyPointXYZI {
 //!     fn layout() -> LayoutDescription {
 //!         LayoutDescription::new(&[
 //!             LayoutField::new("x", "f32", 4),
@@ -169,6 +171,7 @@ pub enum MsgConversionError {
     FieldsNotFound(Vec<String>),
     UnsupportedFieldCount,
     NumberConversion,
+    ExhaustedSource,
 }
 
 impl From<core::num::TryFromIntError> for MsgConversionError {
@@ -212,10 +215,17 @@ impl core::fmt::Display for MsgConversionError {
             MsgConversionError::NumberConversion => {
                 write!(f, "The number is too large to be converted into a PointCloud2 supported datatype.")
             }
+            MsgConversionError::ExhaustedSource => {
+                write!(
+                    f,
+                    "The conversion requests more data from the source type than is available."
+                )
+            }
         }
     }
 }
 
+#[allow(clippy::std_instead_of_core)] // will be stable soon (https://github.com/rust-lang/rust/issues/103765)
 #[cfg(feature = "std")]
 impl std::error::Error for MsgConversionError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
@@ -487,13 +497,9 @@ impl PointCloud2Msg {
     where
         C: PointConvertible<N>,
     {
-        let point: RPCL2Point<N> = C::default().into();
-        debug_assert!(point.fields.len() == N);
-
         let field_names = ordered_field_names::<N, C>();
-        debug_assert!(field_names.len() == N);
-
         let target_layout = KnownLayoutInfo::try_from(C::layout())?;
+
         debug_assert!(field_names.len() <= target_layout.fields.len());
         debug_assert!(self.fields.len() <= target_layout.fields.len());
 
@@ -506,8 +512,12 @@ impl PointCloud2Msg {
                     size,
                     count,
                 } => {
-                    let msg_f = &self.fields[field_counter];
-                    let f_translated = &field_names[field_counter];
+                    if field_counter >= self.fields.len() || field_counter >= field_names.len() {
+                        return Err(MsgConversionError::ExhaustedSource);
+                    }
+
+                    let msg_f = unsafe { self.fields.get_unchecked(field_counter) };
+                    let f_translated = unsafe { field_names.get_unchecked(field_counter) };
                     field_counter += 1;
 
                     if msg_f.name != *f_translated
@@ -533,7 +543,7 @@ impl PointCloud2Msg {
         })
     }
 
-    /// Create a [`PointCloud2Msg`] from any iterable type.
+    /// Create a [`PointCloud2Msg`] from any iterable type that implements [`PointConvertible`].
     ///
     /// # Example
     /// ```
@@ -687,7 +697,7 @@ impl PointCloud2Msg {
 
                 let bytes_total = vec.len() * point_step as usize;
                 cloud.data.resize(bytes_total, u8::default());
-                let raw_data: *mut C = cloud.data.as_ptr() as *mut C;
+                let raw_data: *mut C = cloud.data.as_mut_ptr() as *mut C;
                 unsafe {
                     core::ptr::copy_nonoverlapping(
                         vec.as_ptr().cast::<u8>(),
@@ -897,7 +907,7 @@ impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
 ///     }
 /// }
 ///
-/// impl PointConvertible<4> for MyPointXYZL {
+/// unsafe impl PointConvertible<4> for MyPointXYZL {
 ///     fn layout() -> LayoutDescription {
 ///         LayoutDescription::new(&[
 ///             LayoutField::new("x", "f32", 4),
@@ -909,7 +919,10 @@ impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
 ///     }
 /// }
 /// ```
-pub trait PointConvertible<const N: usize>:
+/// # Safety
+/// The layout is used for raw memory interpretation, where safety can not be guaranteed by the compiler.
+/// Take care when implementing the layout, especially in combination with `#[repr]` or use the `derive` feature when possible to prevent common errors.
+pub unsafe trait PointConvertible<const N: usize>:
     From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Default + Sized
 {
     fn layout() -> LayoutDescription;
@@ -1006,11 +1019,10 @@ impl PointData {
     #[inline]
     fn from_buffer(data: &[u8], offset: usize, datatype: FieldDatatype, endian: Endian) -> Self {
         debug_assert!(data.len() >= offset + datatype.size());
-        let bytes = [u8::default(); core::mem::size_of::<f64>()];
+        let mut bytes = [u8::default(); core::mem::size_of::<f64>()];
         unsafe {
             let data_ptr = data.as_ptr().add(offset);
-            let bytes_ptr = bytes.as_ptr() as *mut u8;
-            core::ptr::copy_nonoverlapping(data_ptr, bytes_ptr, datatype.size());
+            core::ptr::copy_nonoverlapping(data_ptr, bytes.as_mut_ptr(), datatype.size());
         }
 
         Self {
