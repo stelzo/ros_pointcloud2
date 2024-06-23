@@ -49,9 +49,11 @@ There are currently 3 integrations for common ROS crates.
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_galactic.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_galactic.yml)
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_humble.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_humble.yml)
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_iron.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_iron.yml)
+  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_jazzy.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_jazzy.yml)
 - [rclrs_msg](https://github.com/ros2-rust/ros2_rust)
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_humble.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_humble.yml)
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_iron.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_iron.yml)
+  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_jazzy.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_jazzy.yml)
 
 You can use `rosrust` and `r2r` by enabling the respective feature:
 
