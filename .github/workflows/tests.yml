@@ -22,5 +22,7 @@ jobs:
           components: clippy
       - name: Linting
         run: cargo clippy --all-targets --features derive,nalgebra,rayon -- -D warnings
-      - name: Tests
+      - name: Build examples with features
+        run: cargo build --examples --features derive,nalgebra,rayon
+      - name: Test library
         run: cargo test --features derive,nalgebra,rayon

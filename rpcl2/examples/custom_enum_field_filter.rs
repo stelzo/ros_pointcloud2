@@ -134,30 +134,27 @@ impl From<Label> for PointDataBuffer {
 }
 
 fn main() {
-    #[cfg(not(feature = "derive"))]
-    {
-        let cloud = vec![
-            CustomPoint::new(1.0, 2.0, 3.0, 4.0, Label::Deer),
-            CustomPoint::new(4.0, 5.0, 6.0, 7.0, Label::Car),
-            CustomPoint::new(7.0, 8.0, 9.0, 10.0, Label::Human),
-        ];
+    let cloud = vec![
+        CustomPoint::new(1.0, 2.0, 3.0, 4.0, Label::Deer),
+        CustomPoint::new(4.0, 5.0, 6.0, 7.0, Label::Car),
+        CustomPoint::new(7.0, 8.0, 9.0, 10.0, Label::Human),
+    ];
 
-        println!("Original cloud: {:?}", cloud);
+    println!("Original cloud: {:?}", cloud);
 
-        let msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
+    let msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
 
-        println!("filtering by label == Deer");
-        let out = msg
-            .try_into_iter()
-            .unwrap()
-            .filter(|point: &CustomPoint| point.my_custom_label == Label::Deer)
-            .collect::<Vec<_>>();
+    println!("filtering by label == Deer");
+    let out = msg
+        .try_into_iter()
+        .unwrap()
+        .filter(|point: &CustomPoint| point.my_custom_label == Label::Deer)
+        .collect::<Vec<_>>();
 
-        println!("Filtered cloud: {:?}", out);
+    println!("Filtered cloud: {:?}", out);
 
-        assert_eq!(
-            vec![CustomPoint::new(1.0, 2.0, 3.0, 4.0, Label::Deer),],
-            out
-        );
-    }
+    assert_eq!(
+        vec![CustomPoint::new(1.0, 2.0, 3.0, 4.0, Label::Deer),],
+        out
+    );
 }
