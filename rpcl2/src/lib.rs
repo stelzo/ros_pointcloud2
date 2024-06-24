@@ -17,11 +17,11 @@
 //! - [`try_into_par_iter`](PointCloud2Msg::try_into_par_iter) requires `rayon` feature
 //! - [`try_from_par_iter`](PointCloud2Msg::try_from_par_iter) requires `rayon` feature
 //!
-//! For ROS interoperability, there are integrations avialable with feature flags. If you miss a message type, please open an issue or a PR.
+//! For ROS interoperability, there are integrations available with feature flags. If you miss a message type, please open an issue or a PR.
 //! See the [`ros`] module for more information on how to integrate more libraries.
 //!
 //! Common point types like [`PointXYZ`](points::PointXYZ) or [`PointXYZI`](points::PointXYZI) are provided. See the full list [`here`](points). You can easily add any additional custom type.
-//! See [custom_enum_field_filter.rs](https://github.com/stelzo/ros_pointcloud2/blob/main/examples/custom_enum_field_filter.rs) for an example.
+//! See [custom_enum_field_filter.rs](https://github.com/stelzo/ros_pointcloud2/blob/main/rpcl2/examples/custom_enum_field_filter.rs) for an example.
 //!
 //! # Minimal Example
 //! ```
