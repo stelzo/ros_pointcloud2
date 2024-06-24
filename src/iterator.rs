@@ -1,6 +1,6 @@
 //! Iterator implementations for [`PointCloud2Msg`] including a parallel iterator for rayon.
 use crate::{
-    Endian, FieldDatatype, Fields, MsgConversionError, PointCloud2Msg, PointConvertible, PointData,
+    Endian, FieldDatatype, MsgConversionError, PointCloud2Msg, PointConvertible, PointData,
     RPCL2Point,
 };
 
@@ -27,12 +27,12 @@ use alloc::vec::Vec;
 ///
 pub struct PointCloudIterator<const N: usize, C>
 where
-    C: Fields<N>,
+    C: PointConvertible<N>,
 {
     iteration: usize,
     iteration_back: usize,
     data: ByteBufferView<N>,
-    phantom_c: core::marker::PhantomData<C>, // internally used for pdata names array
+    _phantom: core::marker::PhantomData<C>,
 }
 
 #[cfg(feature = "rayon")]
@@ -250,7 +250,7 @@ impl<const N: usize> ByteBufferView<N> {
 
 impl<const N: usize, C> TryFrom<PointCloud2Msg> for PointCloudIterator<N, C>
 where
-    C: Fields<N>,
+    C: PointConvertible<N>,
 {
     type Error = MsgConversionError;
 
@@ -262,8 +262,10 @@ where
     fn try_from(cloud: PointCloud2Msg) -> Result<Self, Self::Error> {
         let mut pdata_with_offsets = vec![(String::default(), FieldDatatype::default(), 0); N];
 
-        let not_found_fieldnames = C::field_names_ordered()
-            .into_iter()
+        let fields_only = crate::ordered_field_names::<N, C>();
+
+        let not_found_fieldnames = fields_only
+            .iter()
             .map(|name| {
                 let found = cloud.fields.iter().any(|field| field.name == *name);
                 (name, found)
@@ -279,9 +281,8 @@ where
             return Err(MsgConversionError::FieldsNotFound(names_not_found));
         }
 
-        let ordered_fieldnames = C::field_names_ordered();
         for (field, with_offset) in cloud.fields.iter().zip(pdata_with_offsets.iter_mut()) {
-            if ordered_fieldnames.contains(&field.name.as_str()) {
+            if fields_only.contains(&field.name) {
                 *with_offset = (
                     field.name.clone(),
                     field.datatype.try_into()?,
@@ -318,9 +319,16 @@ where
             return Err(MsgConversionError::DataLengthMismatch);
         }
 
-        let last_offset = offsets.last().expect("Dimensionality is 0.");
+        let last_offset = match offsets.last() {
+            Some(offset) => *offset,
+            None => return Err(MsgConversionError::DataLengthMismatch),
+        };
 
-        let last_pdata = pdata.last().expect("Dimensionality is 0.");
+        let last_pdata = match pdata.last() {
+            Some(pdata) => pdata,
+            None => return Err(MsgConversionError::DataLengthMismatch),
+        };
+
         let size_with_last_pdata = last_offset + last_pdata.1.size();
         if size_with_last_pdata > point_step_size {
             return Err(MsgConversionError::DataLengthMismatch);
@@ -342,14 +350,14 @@ where
             iteration: 0,
             iteration_back: cloud_length - 1,
             data,
-            phantom_c: core::marker::PhantomData,
+            _phantom: core::marker::PhantomData,
         })
     }
 }
 
 impl<const N: usize, C> PointCloudIterator<N, C>
 where
-    C: Fields<N>,
+    C: PointConvertible<N>,
 {
     #[inline]
     #[must_use]
@@ -358,7 +366,7 @@ where
             iteration: 0,
             iteration_back: data.len() - 1,
             data,
-            phantom_c: core::marker::PhantomData,
+            _phantom: core::marker::PhantomData,
         }
     }
 

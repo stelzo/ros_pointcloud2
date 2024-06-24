@@ -1,6 +1,6 @@
 [package]
 name = "ros_pointcloud2"
-version = "0.5.0-rc.1"
+version = "0.5.0"
 edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
@@ -32,11 +32,11 @@ rust-version = "1.63"
 [dependencies]
 rosrust_msg = { version = "0.1", optional = true }
 rosrust = { version = "0.9.11", optional = true }
-r2r = { version = "0.8.4", optional = true }
+r2r = { version = "0.9", optional = true }
 rayon = { version = "1", optional = true }
-nalgebra = { version = "0.32.5", optional = true, default-features = false }
+nalgebra = { version = "0.33", optional = true, default-features = false }
 rpcl2-derive = { version = "0.3", optional = true }
-type-layout = { version = "0.2", package = "type-layout-syn2", optional = true }
+memoffset = { version = "0.9", optional = true }
 
 sensor_msgs = { version = "*", optional = true }
 std_msgs = { version = "*", optional = true }
@@ -45,17 +45,18 @@ builtin_interfaces = { version = "*", optional = true }
 [dev-dependencies]
 rand = "0.8"
 criterion = { version = "0.5", features = ["html_reports"] }
+pretty_assertions = "1.0"
 
 [features]
 rclrs_msg = ["dep:sensor_msgs", "dep:std_msgs", "dep:builtin_interfaces"]
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
-derive = ["dep:rpcl2-derive", "dep:type-layout"]
+derive = ["dep:rpcl2-derive", "dep:memoffset"]
 nalgebra = ["dep:nalgebra"]
 std = ["nalgebra/std"]
 
-default = ["std", "derive", "rclrs_msg"]
+default = ["std", "rclrs_msg"]
 
 [package.metadata.docs.rs]
 features = ["derive", "nalgebra", "rayon"]

@@ -7,7 +7,7 @@
 
 ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
-Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/0.5.0-rc.1/) for a complete guide.
+Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/0.5.0/) for a complete guide.
 
 ## Quickstart
 
@@ -57,9 +57,9 @@ You can use `rosrust` and `r2r` by enabling the respective feature:
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { version = "*", features = ["r2r_msg", "derive"]}
+ros_pointcloud2 = { version = "*", features = ["r2r_msg"]}
 # or
-ros_pointcloud2 = { version = "*", features = ["rosrust_msg", "derive"]}
+ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]}
 ```
 
 ### rclrs (ros2_rust)
@@ -68,7 +68,7 @@ Features do not work properly with `rcrls` because the messages are linked exter
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.0-rc.1_rclrs" }
+ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.0_rclrs" }
 ```
 
 Also, indicate the following dependencies to your linker inside the `package.xml` of your package.
@@ -84,32 +84,21 @@ Please open an issue or PR if you need other integrations.
 ## Performance
 
 This library offers a speed up when compared to PointCloudLibrary (PCL) conversions but the specific factor depends heavily on the use case and system.
-The `_vec` conversions are on average ~6x faster than PCL while the single core iteration `_iter` functions are around ~2x faster.
-Parallelization with `_par_iter` gives a ~9x speed up compared to an OpenMP accelerated PCL pipeline.
-
-The results are measured on an Intel i7-14700 with benchmarks from [this repository](https://github.com/stelzo/ros_pcl_conv_bench).
+See [this repository](https://github.com/stelzo/ros_pcl_conv_bench) for a detailed benchmark.
 
 For minimizing the conversion overhead in general, always use the functions that best fit your use case.
 
-## `no_std` Environments
+### License
 
-The `_iter` conversions are compatible with `#[no_std]` environments if an allocator is provided. This is due to the fact that names for point fields do not have a maximum length, and PointCloud2 data vectors can have arbitrary sizes. Use `default-features = false` to disable std for this crate. Only `nalgebra` can be added as an additional feature in this case.
+<sup>
+Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
+2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
+</sup>
 
-## License
+<br>
 
-Licensed under either of
-
-- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-
-at your option.
-
-### type-layout
-
-For compatibility reasons, a patched version of `type-layout` is included in this repository. The original crate can be found [here](https://crates.io/crates/type-layout). After the patch is applied on the original `type-layout` crate ([PR](https://github.com/LPGhatguy/type-layout/pull/9)), the local dependency will be changed to the original crate.
-
-`type-layout` is licensed under MIT or Apache-2.0 and Copyright by Lucien Greathouse. The changes are highlighted in the diff of the PR.
-
-### Contribution
-
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
+<sub>
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.
+</sub>
