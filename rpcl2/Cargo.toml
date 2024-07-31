@@ -40,19 +40,16 @@ rpcl2-derive = { version = "0.3", optional = true, path = "../rpcl2-derive" }
 memoffset = { version = "0.9", optional = true }
 
 [dependencies.roslibrust]
-git = "https://github.com/Carter12s/roslibrust.git"
-branch = "master"
+version = "0.10.2"
 optional = true
 features = ["ros1"]
 
 [dependencies.roslibrust_codegen]
-git = "https://github.com/Carter12s/roslibrust.git"
-branch = "master"
+version = "0.10"
 optional = true
 
 [dependencies.roslibrust_codegen_macro]
-git = "https://github.com/Carter12s/roslibrust.git"
-branch = "master"
+version = "0.10"
 optional = true
 
 [dev-dependencies]
