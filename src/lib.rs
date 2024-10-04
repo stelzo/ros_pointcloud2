@@ -127,7 +127,7 @@
 //! ```
 #![crate_type = "lib"]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.5.0")]
+#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.5.1")]
 #![warn(clippy::print_stderr)]
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unwrap_used)]
