@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.0 -> v0.5.1
+
+- Fixes a bug, where the conversion of larger to smaller types results in a false buffer interpretation.
+
 ## v0.5.0-rc.3 -> v0.5.0
 
 - `PointConvertible` trait is now `unsafe` since the offset is used for raw memory access, where safety can not be guaranteed by the compiler.
