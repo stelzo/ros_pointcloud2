@@ -32,9 +32,9 @@
 //!     PointXYZI::new(46.0, 5.47, 0.5, 0.1),
 //! ];
 //! let cloud_copy = cloud_points.clone(); // For equality test later.
-//!     
+//!
 //! let out_msg = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
-//!     
+//!
 //! // Convert to your ROS crate message type.
 //! // let msg: r2r::sensor_msgs::msg::PointCloud2 = in_msg.into();
 //! // Publish ...
@@ -42,7 +42,7 @@
 //! // ... now incoming from a topic.
 //! // let in_msg: PointCloud2Msg = msg.into();
 //! let in_msg = out_msg;
-//!     
+//!
 //! let processed_cloud = in_msg.try_into_iter().unwrap()
 //!     .map(|point: PointXYZ| { // Define the data you want from the point.
 //!         // Some logic here.
@@ -312,6 +312,7 @@ pub enum Denseness {
     Sparse,
 }
 
+#[derive(Clone, Debug, PartialEq)]
 enum ByteSimilarity {
     Equal,
     Overlapping,
@@ -501,7 +502,7 @@ impl PointCloud2Msg {
         let target_layout = KnownLayoutInfo::try_from(C::layout())?;
 
         debug_assert!(field_names.len() <= target_layout.fields.len());
-        debug_assert!(self.fields.len() <= target_layout.fields.len());
+        debug_assert!(self.fields.len() >= target_layout.fields.len());
 
         let mut offset: u32 = 0;
         let mut field_counter = 0;
@@ -1458,5 +1459,218 @@ impl FromBytes for u8 {
 
     fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([bytes[0]])
+    }
+}
+
+mod test {
+    #![allow(clippy::unwrap_used)]
+
+    use crate::prelude::*;
+
+    #[derive(Debug, Default, Clone, PartialEq)]
+    #[repr(C)]
+    struct PointA {
+        x: f32,
+        y: f32,
+        z: f32,
+        intensity: f32,
+        t: u32,
+        reflectivity: u16,
+        ring: u16,
+        ambient: u16,
+        range: u32,
+    }
+
+    impl From<RPCL2Point<9>> for PointA {
+        fn from(point: RPCL2Point<9>) -> Self {
+            Self::new(point[0].get(), point[1].get(), point[2].get())
+        }
+    }
+
+    impl From<PointA> for RPCL2Point<9> {
+        fn from(point: PointA) -> Self {
+            [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                point.intensity.into(),
+                point.t.into(),
+                point.reflectivity.into(),
+                point.ring.into(),
+                point.ambient.into(),
+                point.range.into(),
+            ]
+            .into()
+        }
+    }
+
+    unsafe impl PointConvertible<9> for PointA {
+        fn layout() -> LayoutDescription {
+            LayoutDescription::new(&[
+                LayoutField::new("x", "f32", 4),
+                LayoutField::new("y", "f32", 4),
+                LayoutField::new("z", "f32", 4),
+                LayoutField::new("intensity", "f32", 4),
+                LayoutField::new("t", "u32", 4),
+                LayoutField::new("reflectivity", "u16", 2),
+                LayoutField::padding(2),
+                LayoutField::new("ring", "u16", 2),
+                LayoutField::padding(2),
+                LayoutField::new("ambient", "u16", 2),
+                LayoutField::padding(2),
+                LayoutField::new("range", "u32", 4),
+            ])
+        }
+    }
+
+    impl PointA {
+        fn new(x: f32, y: f32, z: f32) -> Self {
+            Self {
+                x,
+                y,
+                z,
+                intensity: 0.0,
+                t: 0,
+                reflectivity: 0,
+                ring: 0,
+                ambient: 0,
+                range: 0,
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Default, PartialEq)]
+    #[repr(C)]
+    struct PointB {
+        pub x: f32,
+        pub y: f32,
+        pub z: f32,
+        pub t: u32,
+    }
+
+    impl PointB {
+        fn new(x: f32, y: f32, z: f32) -> Self {
+            Self { x, y, z, t: 0 }
+        }
+    }
+
+    impl From<RPCL2Point<4>> for PointB {
+        fn from(point: RPCL2Point<4>) -> Self {
+            Self::new(point[0].get(), point[1].get(), point[2].get())
+        }
+    }
+
+    impl From<PointB> for RPCL2Point<4> {
+        fn from(point: PointB) -> Self {
+            [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                point.t.into(),
+            ]
+            .into()
+        }
+    }
+
+    unsafe impl PointConvertible<4> for PointB {
+        fn layout() -> LayoutDescription {
+            LayoutDescription::new(&[
+                LayoutField::new("x", "f32", 4),
+                LayoutField::new("y", "f32", 4),
+                LayoutField::new("z", "f32", 4),
+                LayoutField::new("t", "u32", 4),
+            ])
+        }
+    }
+
+    #[derive(Debug, Clone, Default, PartialEq)]
+    #[repr(C)]
+    struct PointD {
+        x: f32,
+        y: f32,
+        z: f32,
+        t: u32,
+        ring: u16,
+        range: u32,
+        signal: u16,
+        reflectivity: u16,
+        near_ir: u16,
+    }
+
+    impl From<RPCL2Point<9>> for PointD {
+        fn from(point: RPCL2Point<9>) -> Self {
+            Self::new(point[0].get(), point[1].get(), point[2].get())
+        }
+    }
+
+    impl From<PointD> for RPCL2Point<9> {
+        fn from(point: PointD) -> Self {
+            [
+                point.x.into(),
+                point.y.into(),
+                point.z.into(),
+                point.t.into(),
+                point.ring.into(),
+                point.range.into(),
+                point.signal.into(),
+                point.reflectivity.into(),
+                point.near_ir.into(),
+            ]
+            .into()
+        }
+    }
+
+    unsafe impl PointConvertible<9> for PointD {
+        fn layout() -> LayoutDescription {
+            LayoutDescription::new(&[
+                LayoutField::new("x", "f32", 4),
+                LayoutField::new("y", "f32", 4),
+                LayoutField::new("z", "f32", 4),
+                LayoutField::new("t", "u32", 4),
+                LayoutField::new("ring", "u16", 2),
+                LayoutField::padding(2),
+                LayoutField::new("range", "u32", 4),
+                LayoutField::new("signal", "u16", 2),
+                LayoutField::padding(2),
+                LayoutField::new("reflectivity", "u16", 2),
+                LayoutField::padding(2),
+                LayoutField::new("near_ir", "u16", 2),
+                LayoutField::padding(2),
+            ])
+        }
+    }
+
+    impl PointD {
+        fn new(x: f32, y: f32, z: f32) -> Self {
+            Self {
+                x,
+                y,
+                z,
+                t: 0,
+                ring: 0,
+                range: 0,
+                signal: 0,
+                reflectivity: 0,
+                near_ir: 0,
+            }
+        }
+    }
+
+    #[test]
+    fn subtype_iterator_fallback() {
+        let cloud_a = PointCloud2Msg::try_from_iter(vec![
+            PointA::new(1.0, 2.0, 3.0),
+            PointA::new(4.0, 5.0, 6.0),
+            PointA::new(7.0, 8.0, 9.0),
+        ])
+        .unwrap();
+
+        let cloud_c: PointB = cloud_a.clone().try_into_iter().unwrap().next().unwrap();
+        assert_eq!(cloud_c, PointB::new(1.0, 2.0, 3.0));
+
+        let cloud_b: Vec<PointB> = cloud_a.try_into_vec().unwrap();
+        assert_eq!(cloud_b[0], PointB::new(1.0, 2.0, 3.0));
+        assert_eq!(cloud_b[1], PointB::new(4.0, 5.0, 6.0));
+        assert_eq!(cloud_b[2], PointB::new(7.0, 8.0, 9.0));
     }
 }
