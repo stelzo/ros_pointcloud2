@@ -260,8 +260,6 @@ where
     /// The theoretical time complexity is O(n) where n is the number of fields defined in the message for a single point which is typically small.
     /// It therefore has a constant time complexity O(1) for practical purposes.
     fn try_from(cloud: PointCloud2Msg) -> Result<Self, Self::Error> {
-        let mut pdata_with_offsets = vec![(String::default(), FieldDatatype::default(), 0); N];
-
         let fields_only = crate::ordered_field_names::<N, C>();
 
         let not_found_fieldnames = fields_only
@@ -281,13 +279,14 @@ where
             return Err(MsgConversionError::FieldsNotFound(names_not_found));
         }
 
-        for (field, with_offset) in cloud.fields.iter().zip(pdata_with_offsets.iter_mut()) {
+        let mut pdata_with_offsets = Vec::with_capacity(N);
+        for field in cloud.fields.iter() {
             if fields_only.contains(&field.name) {
-                *with_offset = (
+                pdata_with_offsets.push((
                     field.name.clone(),
                     field.datatype.try_into()?,
                     field.offset as usize,
-                );
+                ));
             }
         }
 
