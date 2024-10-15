@@ -25,11 +25,24 @@
 
 use alloc::string::String;
 
+#[cfg(feature = "roslibrust_msg")]
+roslibrust_codegen_macro::find_and_generate_ros_messages!();
+
 /// [Time](https://docs.ros2.org/latest/api/builtin_interfaces/msg/Time.html) representation for ROS messages.
 #[derive(Clone, Debug, Default)]
 pub struct TimeMsg {
     pub sec: i32,
     pub nanosec: u32,
+}
+
+#[cfg(feature = "roslibrust_msg")]
+impl From<roslibrust_codegen::Time> for TimeMsg {
+    fn from(time: roslibrust_codegen::Time) -> Self {
+        Self {
+            sec: time.secs as i32,
+            nanosec: time.nsecs,
+        }
+    }
 }
 
 #[cfg(feature = "rosrust_msg")]
@@ -146,6 +159,90 @@ impl From<crate::PointCloud2Msg> for r2r::sensor_msgs::msg::PointCloud2 {
             is_dense: match msg.dense {
                 crate::Denseness::Dense => true,
                 crate::Denseness::Sparse => false,
+            },
+        }
+    }
+}
+
+#[cfg(feature = "roslibrust_msg")]
+impl From<sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
+    fn from(msg: sensor_msgs::PointCloud2) -> Self {
+        Self {
+            header: HeaderMsg {
+                seq: msg.header.seq,
+                stamp: TimeMsg {
+                    sec: msg.header.stamp.secs as i32,
+                    nanosec: msg.header.stamp.nsecs,
+                },
+                frame_id: msg.header.frame_id,
+            },
+            dimensions: crate::CloudDimensions {
+                width: msg.width,
+                height: msg.height,
+            },
+            fields: msg
+                .fields
+                .into_iter()
+                .map(|field| PointFieldMsg {
+                    name: field.name,
+                    offset: field.offset,
+                    datatype: field.datatype,
+                    count: field.count,
+                })
+                .collect(),
+            endian: if msg.is_bigendian {
+                crate::Endian::Big
+            } else {
+                crate::Endian::Little
+            },
+            point_step: msg.point_step,
+            row_step: msg.row_step,
+            data: msg.data,
+            dense: if msg.is_dense {
+                crate::Denseness::Dense
+            } else {
+                crate::Denseness::Sparse
+            },
+        }
+    }
+}
+
+#[cfg(feature = "roslibrust_msg")]
+impl From<crate::PointCloud2Msg> for sensor_msgs::PointCloud2 {
+    fn from(msg: crate::PointCloud2Msg) -> Self {
+        sensor_msgs::PointCloud2 {
+            header: std_msgs::Header {
+                seq: msg.header.seq,
+                stamp: roslibrust_codegen::Time {
+                    secs: msg.header.stamp.sec as u32,
+                    nsecs: msg.header.stamp.nanosec,
+                },
+                frame_id: msg.header.frame_id,
+            },
+            height: msg.dimensions.height,
+            width: msg.dimensions.width,
+            fields: msg
+                .fields
+                .into_iter()
+                .map(|field| sensor_msgs::PointField {
+                    name: field.name,
+                    offset: field.offset,
+                    datatype: field.datatype,
+                    count: field.count,
+                })
+                .collect(),
+            is_bigendian: if msg.endian == crate::Endian::Big {
+                true
+            } else {
+                false
+            },
+            point_step: msg.point_step,
+            row_step: msg.row_step,
+            data: msg.data,
+            is_dense: if msg.dense == crate::Denseness::Dense {
+                true
+            } else {
+                false
             },
         }
     }
