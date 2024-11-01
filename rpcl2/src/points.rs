@@ -200,7 +200,7 @@ impl PointXYZ {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         self.xyz_f32()
@@ -262,7 +262,7 @@ impl PointXYZI {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         self.xyz_f32()
@@ -335,7 +335,7 @@ impl PointXYZL {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         self.xyz_f32()
@@ -425,7 +425,7 @@ impl PointXYZRGB {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         self.xyz_f32()
@@ -517,7 +517,7 @@ impl PointXYZRGBA {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         self.xyz_f32()
@@ -629,7 +629,7 @@ impl PointXYZRGBNormal {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         self.xyz_f32()
@@ -732,7 +732,7 @@ impl PointXYZINormal {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         self.xyz_f32()
@@ -842,7 +842,7 @@ impl PointXYZRGBL {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         self.xyz_f32()
@@ -926,7 +926,7 @@ impl PointXYZNormal {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         self.xyz_f32()
