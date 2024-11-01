@@ -113,6 +113,7 @@ pub struct PointXYZ {
 }
 
 #[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
 impl From<nalgebra::Point3<f32>> for PointXYZ {
     fn from(point: nalgebra::Point3<f32>) -> Self {
         Self {
@@ -124,9 +125,70 @@ impl From<nalgebra::Point3<f32>> for PointXYZ {
 }
 
 #[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<&nalgebra::Point3<f32>> for PointXYZ {
+    fn from(point: &nalgebra::Point3<f32>) -> Self {
+        Self {
+            x: point.x,
+            y: point.y,
+            z: point.z,
+        }
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<nalgebra::Point3<f64>> for PointXYZ {
+    fn from(point: nalgebra::Point3<f64>) -> Self {
+        Self {
+            x: point.x as f32,
+            y: point.y as f32,
+            z: point.z as f32,
+        }
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<&nalgebra::Point3<f64>> for PointXYZ {
+    fn from(point: &nalgebra::Point3<f64>) -> Self {
+        Self {
+            x: point.x as f32,
+            y: point.y as f32,
+            z: point.z as f32,
+        }
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
 impl From<PointXYZ> for nalgebra::Point3<f32> {
     fn from(point: PointXYZ) -> Self {
         nalgebra::Point3::new(point.x, point.y, point.z)
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<&PointXYZ> for nalgebra::Point3<f32> {
+    fn from(point: &PointXYZ) -> Self {
+        nalgebra::Point3::new(point.x, point.y, point.z)
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<PointXYZ> for nalgebra::Point3<f64> {
+    fn from(point: PointXYZ) -> Self {
+        nalgebra::Point3::new(point.x as f64, point.y as f64, point.z as f64)
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<&PointXYZ> for nalgebra::Point3<f64> {
+    fn from(point: &PointXYZ) -> Self {
+        nalgebra::Point3::new(point.x as f64, point.y as f64, point.z as f64)
     }
 }
 
@@ -138,9 +200,22 @@ impl PointXYZ {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.into()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        self.into()
     }
 }
 
@@ -187,9 +262,22 @@ impl PointXYZI {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -247,9 +335,22 @@ impl PointXYZL {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -324,9 +425,22 @@ impl PointXYZRGB {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -403,9 +517,22 @@ impl PointXYZRGBA {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -502,9 +629,22 @@ impl PointXYZRGBNormal {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -592,9 +732,22 @@ impl PointXYZINormal {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -689,9 +842,22 @@ impl PointXYZRGBL {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -760,9 +926,22 @@ impl PointXYZNormal {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 

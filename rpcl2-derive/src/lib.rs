@@ -188,7 +188,7 @@ fn layout_of_type(struct_name: &Ident, data: &Data) -> proc_macro2::TokenStream 
 
                     quote! {
                         let size = ::core::mem::size_of::<#field_ty>();
-                        let offset = ::ros_pointcloud2::memoffset::offset_of!(#struct_name, #field_name);
+                        let offset = ::core::mem::offset_of!(#struct_name, #field_name);
                         if offset > last_field_end {
                             fields.push((1, "", offset - last_field_end));
                         }

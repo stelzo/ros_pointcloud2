@@ -148,10 +148,6 @@ pub mod iterator;
 
 use crate::ros::{HeaderMsg, PointFieldMsg};
 
-#[cfg(feature = "derive")]
-#[doc(hidden)]
-pub use memoffset;
-
 use core::str::FromStr;
 
 #[macro_use]

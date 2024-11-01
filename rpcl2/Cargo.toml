@@ -1,6 +1,6 @@
 [package]
 name = "ros_pointcloud2"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
@@ -28,7 +28,7 @@ exclude = [
     "**/doc/**",
     "**/ensure_no_std/**",
 ]
-rust-version = "1.63"
+rust-version = "1.77"
 
 [dependencies]
 rosrust_msg = { version = "0.1", optional = true }
@@ -36,8 +36,7 @@ rosrust = { version = "0.9.11", optional = true }
 r2r = { version = "0.9", optional = true }
 rayon = { version = "1", optional = true }
 nalgebra = { version = "0.33", optional = true, default-features = false }
-rpcl2-derive = { version = "0.3", optional = true, path = "../rpcl2-derive" }
-memoffset = { version = "0.9", optional = true }
+rpcl2-derive = { version = "0.4", optional = true, path = "../rpcl2-derive" }
 
 [dev-dependencies]
 rand = "0.8"
@@ -53,7 +52,7 @@ path = "benches/roundtrip.rs"
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
-derive = ["dep:rpcl2-derive", "dep:memoffset"]
+derive = ["dep:rpcl2-derive"]
 nalgebra = ["dep:nalgebra"]
 std = ["nalgebra/std"]
 
