@@ -1,6 +1,6 @@
-#[cfg(feature = "rosrust_msg")]
+#[cfg(feature = "roslibrust_msg")]
 #[test]
-fn convertxyz_rosrust_msg() {
+fn convertxyz_roslibrust_msg() {
     use ros_pointcloud2::{points::PointXYZ, PointCloud2Msg};
 
     let cloud = vec![
@@ -22,8 +22,8 @@ fn convertxyz_rosrust_msg() {
     ];
     let copy = cloud.clone();
     let internal_cloud = PointCloud2Msg::try_from_iter(cloud).unwrap();
-    let rosrust_msg_cloud: rosrust_msg::sensor_msgs::PointCloud2 = internal_cloud.into();
-    let convert_back_internal: PointCloud2Msg = rosrust_msg_cloud.into();
+    let roslibrust_msg_cloud: roslibrust_util::sensor_msgs::PointCloud2 = internal_cloud.into();
+    let convert_back_internal: PointCloud2Msg = roslibrust_msg_cloud.into();
     let to_convert = convert_back_internal.try_into_iter().unwrap();
     let back_to_type = to_convert.collect::<Vec<PointXYZ>>();
     assert_eq!(copy, back_to_type);

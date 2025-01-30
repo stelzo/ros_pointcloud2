@@ -15,15 +15,15 @@ use alloc::vec::Vec;
 /// When using within a ROS node, the PointCloud2 (created by the ROS crate) must be converted first.
 /// The cost of this operation is low, as it mostly moves ownership without iterating over the point data.
 ///
-/// ROS1 with rosrust:
-/// let msg: rosrust_msg::sensor_msgs::PointCloud2; // inside the callback
+/// ROS1 with roslibrust:
+/// let msg: roslibrust_msg::sensor_msgs::PointCloud2; // inside the callback
 /// let converted: ros_pointcloud2::PointCloud2Msg = msg.into();
 ///
 /// ROS2 with r2r:
 /// let msg: r2r::sensor_msgs::msg::PointCloud2 = internal_msg.into();
 /// let converted: ros_pointcloud2::PointCloud2Msg = msg.into();
 ///
-/// `ros_pointcloud2` supports r2r, rclrs and rosrust as conversion targets out of the box via feature flags.
+/// `ros_pointcloud2` supports r2r, rclrs and roslibrust as conversion targets out of the box via feature flags.
 ///
 pub struct PointCloudIterator<const N: usize, C>
 where

@@ -26,7 +26,13 @@
 use alloc::string::String;
 
 #[cfg(feature = "roslibrust_msg")]
-roslibrust_codegen_macro::find_and_generate_ros_messages!();
+use roslibrust::codegen::integral_types::Time as RosTime;
+
+#[cfg(feature = "roslibrust_msg")]
+use roslibrust_util::sensor_msgs;
+
+#[cfg(feature = "roslibrust_msg")]
+use roslibrust_util::std_msgs;
 
 /// [Time](https://docs.ros2.org/latest/api/builtin_interfaces/msg/Time.html) representation for ROS messages.
 #[derive(Clone, Debug, Default)]
@@ -36,21 +42,11 @@ pub struct TimeMsg {
 }
 
 #[cfg(feature = "roslibrust_msg")]
-impl From<roslibrust_codegen::Time> for TimeMsg {
-    fn from(time: roslibrust_codegen::Time) -> Self {
+impl From<RosTime> for TimeMsg {
+    fn from(time: RosTime) -> Self {
         Self {
             sec: time.secs as i32,
-            nanosec: time.nsecs,
-        }
-    }
-}
-
-#[cfg(feature = "rosrust_msg")]
-impl From<rosrust::Time> for TimeMsg {
-    fn from(time: rosrust::Time) -> Self {
-        Self {
-            sec: time.sec as i32,
-            nanosec: time.nsec,
+            nanosec: time.nsecs as u32,
         }
     }
 }
@@ -172,7 +168,7 @@ impl From<sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
                 seq: msg.header.seq,
                 stamp: TimeMsg {
                     sec: msg.header.stamp.secs as i32,
-                    nanosec: msg.header.stamp.nsecs,
+                    nanosec: msg.header.stamp.nsecs as u32,
                 },
                 frame_id: msg.header.frame_id,
             },
@@ -213,9 +209,9 @@ impl From<crate::PointCloud2Msg> for sensor_msgs::PointCloud2 {
         sensor_msgs::PointCloud2 {
             header: std_msgs::Header {
                 seq: msg.header.seq,
-                stamp: roslibrust_codegen::Time {
-                    secs: msg.header.stamp.sec as u32,
-                    nsecs: msg.header.stamp.nanosec,
+                stamp: RosTime {
+                    secs: msg.header.stamp.sec,
+                    nsecs: msg.header.stamp.nanosec as i32,
                 },
                 frame_id: msg.header.frame_id,
             },
@@ -225,90 +221,6 @@ impl From<crate::PointCloud2Msg> for sensor_msgs::PointCloud2 {
                 .fields
                 .into_iter()
                 .map(|field| sensor_msgs::PointField {
-                    name: field.name,
-                    offset: field.offset,
-                    datatype: field.datatype,
-                    count: field.count,
-                })
-                .collect(),
-            is_bigendian: if msg.endian == crate::Endian::Big {
-                true
-            } else {
-                false
-            },
-            point_step: msg.point_step,
-            row_step: msg.row_step,
-            data: msg.data,
-            is_dense: if msg.dense == crate::Denseness::Dense {
-                true
-            } else {
-                false
-            },
-        }
-    }
-}
-
-#[cfg(feature = "rosrust_msg")]
-impl From<rosrust_msg::sensor_msgs::PointCloud2> for crate::PointCloud2Msg {
-    fn from(msg: rosrust_msg::sensor_msgs::PointCloud2) -> Self {
-        Self {
-            header: HeaderMsg {
-                seq: msg.header.seq,
-                stamp: TimeMsg {
-                    sec: msg.header.stamp.sec as i32,
-                    nanosec: msg.header.stamp.nsec,
-                },
-                frame_id: msg.header.frame_id,
-            },
-            dimensions: crate::CloudDimensions {
-                width: msg.width,
-                height: msg.height,
-            },
-            fields: msg
-                .fields
-                .into_iter()
-                .map(|field| PointFieldMsg {
-                    name: field.name,
-                    offset: field.offset,
-                    datatype: field.datatype,
-                    count: field.count,
-                })
-                .collect(),
-            endian: if msg.is_bigendian {
-                crate::Endian::Big
-            } else {
-                crate::Endian::Little
-            },
-            point_step: msg.point_step,
-            row_step: msg.row_step,
-            data: msg.data,
-            dense: if msg.is_dense {
-                crate::Denseness::Dense
-            } else {
-                crate::Denseness::Sparse
-            },
-        }
-    }
-}
-
-#[cfg(feature = "rosrust_msg")]
-impl From<crate::PointCloud2Msg> for rosrust_msg::sensor_msgs::PointCloud2 {
-    fn from(msg: crate::PointCloud2Msg) -> Self {
-        rosrust_msg::sensor_msgs::PointCloud2 {
-            header: rosrust_msg::std_msgs::Header {
-                seq: msg.header.seq,
-                stamp: rosrust::Time {
-                    sec: msg.header.stamp.sec as u32,
-                    nsec: msg.header.stamp.nanosec,
-                },
-                frame_id: msg.header.frame_id,
-            },
-            height: msg.dimensions.height,
-            width: msg.dimensions.width,
-            fields: msg
-                .fields
-                .into_iter()
-                .map(|field| rosrust_msg::sensor_msgs::PointField {
                     name: field.name,
                     offset: field.offset,
                     datatype: field.datatype,

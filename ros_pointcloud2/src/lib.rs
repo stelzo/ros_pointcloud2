@@ -54,7 +54,7 @@
 //!
 //! # Features
 //! - r2r_msg — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
-//! - rosrust_msg — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
+//! - roslibrust_msg — Integration with the [roslibrust](https://github.com/roslibrust/roslibrust) library for ROS1 message types.
 //! - (rclrs_msg) — Integration for ROS2 [rclrs](https://github.com/ros2-rust/ros2_rust) but it currently needs [this workaround](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#rclrs-ros2_rust).
 //! - derive — Offers implementations for the [`PointConvertible`] trait needed for custom points.
 //! - rayon — Parallel iterator support for `_par_iter` functions.

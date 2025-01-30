@@ -43,8 +43,8 @@ let processed_cloud = in_msg.try_into_iter().unwrap()
 
 There are currently 3 integrations for common ROS crates.
 
-- [rosrust_msg](https://github.com/adnanademovic/rosrust)
-  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rosrust_noetic.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rosrust_noetic.yml)
+- [roslibrust_msg](https://github.com/roslibrust/roslibrust)
+  - TBD roslibrust test to replace old rosrust one
 - [r2r_msg](https://github.com/sequenceplanner/r2r)
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_galactic.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_galactic.yml)
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_humble.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_humble.yml)
@@ -55,13 +55,14 @@ There are currently 3 integrations for common ROS crates.
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_iron.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_iron.yml)
   - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_jazzy.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_jazzy.yml)
 
-You can use `rosrust` and `r2r` by enabling the respective feature:
+You can use `roslibrust` and `r2r` by enabling the respective feature:
 
 ```toml
 [dependencies]
 ros_pointcloud2 = { version = "*", features = ["r2r_msg"]}
 # or
-ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]}
+# ros_pointcloud2 = { version = "*", features = ["roslibrust_msg"]}
+ros_pointcloud2 = { version = "*", features = ["roslibrust_msg"]}
 ```
 
 ### rclrs (ros2_rust)
