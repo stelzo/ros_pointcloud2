@@ -1,12 +1,38 @@
 //! Predefined point types commonly used in ROS.
 use crate::{LayoutDescription, LayoutField, PointConvertible, RPCL2Point};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Packed RGB color encoding as used in ROS tools.
 #[derive(Clone, Copy)]
 #[repr(C, align(4))]
 pub union RGB {
     packed: f32,
     unpacked: [u8; 4], // Padding
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de> Deserialize<'de> for RGB {
+    fn deserialize<D>(deserializer: D) -> Result<RGB, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let packed = f32::deserialize(deserializer)?;
+        Ok(RGB::new_from_packed_f32(packed))
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl Serialize for RGB {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        f32::from(*self).serialize(serializer)
+    }
 }
 
 unsafe impl Send for RGB {}
@@ -106,6 +132,7 @@ impl From<f32> for RGB {
 /// 3D point with x, y, z coordinates, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZ {
     pub x: f32,
     pub y: f32,
@@ -248,6 +275,7 @@ unsafe impl PointConvertible<3> for PointXYZ {
 /// 3D point with x, y, z coordinates and an intensity value, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZI {
     pub x: f32,
     pub y: f32,
@@ -321,6 +349,7 @@ unsafe impl PointConvertible<4> for PointXYZI {
 /// 3D point with x, y, z coordinates and a label, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZL {
     pub x: f32,
     pub y: f32,
@@ -394,6 +423,7 @@ unsafe impl PointConvertible<4> for PointXYZL {
 /// 3D point with x, y, z coordinates and an RGB color value, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZRGB {
     pub x: f32,
     pub y: f32,
@@ -485,6 +515,7 @@ unsafe impl PointConvertible<4> for PointXYZRGB {
 /// The alpha channel is commonly used as padding but this crate uses every channel and no padding.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZRGBA {
     pub x: f32,
     pub y: f32,
@@ -580,6 +611,7 @@ unsafe impl PointConvertible<5> for PointXYZRGBA {
 /// 3D point with x, y, z coordinates, an RGB color value and a normal vector, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZRGBNormal {
     pub x: f32,
     pub y: f32,
@@ -698,6 +730,7 @@ unsafe impl PointConvertible<7> for PointXYZRGBNormal {
 /// 3D point with x, y, z coordinates, an intensity value and a normal vector, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZINormal {
     pub x: f32,
     pub y: f32,
@@ -801,6 +834,7 @@ unsafe impl PointConvertible<7> for PointXYZINormal {
 /// 3D point with x, y, z coordinates and a label, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZRGBL {
     pub x: f32,
     pub y: f32,
@@ -902,6 +936,7 @@ unsafe impl PointConvertible<5> for PointXYZRGBL {
 /// 3D point with x, y, z coordinates and a normal vector, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZNormal {
     pub x: f32,
     pub y: f32,

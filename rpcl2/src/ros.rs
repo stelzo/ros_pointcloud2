@@ -25,8 +25,12 @@
 
 use alloc::string::String;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// [Time](https://docs.ros2.org/latest/api/builtin_interfaces/msg/Time.html) representation for ROS messages.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Copy)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TimeMsg {
     pub sec: i32,
     pub nanosec: u32,
@@ -44,6 +48,7 @@ impl From<rosrust::Time> for TimeMsg {
 
 /// Represents the [header of a ROS message](https://docs.ros2.org/latest/api/std_msgs/msg/Header.html).
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct HeaderMsg {
     pub seq: u32,
     pub stamp: TimeMsg,
@@ -52,6 +57,7 @@ pub struct HeaderMsg {
 
 /// Describing a point encoded in the byte buffer of a PointCloud2 message. See the [official message description](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointField.html) for more information.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointFieldMsg {
     pub name: String,
     pub offset: u32,
