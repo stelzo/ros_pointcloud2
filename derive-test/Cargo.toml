@@ -17,3 +17,7 @@ categories = [
 [dependencies]
 ros_pointcloud2 = { path = "../rpcl2", features = ["std", "derive"] }
 rpcl2-derive = { path = "../rpcl2-derive" }
+
+[patch.crates-io]
+# Fixes https://github.com/adnanademovic/rosrust/issues/210
+xml-rpc = { git = "https://github.com/locusrobotics/xml-rpc-rs", branch = "minimum-update" }

@@ -18,9 +18,9 @@ jobs:
         with:
           components: clippy
       - name: Linting
-        run: cargo clippy --all-targets --features derive,nalgebra,rayon -- -D warnings
+        run: cargo clippy --all-targets --features derive,nalgebra,rayon,serde -- -D warnings
       - name: Tests
-        run: cargo test --features derive,nalgebra,rayon
+        run: cargo test --features derive,nalgebra,rayon,serde
 
   outdated:
     name: Outdated

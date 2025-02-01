@@ -18,4 +18,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: docker build . --file ./rpcl2/tests/Dockerfile_r2r_galactic --tag r2r_galactic
-      - run: docker run r2r_galactic cargo test --features r2r_msg,derive,nalgebra,rayon
+      - run: docker run r2r_galactic cargo test --features r2r_msg,derive,nalgebra,rayon,serde

@@ -139,6 +139,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // Setup an allocator with #[global_allocator]
 // see: https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html
+#![allow(unexpected_cfgs)]
 
 pub mod points;
 pub mod prelude;

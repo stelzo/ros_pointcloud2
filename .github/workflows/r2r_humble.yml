@@ -18,4 +18,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: docker build . --file ./rpcl2/tests/Dockerfile_r2r_humble --tag r2r_humble
-      - run: docker run r2r_humble cargo test --features r2r_msg,derive,nalgebra,rayon
+      - run: docker run r2r_humble cargo test --features r2r_msg,derive,nalgebra,rayon,serde

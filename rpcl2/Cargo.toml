@@ -31,8 +31,8 @@ exclude = [
 rust-version = "1.77"
 
 [dependencies]
-rosrust_msg = { version = "0.1", optional = true }
-rosrust = { version = "0.9.11", optional = true }
+#rosrust_msg = { version = "0.1", optional = true }
+#rosrust = { version = "0.9.11", optional = true }
 r2r = { version = "0.9", optional = true }
 rayon = { version = "1", optional = true }
 nalgebra = { version = "0.33", optional = true, default-features = false }
@@ -51,7 +51,7 @@ path = "benches/roundtrip.rs"
 
 [features]
 serde = ["dep:serde", "nalgebra/serde-serialize-no-std"]
-rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
+#rosrust_msg = ["dep:rosrust_msg"]
 r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2-derive"]

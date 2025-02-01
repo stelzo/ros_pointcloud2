@@ -1,3 +1,5 @@
+#![allow(unexpected_cfgs)] // TODO remove when rosrust is fixed
+
 #[cfg(feature = "rosrust_msg")]
 #[test]
 fn convertxyz_rosrust_msg() {
