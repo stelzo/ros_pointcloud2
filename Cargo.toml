@@ -8,46 +8,47 @@ repository = "https://github.com/stelzo/ros_pointcloud2"
 license = "MIT OR Apache-2.0"
 keywords = ["ros", "pointcloud2", "pointcloud", "message"]
 categories = [
-    "science::robotics",
-    "encoding",
-    "data-structures",
-    "api-bindings",
+  "science::robotics",
+  "encoding",
+  "data-structures",
+  "api-bindings",
 ]
 readme = "README.md"
 documentation = "https://docs.rs/ros_pointcloud2"
 homepage = "https://github.com/stelzo/ros_pointcloud2"
 exclude = [
-    "**/.github/**",
-    "**/tests/**",
-    "**/examples/**",
-    "**/benches/**",
-    "**/target/**",
-    "**/build/**",
-    "**/dist/**",
-    "**/docs/**",
-    "**/doc/**",
+  "**/.github/**",
+  "**/tests/**",
+  "**/examples/**",
+  "**/benches/**",
+  "**/target/**",
+  "**/build/**",
+  "**/dist/**",
+  "**/docs/**",
+  "**/doc/**",
 ]
-rust-version = "1.63"
+rust-version = "1.77"
 
 [dependencies]
-rosrust_msg = { version = "0.1", optional = true }
-rosrust = { version = "0.9.11", optional = true }
+rosrust_msg = { version = "0.1.8", optional = true }
+rosrust = { version = "0.9.12", optional = true }
 r2r = { version = "0.9", optional = true }
 rayon = { version = "1", optional = true }
 nalgebra = { version = "0.33", optional = true, default-features = false }
-rpcl2-derive = { version = "0.3", optional = true }
+rpcl2-derive = { version = "0.4", optional = true }
 memoffset = { version = "0.9", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
 
 sensor_msgs = { version = "*", optional = true }
 std_msgs = { version = "*", optional = true }
 builtin_interfaces = { version = "*", optional = true }
 
 [dev-dependencies]
-rand = "0.8"
 criterion = { version = "0.5", features = ["html_reports"] }
 pretty_assertions = "1.0"
 
 [features]
+serde = ["dep:serde", "nalgebra/serde-serialize-no-std"]
 rclrs_msg = ["dep:sensor_msgs", "dep:std_msgs", "dep:builtin_interfaces"]
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
@@ -59,6 +60,6 @@ std = ["nalgebra/std"]
 default = ["std", "rclrs_msg"]
 
 [package.metadata.docs.rs]
-features = ["derive", "nalgebra", "rayon"]
+features = ["derive", "nalgebra", "rayon", "serde"]
 default-target = "x86_64-unknown-linux-gnu"
 rustdoc-args = ["--cfg", "docsrs"]

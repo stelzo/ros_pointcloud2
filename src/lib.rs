@@ -148,6 +148,9 @@ pub mod iterator;
 
 use crate::ros::{HeaderMsg, PointFieldMsg};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "derive")]
 #[doc(hidden)]
 pub use memoffset;
@@ -285,6 +288,7 @@ impl LayoutField {
 /// To assert consistency, the type should be build with the [`PointCloud2MsgBuilder`].
 /// See the offical [ROS message description](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointCloud2.html) for more information on the fields.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointCloud2Msg {
     pub header: HeaderMsg,
     pub dimensions: CloudDimensions,
@@ -298,6 +302,7 @@ pub struct PointCloud2Msg {
 
 /// Endianess encoding hint for the message.
 #[derive(Default, Clone, Debug, PartialEq, Copy)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Endian {
     Big,
     #[default]
@@ -306,6 +311,7 @@ pub enum Endian {
 
 /// Density flag for the message. Writing sparse point clouds is not supported.
 #[derive(Default, Clone, Debug, PartialEq, Copy)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Denseness {
     #[default]
     Dense,
@@ -461,6 +467,7 @@ impl PointCloud2MsgBuilder {
 
 /// Dimensions of the point cloud as width and height.
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CloudDimensions {
     pub width: u32,
     pub height: u32,

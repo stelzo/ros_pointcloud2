@@ -1,6 +1,9 @@
 //! Predefined point types commonly used in ROS.
 use crate::{LayoutDescription, LayoutField, PointConvertible, RPCL2Point};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// A packed RGB color encoding as used in ROS tools.
 #[derive(Clone, Copy)]
 #[repr(C, align(4))]
@@ -37,6 +40,29 @@ impl core::fmt::Debug for RGB {
             .field("g", &self.g())
             .field("b", &self.b())
             .finish()
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de> Deserialize<'de> for RGB {
+    fn deserialize<D>(deserializer: D) -> Result<RGB, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let packed = f32::deserialize(deserializer)?;
+        Ok(RGB::new_from_packed_f32(packed))
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl Serialize for RGB {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        f32::from(*self).serialize(serializer)
     }
 }
 
@@ -107,6 +133,7 @@ impl From<f32> for RGB {
 /// This is a 3D point with x, y, z coordinates.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZ {
     pub x: f32,
     pub y: f32,
@@ -114,6 +141,7 @@ pub struct PointXYZ {
 }
 
 #[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
 impl From<nalgebra::Point3<f32>> for PointXYZ {
     fn from(point: nalgebra::Point3<f32>) -> Self {
         Self {
@@ -125,9 +153,70 @@ impl From<nalgebra::Point3<f32>> for PointXYZ {
 }
 
 #[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<&nalgebra::Point3<f32>> for PointXYZ {
+    fn from(point: &nalgebra::Point3<f32>) -> Self {
+        Self {
+            x: point.x,
+            y: point.y,
+            z: point.z,
+        }
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<&nalgebra::Point3<f64>> for PointXYZ {
+    fn from(point: &nalgebra::Point3<f64>) -> Self {
+        Self {
+            x: point.x as f32,
+            y: point.y as f32,
+            z: point.z as f32,
+        }
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<nalgebra::Point3<f64>> for PointXYZ {
+    fn from(point: nalgebra::Point3<f64>) -> Self {
+        Self {
+            x: point.x as f32,
+            y: point.y as f32,
+            z: point.z as f32,
+        }
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
 impl From<PointXYZ> for nalgebra::Point3<f32> {
     fn from(point: PointXYZ) -> Self {
         nalgebra::Point3::new(point.x, point.y, point.z)
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<&PointXYZ> for nalgebra::Point3<f32> {
+    fn from(point: &PointXYZ) -> Self {
+        nalgebra::Point3::new(point.x, point.y, point.z)
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<PointXYZ> for nalgebra::Point3<f64> {
+    fn from(point: PointXYZ) -> Self {
+        nalgebra::Point3::new(point.x as f64, point.y as f64, point.z as f64)
+    }
+}
+
+#[cfg(feature = "nalgebra")]
+#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+impl From<&PointXYZ> for nalgebra::Point3<f64> {
+    fn from(point: &PointXYZ) -> Self {
+        nalgebra::Point3::new(point.x as f64, point.y as f64, point.z as f64)
     }
 }
 
@@ -139,9 +228,22 @@ impl PointXYZ {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
+        self.xyz_f32()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.into()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        self.into()
     }
 }
 
@@ -175,6 +277,7 @@ unsafe impl PointConvertible<3> for PointXYZ {
 /// This is a 3D point with x, y, z coordinates and an intensity value.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZI {
     pub x: f32,
     pub y: f32,
@@ -190,8 +293,21 @@ impl PointXYZI {
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -236,6 +352,7 @@ unsafe impl PointConvertible<4> for PointXYZI {
 /// This is a 3D point with x, y, z coordinates and a label.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZL {
     pub x: f32,
     pub y: f32,
@@ -251,8 +368,21 @@ impl PointXYZL {
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -297,6 +427,7 @@ unsafe impl PointConvertible<4> for PointXYZL {
 /// This is a 3D point with x, y, z coordinates and an RGB color value.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZRGB {
     pub x: f32,
     pub y: f32,
@@ -329,8 +460,21 @@ impl PointXYZRGB {
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -376,6 +520,7 @@ unsafe impl PointConvertible<4> for PointXYZRGB {
 /// The alpha channel is commonly used as padding but this crate uses every channel and no padding.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZRGBA {
     pub x: f32,
     pub y: f32,
@@ -409,8 +554,21 @@ impl PointXYZRGBA {
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -459,6 +617,7 @@ unsafe impl PointConvertible<5> for PointXYZRGBA {
 /// This is a 3D point with x, y, z coordinates, an RGB color value and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZRGBNormal {
     pub x: f32,
     pub y: f32,
@@ -509,8 +668,21 @@ impl PointXYZRGBNormal {
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -565,6 +737,7 @@ unsafe impl PointConvertible<7> for PointXYZRGBNormal {
 /// This is a 3D point with x, y, z coordinates, an intensity value and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZINormal {
     pub x: f32,
     pub y: f32,
@@ -600,8 +773,20 @@ impl PointXYZINormal {
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -656,6 +841,7 @@ unsafe impl PointConvertible<7> for PointXYZINormal {
 /// This is a 3D point with x, y, z coordinates and a label.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZRGBL {
     pub x: f32,
     pub y: f32,
@@ -698,8 +884,21 @@ impl PointXYZRGBL {
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
@@ -745,6 +944,7 @@ unsafe impl PointConvertible<5> for PointXYZRGBL {
 /// This is a 3D point with x, y, z coordinates and a normal vector.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PointXYZNormal {
     pub x: f32,
     pub y: f32,
@@ -770,8 +970,21 @@ impl PointXYZNormal {
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        nalgebra::Point3::new(self.x, self.y, self.z)
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
+        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
     }
 }
 
