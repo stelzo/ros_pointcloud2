@@ -8,16 +8,12 @@ repository = "https://github.com/stelzo/ros_pointcloud2"
 license = "MIT OR Apache-2.0"
 keywords = ["ros", "pointcloud2", "pointcloud", "message"]
 categories = [
-    "science::robotics",
-    "encoding",
-    "data-structures",
-    "api-bindings",
+  "science::robotics",
+  "encoding",
+  "data-structures",
+  "api-bindings",
 ]
 
 [dependencies]
 ros_pointcloud2 = { path = "../rpcl2", features = ["std", "derive"] }
 rpcl2-derive = { path = "../rpcl2-derive" }
-
-[patch.crates-io]
-# Fixes https://github.com/adnanademovic/rosrust/issues/210
-xml-rpc = { git = "https://github.com/locusrobotics/xml-rpc-rs", branch = "minimum-update" }

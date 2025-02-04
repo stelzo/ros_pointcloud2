@@ -5,15 +5,6 @@
   </p>
 </p>
 
-> [!IMPORTANT]
-> The optional rosrust dependency currently breaks the build of this crate because of a yanked transitive dependency on crates.io.
-> Use [this workaround](https://github.com/adnanademovic/rosrust/issues/210#issuecomment-2609494830) in your project when rosrust is needed.
-> If you are not using rosrust at all, you can also use the main branch of this repository, where the integration is removed at the moment.
-> ```toml
-> [dependencies]
-> ros_pointcloud2 = { version = "0.5.2", git = "https://github.com/stelzo/ros_pointcloud2.git" }
-> ```
-
 ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
 Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/0.5.1/) for a complete guide.
