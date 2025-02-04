@@ -7,13 +7,13 @@ use std::time::Duration;
 use ros_pointcloud2::prelude::*;
 
 pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<PointXYZ> {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut pointcloud = Vec::with_capacity(num_points);
     for _ in 0..num_points {
         let point = PointXYZ {
-            x: rng.gen_range(min..max),
-            y: rng.gen_range(min..max),
-            z: rng.gen_range(min..max),
+            x: rng.random_range(min..max),
+            y: rng.random_range(min..max),
+            z: rng.random_range(min..max),
         };
         pointcloud.push(point);
     }

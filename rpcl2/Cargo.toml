@@ -8,31 +8,31 @@ repository = "https://github.com/stelzo/ros_pointcloud2"
 license = "MIT OR Apache-2.0"
 keywords = ["ros", "pointcloud2", "pointcloud", "message"]
 categories = [
-    "science::robotics",
-    "encoding",
-    "data-structures",
-    "api-bindings",
+  "science::robotics",
+  "encoding",
+  "data-structures",
+  "api-bindings",
 ]
 readme = "../README.md"
 documentation = "https://docs.rs/ros_pointcloud2"
 homepage = "https://github.com/stelzo/ros_pointcloud2"
 exclude = [
-    "**/.github/**",
-    "**/tests/**",
-    "**/examples/**",
-    "**/benches/**",
-    "**/target/**",
-    "**/build/**",
-    "**/dist/**",
-    "**/docs/**",
-    "**/doc/**",
-    "**/ensure_no_std/**",
+  "**/.github/**",
+  "**/tests/**",
+  "**/examples/**",
+  "**/benches/**",
+  "**/target/**",
+  "**/build/**",
+  "**/dist/**",
+  "**/docs/**",
+  "**/doc/**",
+  "**/ensure_no_std/**",
 ]
 rust-version = "1.77"
 
 [dependencies]
-#rosrust_msg = { version = "0.1", optional = true }
-#rosrust = { version = "0.9.11", optional = true }
+rosrust_msg = { version = "0.1.8", optional = true }
+rosrust = { version = "0.9.12", optional = true }
 r2r = { version = "0.9", optional = true }
 rayon = { version = "1", optional = true }
 nalgebra = { version = "0.33", optional = true, default-features = false }
@@ -40,7 +40,7 @@ rpcl2-derive = { version = "0.4", optional = true, path = "../rpcl2-derive" }
 serde = { version = "1.0", features = ["derive"], optional = true }
 
 [dev-dependencies]
-rand = "0.8"
+rand = "0.9"
 criterion = { version = "0.5", features = ["html_reports"] }
 pretty_assertions = "1.0"
 
@@ -51,7 +51,7 @@ path = "benches/roundtrip.rs"
 
 [features]
 serde = ["dep:serde", "nalgebra/serde-serialize-no-std"]
-#rosrust_msg = ["dep:rosrust_msg"]
+rosrust_msg = ["dep:rosrust_msg"]
 r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2-derive"]

@@ -100,13 +100,13 @@ fn minus(point1: &PointXYZ, point2: &PointXYZ) -> PointXYZ {
 }
 
 pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<PointXYZB> {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut pointcloud = Vec::with_capacity(num_points);
     for _ in 0..num_points {
         let point = PointXYZB {
-            x: rng.gen_range(min..max),
-            y: rng.gen_range(min..max),
-            z: rng.gen_range(min..max),
+            x: rng.random_range(min..max),
+            y: rng.random_range(min..max),
+            z: rng.random_range(min..max),
             ..Default::default()
         };
         pointcloud.push(point);
