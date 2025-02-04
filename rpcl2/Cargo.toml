@@ -51,7 +51,7 @@ path = "benches/roundtrip.rs"
 
 [features]
 serde = ["dep:serde", "nalgebra/serde-serialize-no-std"]
-rosrust_msg = ["dep:rosrust_msg"]
+rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2-derive"]
