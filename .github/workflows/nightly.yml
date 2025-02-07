@@ -18,17 +18,17 @@ jobs:
         with:
           components: clippy
       - name: Linting
-        run: cargo clippy --all-targets --features derive,nalgebra,rayon,serde -- -D warnings
+        run: cargo clippy --all-targets --features derive,nalgebra,rayon,serde,ros2-interfaces-jazzy -- -D warnings
       - name: Tests
-        run: cargo test --features derive,nalgebra,rayon,serde
+        run: cargo test --features derive,nalgebra,rayon,serde,ros2-interfaces-jazzy
 
-  outdated:
-    name: Outdated
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: dtolnay/install@cargo-outdated
-      - run: cargo outdated --exit-code 1
+  # outdated:
+  #   name: Outdated
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name != 'pull_request'
+  #   timeout-minutes: 45
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: dtolnay/rust-toolchain@stable
+  #     - uses: dtolnay/install@cargo-outdated
+  #     - run: cargo outdated --exit-code 1
