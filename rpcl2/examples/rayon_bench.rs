@@ -105,31 +105,31 @@ fn main() {
     let how_often = 1_000;
 
     let dur = measure_func_avg(how_often, how_many, roundtrip);
-    println!("roundtrip: {:?}", dur);
+    println!("roundtrip: {dur:?}");
 
     #[cfg(feature = "rayon")]
     let dur = measure_func_avg(how_often, how_many, roundtrip_par);
-    println!("roundtrip_par: {:?}", dur);
+    println!("roundtrip_par: {dur:?}");
 
     println!("200k");
     let how_many = 200_000;
     let how_often = 100;
 
     let dur = measure_func_avg(how_often, how_many, roundtrip_filter);
-    println!("roundtrip_filter: {:?}", dur);
+    println!("roundtrip_filter: {dur:?}");
 
     #[cfg(feature = "rayon")]
     let dur = measure_func_avg(how_often, how_many, roundtrip_filter_par);
-    println!("roundtrip_filter_par: {:?}", dur);
+    println!("roundtrip_filter_par: {dur:?}");
 
     println!("10m");
     let how_many = 10_000_000;
     let how_often = 10;
 
     let dur = measure_func_avg(how_often, how_many, roundtrip_filter);
-    println!("roundtrip_filter: {:?}", dur);
+    println!("roundtrip_filter: {dur:?}");
 
     #[cfg(feature = "rayon")]
     let dur = measure_func_avg(how_often, how_many, roundtrip_filter_par);
-    println!("roundtrip_filter_par: {:?}", dur);
+    println!("roundtrip_filter_par: {dur:?}");
 }

@@ -140,7 +140,7 @@ fn main() {
         CustomPoint::new(7.0, 8.0, 9.0, 10.0, Label::Human),
     ];
 
-    println!("Original cloud: {:?}", cloud);
+    println!("Original cloud: {cloud:?}");
 
     let msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
 
@@ -151,7 +151,7 @@ fn main() {
         .filter(|point: &CustomPoint| point.my_custom_label == Label::Deer)
         .collect::<Vec<_>>();
 
-    println!("Filtered cloud: {:?}", out);
+    println!("Filtered cloud: {out:?}");
 
     assert_eq!(
         vec![CustomPoint::new(1.0, 2.0, 3.0, 4.0, Label::Deer),],

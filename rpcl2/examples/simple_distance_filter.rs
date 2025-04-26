@@ -12,7 +12,7 @@ fn main() {
         PointXYZ::new(3.0, 3.0, 3.0),
     ];
 
-    println!("Original cloud: {:?}", cloud);
+    println!("Original cloud: {cloud:?}");
 
     let msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
 
@@ -25,7 +25,7 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    println!("Filtered cloud: {:?}", out);
+    println!("Filtered cloud: {out:?}");
 
     assert_eq!(vec![PointXYZ::new(1.0, 1.0, 1.0),], out);
 }
