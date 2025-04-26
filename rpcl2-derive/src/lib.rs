@@ -48,8 +48,8 @@ fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
                             panic!("expected `name` attribute");
                         }
                     });
-                    if let Err(err) = res {
-                        panic!("Error parsing attribute: {}", err);
+                    if let Err(e) = res {
+                        panic!("Error parsing attribute: {e}");
                     }
                 }
             });
