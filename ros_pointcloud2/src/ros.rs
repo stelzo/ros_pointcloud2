@@ -36,9 +36,19 @@ pub struct TimeMsg {
     pub nanosec: u32,
 }
 
-#[cfg(feature = "ros2-interfaces-jazzy")]
-impl From<ros2_interfaces_jazzy::builtin_interfaces::msg::Time> for TimeMsg {
-    fn from(time: ros2_interfaces_jazzy::builtin_interfaces::msg::Time) -> Self {
+#[cfg(feature = "ros2-interfaces-jazzy-serde")]
+impl From<ros2_interfaces_jazzy_serde::builtin_interfaces::msg::Time> for TimeMsg {
+    fn from(time: ros2_interfaces_jazzy_serde::builtin_interfaces::msg::Time) -> Self {
+        Self {
+            sec: time.sec,
+            nanosec: time.nanosec,
+        }
+    }
+}
+
+#[cfg(feature = "ros2-interfaces-jazzy-rkyv")]
+impl From<ros2_interfaces_jazzy_rkyv::builtin_interfaces::msg::Time> for TimeMsg {
+    fn from(time: ros2_interfaces_jazzy_rkyv::builtin_interfaces::msg::Time) -> Self {
         Self {
             sec: time.sec,
             nanosec: time.nanosec,
@@ -65,9 +75,19 @@ pub struct HeaderMsg {
     pub frame_id: String,
 }
 
-#[cfg(feature = "ros2-interfaces-jazzy")]
-impl From<ros2_interfaces_jazzy::std_msgs::msg::Header> for HeaderMsg {
-    fn from(header: ros2_interfaces_jazzy::std_msgs::msg::Header) -> Self {
+#[cfg(feature = "ros2-interfaces-jazzy-serde")]
+impl From<ros2_interfaces_jazzy_serde::std_msgs::msg::Header> for HeaderMsg {
+    fn from(header: ros2_interfaces_jazzy_serde::std_msgs::msg::Header) -> Self {
+        Self {
+            seq: 0,
+            stamp: header.stamp.into(),
+            frame_id: header.frame_id,
+        }
+    }
+}
+#[cfg(feature = "ros2-interfaces-jazzy-rkyv")]
+impl From<ros2_interfaces_jazzy_rkyv::std_msgs::msg::Header> for HeaderMsg {
+    fn from(header: ros2_interfaces_jazzy_rkyv::std_msgs::msg::Header) -> Self {
         Self {
             seq: 0,
             stamp: header.stamp.into(),
@@ -97,9 +117,124 @@ impl Default for PointFieldMsg {
     }
 }
 
-#[cfg(feature = "ros2-interfaces-jazzy")]
-impl From<ros2_interfaces_jazzy::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
-    fn from(msg: ros2_interfaces_jazzy::sensor_msgs::msg::PointCloud2) -> Self {
+#[cfg(feature = "safe_drive_msg")]
+impl From<safe_drive::msg::common_interfaces::sensor_msgs::msg::PointCloud2>
+    for crate::PointCloud2Msg
+{
+    fn from(msg: safe_drive::msg::common_interfaces::sensor_msgs::msg::PointCloud2) -> Self {
+        Self {
+            header: HeaderMsg {
+                seq: 0,
+                stamp: TimeMsg {
+                    sec: msg.header.stamp.sec,
+                    nanosec: msg.header.stamp.nanosec,
+                },
+                frame_id: msg.header.frame_id.get_string(),
+            },
+            dimensions: crate::CloudDimensions {
+                width: msg.width,
+                height: msg.height,
+            },
+            fields: msg
+                .fields
+                .iter()
+                .map(|field| PointFieldMsg {
+                    name: field.name.get_string(),
+                    offset: field.offset,
+                    datatype: field.datatype,
+                    count: field.count,
+                })
+                .collect(),
+            endian: if msg.is_bigendian {
+                crate::Endian::Big
+            } else {
+                crate::Endian::Little
+            },
+            point_step: msg.point_step,
+            row_step: msg.row_step,
+            data: msg.data.as_slice().to_vec(),
+            dense: if msg.is_dense {
+                crate::Denseness::Dense
+            } else {
+                crate::Denseness::Sparse
+            },
+        }
+    }
+}
+
+#[cfg(feature = "safe_drive_msg")]
+impl From<crate::PointCloud2Msg>
+    for safe_drive::msg::common_interfaces::sensor_msgs::msg::PointCloud2
+{
+    fn from(msg: crate::PointCloud2Msg) -> Self {
+        let fields = safe_drive::msg::common_interfaces::sensor_msgs::msg::PointFieldSeq::<0>::new(
+            msg.fields.len(),
+        );
+        let Some(mut fields) = fields else {
+            core::panic!("Invalid fields length");
+        };
+        dbg!(&fields.as_slice_mut()[0]);
+        // The memory is not really initialized. The values are all over the place. The String, for example, has size 1 and capacity 0.
+        msg.fields
+            .into_iter()
+            .zip(fields.iter_mut())
+            .for_each(|(src_field, tgt_field)| {
+                #[cfg(debug_assertions)]
+                {
+                    let succ = tgt_field.name.assign(&src_field.name);
+                    debug_assert!(succ);
+                }
+                #[cfg(not(debug_assertions))]
+                tgt_field.name.assign(&src_field.name);
+                tgt_field.offset = src_field.offset;
+                tgt_field.datatype = src_field.datatype;
+                tgt_field.count = src_field.count;
+            });
+
+        let cloud = safe_drive::msg::common_interfaces::sensor_msgs::msg::PointCloud2::new();
+        let Some(mut cloud) = cloud else {
+            core::panic!("C PointCloud2 creation failed");
+        };
+        let frame_id = safe_drive::msg::RosString::<0>::new(&msg.header.frame_id);
+        let Some(frame_id) = frame_id else {
+            core::panic!("C String alloc failed");
+        };
+        cloud.header = safe_drive::msg::common_interfaces::std_msgs::msg::Header {
+            stamp: safe_drive::msg::builtin_interfaces__msg__Time {
+                sec: msg.header.stamp.sec,
+                nanosec: msg.header.stamp.nanosec,
+            },
+            frame_id,
+        };
+        cloud.height = msg.dimensions.height;
+        cloud.width = msg.dimensions.width;
+        cloud.fields = fields;
+        cloud.is_bigendian = match msg.endian {
+            crate::Endian::Big => true,
+            crate::Endian::Little => false,
+        };
+        cloud.point_step = msg.point_step;
+        cloud.row_step = msg.row_step;
+
+        // NOTE This memcpy can not be avoided with the current safe_drive API because it uses the C allocator
+        let data = safe_drive::msg::U8Seq::<0>::new(msg.data.len());
+        let Some(mut data) = data else {
+            core::panic!("Could not allocate buffer");
+        };
+        data.as_slice_mut().copy_from_slice(&msg.data);
+        cloud.data = data;
+
+        cloud.is_dense = match msg.dense {
+            crate::Denseness::Dense => true,
+            crate::Denseness::Sparse => false,
+        };
+        cloud
+    }
+}
+
+#[cfg(feature = "ros2-interfaces-jazzy-serde")]
+impl From<ros2_interfaces_jazzy_serde::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
+    fn from(msg: ros2_interfaces_jazzy_serde::sensor_msgs::msg::PointCloud2) -> Self {
         Self {
             header: HeaderMsg {
                 seq: 0,
@@ -140,12 +275,55 @@ impl From<ros2_interfaces_jazzy::sensor_msgs::msg::PointCloud2> for crate::Point
     }
 }
 
-#[cfg(feature = "ros2-interfaces-jazzy")]
-impl From<crate::PointCloud2Msg> for ros2_interfaces_jazzy::sensor_msgs::msg::PointCloud2 {
+#[cfg(feature = "ros2-interfaces-jazzy-rkyv")]
+impl From<ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
+    fn from(msg: ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointCloud2) -> Self {
+        Self {
+            header: HeaderMsg {
+                seq: 0,
+                stamp: TimeMsg {
+                    sec: msg.header.stamp.sec,
+                    nanosec: msg.header.stamp.nanosec,
+                },
+                frame_id: msg.header.frame_id,
+            },
+            dimensions: crate::CloudDimensions {
+                width: msg.width,
+                height: msg.height,
+            },
+            fields: msg
+                .fields
+                .into_iter()
+                .map(|field| PointFieldMsg {
+                    name: field.name,
+                    offset: field.offset,
+                    datatype: field.datatype,
+                    count: field.count,
+                })
+                .collect(),
+            endian: if msg.is_bigendian {
+                crate::Endian::Big
+            } else {
+                crate::Endian::Little
+            },
+            point_step: msg.point_step,
+            row_step: msg.row_step,
+            data: msg.data,
+            dense: if msg.is_dense {
+                crate::Denseness::Dense
+            } else {
+                crate::Denseness::Sparse
+            },
+        }
+    }
+}
+
+#[cfg(feature = "ros2-interfaces-jazzy-serde")]
+impl From<crate::PointCloud2Msg> for ros2_interfaces_jazzy_serde::sensor_msgs::msg::PointCloud2 {
     fn from(msg: crate::PointCloud2Msg) -> Self {
-        ros2_interfaces_jazzy::sensor_msgs::msg::PointCloud2 {
-            header: ros2_interfaces_jazzy::std_msgs::msg::Header {
-                stamp: ros2_interfaces_jazzy::builtin_interfaces::msg::Time {
+        ros2_interfaces_jazzy_serde::sensor_msgs::msg::PointCloud2 {
+            header: ros2_interfaces_jazzy_serde::std_msgs::msg::Header {
+                stamp: ros2_interfaces_jazzy_serde::builtin_interfaces::msg::Time {
                     sec: msg.header.stamp.sec,
                     nanosec: msg.header.stamp.nanosec,
                 },
@@ -157,7 +335,47 @@ impl From<crate::PointCloud2Msg> for ros2_interfaces_jazzy::sensor_msgs::msg::Po
                 .fields
                 .into_iter()
                 .map(
-                    |field| ros2_interfaces_jazzy::sensor_msgs::msg::PointField {
+                    |field| ros2_interfaces_jazzy_serde::sensor_msgs::msg::PointField {
+                        name: field.name,
+                        offset: field.offset,
+                        datatype: field.datatype,
+                        count: field.count,
+                    },
+                )
+                .collect(),
+            is_bigendian: match msg.endian {
+                crate::Endian::Big => true,
+                crate::Endian::Little => false,
+            },
+            point_step: msg.point_step,
+            row_step: msg.row_step,
+            data: msg.data,
+            is_dense: match msg.dense {
+                crate::Denseness::Dense => true,
+                crate::Denseness::Sparse => false,
+            },
+        }
+    }
+}
+
+#[cfg(feature = "ros2-interfaces-jazzy-rkyv")]
+impl From<crate::PointCloud2Msg> for ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointCloud2 {
+    fn from(msg: crate::PointCloud2Msg) -> Self {
+        ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointCloud2 {
+            header: ros2_interfaces_jazzy_rkyv::std_msgs::msg::Header {
+                stamp: ros2_interfaces_jazzy_rkyv::builtin_interfaces::msg::Time {
+                    sec: msg.header.stamp.sec,
+                    nanosec: msg.header.stamp.nanosec,
+                },
+                frame_id: msg.header.frame_id,
+            },
+            height: msg.dimensions.height,
+            width: msg.dimensions.width,
+            fields: msg
+                .fields
+                .into_iter()
+                .map(
+                    |field| ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointField {
                         name: field.name,
                         offset: field.offset,
                         datatype: field.datatype,

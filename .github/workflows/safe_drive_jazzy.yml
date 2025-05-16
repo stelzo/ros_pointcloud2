@@ -1,4 +1,4 @@
-name: r2r_jazzy
+name: safe_drive_jazzy
 
 on:
   push:
@@ -17,5 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: docker build . --file ./ros_pointcloud2/tests/Dockerfile_r2r_jazzy --tag r2r_jazzy
-      - run: docker run r2r_jazzy cargo test --features r2r_msg,derive,nalgebra,rayon,serde
+      # - run: docker build . --file ./ros_pointcloud2/tests/Dockerfile_safe_drive_jazzy --tag safe_drive_jazzy
+      # - run: docker run safe_drive_jazzy cargo test --features safe_drive_msg,derive,nalgebra,rayon,serde
+

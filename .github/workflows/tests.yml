@@ -23,6 +23,6 @@ jobs:
       - name: Linting
         run: cargo clippy --all-targets --features derive,nalgebra,rayon,serde -- -D warnings
       - name: Build examples with features
-        run: cargo build --examples --features derive,nalgebra,rayon,serde,ros2-interfaces-jazzy
+        run: cargo build --examples --features derive,nalgebra,rayon,serde,ros2-interfaces-jazzy-serde
       - name: Test library
         run: cargo test --features derive,nalgebra,rayon,serde

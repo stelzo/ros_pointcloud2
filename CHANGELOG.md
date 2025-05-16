@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.5.2 -> v0.6.0
+- All derived points now require `Copy`. This allows `try_from_iter` and `try_from_vec` to not require ownership for the parameter.
+- Renamed `rpcl2` derive attribute to `ros`. E.g. `#[rpcl2(rename("test"))]` -> `#[ros(rename("test"))]`.
+- Feature `ros2-interfaces-jazzy` moved to `ros2-interfaces-jazzy-serde` to keep up-to-date with the latest ros2-client.
+- Dropping rclrs support until their message generation strategy is finished and the integration can be made easier. The current implementation for is bad for long term maintenance. You can keep using `v0.5.2_rclrs` instead.
+- Undeprecates xyz() and deprecates xyz_f32() and xyz_f64(). Use casting instead. Types should not be part of a function name.
+- Adds the features `ros2-interfaces-jazzy-serde` for ros2-client support and `ros2-interfaces-jazzy-rkyv` for ROS-like systems that use rkyv for (de)serialization.
+
+## v0.5.1 -> v0.5.2
+- Fixes rosrust integration due to a yanked transitive dependency.
+- Adds Serialization and Deserialization of public structs with new feature serde.
+- Deprecates xyz() functions in favor of explicit types -> xyz_f32() | xyz_f64()
+
 ## v0.5.0 -> v0.5.1
 
 - Fixes a bug, where the conversion of larger to smaller types results in a false buffer interpretation.

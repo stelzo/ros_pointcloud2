@@ -17,5 +17,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: docker build . --file ./rpcl2/tests/Dockerfile_rclrs_jazzy --tag rclrs_jazzy
+      - run: docker build . --file ./ros_pointcloud2/tests/Dockerfile_rclrs_jazzy --tag rclrs_jazzy
       - run: docker run rclrs_jazzy cargo test --features derive,nalgebra,rayon,serde

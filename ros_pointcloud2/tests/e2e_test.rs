@@ -18,7 +18,7 @@ macro_rules! convert_from_into_vec {
 
 macro_rules! convert_from_into_in_out_cloud {
     ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
-        let msg = PointCloud2Msg::try_from_iter($in_cloud.clone().into_iter());
+        let msg = PointCloud2Msg::try_from_iter($in_cloud.clone().iter());
         assert!(msg.is_ok(), "{:?}", msg);
         let msg = msg.unwrap();
         let to_p_type = msg.try_into_iter();
@@ -32,7 +32,7 @@ macro_rules! convert_from_into_in_out_cloud {
 
 macro_rules! convert_from_into_in_out_cloud_vec {
     ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
-        let msg = PointCloud2Msg::try_from_vec($in_cloud.clone());
+        let msg = PointCloud2Msg::try_from_vec(&$in_cloud.clone());
         assert!(msg.is_ok(), "{:?}", msg);
         let msg = msg.unwrap();
         let to_p_type = msg.try_into_iter();
@@ -53,7 +53,7 @@ fn write_cloud() {
         PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
-    let msg = PointCloud2Msg::try_from_iter(cloud);
+    let msg = PointCloud2Msg::try_from_iter(&cloud);
     assert!(msg.is_ok());
 }
 /*
@@ -79,14 +79,14 @@ fn write_cloud_from_vec() {
         PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
-    let msg = PointCloud2Msg::try_from_vec(cloud);
+    let msg = PointCloud2Msg::try_from_vec(&cloud);
     assert!(msg.is_ok());
 }
 
 #[test]
 fn write_empty_cloud_vec() {
     let cloud: Vec<PointXYZ> = vec![];
-    let msg = PointCloud2Msg::try_from_vec(cloud);
+    let msg = PointCloud2Msg::try_from_vec(&cloud);
     assert!(msg.is_ok());
     assert!(msg.unwrap().data.is_empty());
 }
@@ -94,7 +94,7 @@ fn write_empty_cloud_vec() {
 #[test]
 fn write_empty_cloud_iter() {
     let cloud: Vec<PointXYZ> = vec![];
-    let msg = PointCloud2Msg::try_from_iter(cloud);
+    let msg = PointCloud2Msg::try_from_iter(&cloud);
     assert!(msg.is_ok());
     assert!(msg.unwrap().data.is_empty());
 }
@@ -109,7 +109,7 @@ fn conv_cloud_par_iter() {
     ];
     let copy = cloud.clone();
 
-    let msg: Result<PointCloud2Msg, MsgConversionError> = PointCloud2Msg::try_from_vec(cloud);
+    let msg: Result<PointCloud2Msg, MsgConversionError> = PointCloud2Msg::try_from_vec(&cloud);
     assert!(msg.is_ok());
     let msg = msg.unwrap();
     let to_p_type = msg.try_into_par_iter();
@@ -143,7 +143,7 @@ fn conv_cloud_par_par_iter() {
 #[test]
 #[cfg(feature = "derive")]
 fn custom_xyz_f32() {
-    #[derive(Debug, PartialEq, Clone, Default)]
+    #[derive(Debug, PartialEq, Clone, Default, Copy)]
     #[repr(C, align(4))]
     struct CustomPoint {
         x: f32,
@@ -151,8 +151,8 @@ fn custom_xyz_f32() {
         z: f32,
     }
 
-    impl From<RPCL2Point<3>> for CustomPoint {
-        fn from(point: RPCL2Point<3>) -> Self {
+    impl From<IPoint<3>> for CustomPoint {
+        fn from(point: IPoint<3>) -> Self {
             Self {
                 x: point[0].get(),
                 y: point[1].get(),
@@ -161,7 +161,7 @@ fn custom_xyz_f32() {
         }
     }
 
-    impl From<CustomPoint> for RPCL2Point<3> {
+    impl From<CustomPoint> for IPoint<3> {
         fn from(point: CustomPoint) -> Self {
             [point.x.into(), point.y.into(), point.z.into()].into()
         }
@@ -228,7 +228,7 @@ fn custom_xyzi_f32() {
         },
     ];
 
-    #[derive(Debug, PartialEq, Clone, Default)]
+    #[derive(Debug, PartialEq, Clone, Default, Copy)]
     #[repr(C, align(4))]
     struct CustomPointXYZI {
         x: f32,
@@ -237,8 +237,8 @@ fn custom_xyzi_f32() {
         i: u8,
     }
 
-    impl From<RPCL2Point<4>> for CustomPointXYZI {
-        fn from(point: RPCL2Point<4>) -> Self {
+    impl From<IPoint<4>> for CustomPointXYZI {
+        fn from(point: IPoint<4>) -> Self {
             Self {
                 x: point[0].get(),
                 y: point[1].get(),
@@ -248,7 +248,7 @@ fn custom_xyzi_f32() {
         }
     }
 
-    impl From<CustomPointXYZI> for RPCL2Point<4> {
+    impl From<CustomPointXYZI> for IPoint<4> {
         fn from(point: CustomPointXYZI) -> Self {
             [
                 point.x.into(),
@@ -278,7 +278,7 @@ fn custom_xyzi_f32() {
 #[test]
 #[cfg(feature = "derive")]
 fn custom_rgba_f32() {
-    #[derive(Debug, PartialEq, Clone, Default)]
+    #[derive(Debug, PartialEq, Clone, Default, Copy)]
     #[repr(C, align(4))]
     struct CustomPoint {
         x: f32,
@@ -290,8 +290,8 @@ fn custom_rgba_f32() {
         a: u8,
     }
 
-    impl From<RPCL2Point<7>> for CustomPoint {
-        fn from(point: RPCL2Point<7>) -> Self {
+    impl From<IPoint<7>> for CustomPoint {
+        fn from(point: IPoint<7>) -> Self {
             Self {
                 x: point[0].get(),
                 y: point[1].get(),
@@ -304,7 +304,7 @@ fn custom_rgba_f32() {
         }
     }
 
-    impl From<CustomPoint> for RPCL2Point<7> {
+    impl From<CustomPoint> for IPoint<7> {
         fn from(point: CustomPoint) -> Self {
             [
                 point.x.into(),
@@ -569,7 +569,7 @@ fn write_xyzi_read_xyz_vec() {
 
 #[test]
 fn write_less_than_available() {
-    #[derive(Debug, PartialEq, Clone, Default)]
+    #[derive(Debug, PartialEq, Clone, Default, Copy)]
     #[repr(C, align(4))]
     struct CustomPoint {
         x: f32,
@@ -578,8 +578,8 @@ fn write_less_than_available() {
         dummy: f32,
     }
 
-    impl From<RPCL2Point<3>> for CustomPoint {
-        fn from(point: RPCL2Point<3>) -> Self {
+    impl From<IPoint<3>> for CustomPoint {
+        fn from(point: IPoint<3>) -> Self {
             Self {
                 x: point[0].get(),
                 y: point[1].get(),
@@ -589,7 +589,7 @@ fn write_less_than_available() {
         }
     }
 
-    impl From<CustomPoint> for RPCL2Point<3> {
+    impl From<CustomPoint> for IPoint<3> {
         fn from(point: CustomPoint) -> Self {
             [point.x.into(), point.y.into(), point.z.into()].into()
         }

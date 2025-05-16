@@ -36,7 +36,7 @@ fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
             field_names.push(f.ident.as_ref().unwrap().to_token_stream().to_string());
         } else {
             f.attrs.iter().for_each(|attr| {
-                if attr.path().is_ident("rpcl2") {
+                if attr.path().is_ident("ros") {
                     let res = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("rename") {
                             let new_name;
@@ -67,7 +67,7 @@ fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
 /// With Rust layout optimizations, the struct might not work with the PCL library but the message still conforms to the description of PointCloud2.
 /// Furthermore, Rust layout can lead to smaller messages to be send over the network.
 ///
-#[proc_macro_derive(PointConvertible, attributes(rpcl2))]
+#[proc_macro_derive(PointConvertible, attributes(ros))]
 pub fn ros_point_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.clone().ident;
@@ -144,8 +144,8 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
         .collect::<Vec<_>>();
 
     let from_my_point = quote! {
-        impl From<ros_pointcloud2::RPCL2Point<#field_len_token>> for #name {
-            fn from(point: ros_pointcloud2::RPCL2Point<#field_len_token>) -> Self {
+        impl From<ros_pointcloud2::IPoint<#field_len_token>> for #name {
+            fn from(point: ros_pointcloud2::IPoint<#field_len_token>) -> Self {
                 Self {
                     #(#field_names_get,)*
                 }
@@ -162,7 +162,7 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
         .collect::<Vec<_>>();
 
     let from_custom_point = quote! {
-        impl From<#name> for ros_pointcloud2::RPCL2Point<#field_len_token> {
+        impl From<#name> for ros_pointcloud2::IPoint<#field_len_token> {
             fn from(point: #name) -> Self {
                 [ #(#field_names_into,)* ].into()
             }

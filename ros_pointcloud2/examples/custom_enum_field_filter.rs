@@ -19,7 +19,7 @@ enum Label {
 
 // Define a custom point with an enum.
 // This is normally not supported by PointCloud2 but we will explain the library how to handle it.
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default, Copy)]
 #[repr(C, align(4))]
 struct CustomPoint {
     x: f32,
@@ -64,8 +64,8 @@ impl CustomPoint {
 }
 
 // We implement the PointConvertible trait (needed for every custom point).
-// RPCL2Point is the internal representation. It takes the amount of fields as generic arguments.
-impl From<CustomPoint> for RPCL2Point<5> {
+// IPoint is the internal representation. It takes the amount of fields as generic arguments.
+impl From<CustomPoint> for IPoint<5> {
     fn from(point: CustomPoint) -> Self {
         [
             point.x.into(),
@@ -78,8 +78,8 @@ impl From<CustomPoint> for RPCL2Point<5> {
     }
 }
 
-impl From<RPCL2Point<5>> for CustomPoint {
-    fn from(point: RPCL2Point<5>) -> Self {
+impl From<IPoint<5>> for CustomPoint {
+    fn from(point: IPoint<5>) -> Self {
         Self::new(
             point[0].get(),
             point[1].get(),
@@ -142,7 +142,7 @@ fn main() {
 
     println!("Original cloud: {cloud:?}");
 
-    let msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
+    let msg = PointCloud2Msg::try_from_iter(&cloud).unwrap();
 
     println!("filtering by label == Deer");
     let out = msg

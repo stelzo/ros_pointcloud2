@@ -1,5 +1,5 @@
 //! Predefined point types commonly used in ROS.
-use crate::{LayoutDescription, LayoutField, PointConvertible, RPCL2Point};
+use crate::{IPoint, LayoutDescription, LayoutField, PointConvertible};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -227,35 +227,36 @@ impl PointXYZ {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        self.xyz_f32()
+        nalgebra::Point3::new(self.x, self.y, self.z)
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.into()
+        self.xyz()
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.into()
+        self.xyz().cast::<f64>()
     }
 }
 
 unsafe impl Send for PointXYZ {}
 unsafe impl Sync for PointXYZ {}
 
-impl From<RPCL2Point<3>> for PointXYZ {
-    fn from(point: RPCL2Point<3>) -> Self {
+impl From<IPoint<3>> for PointXYZ {
+    fn from(point: IPoint<3>) -> Self {
         Self::new(point[0].get(), point[1].get(), point[2].get())
     }
 }
 
-impl From<PointXYZ> for RPCL2Point<3> {
+impl From<PointXYZ> for IPoint<3> {
     fn from(point: PointXYZ) -> Self {
         [point.x.into(), point.y.into(), point.z.into()].into()
     }
@@ -290,30 +291,31 @@ impl PointXYZI {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        self.xyz_f32()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.xyz()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
+        self.xyz().cast::<f64>()
     }
 }
 
 unsafe impl Send for PointXYZI {}
 unsafe impl Sync for PointXYZI {}
 
-impl From<RPCL2Point<4>> for PointXYZI {
-    fn from(point: RPCL2Point<4>) -> Self {
+impl From<IPoint<4>> for PointXYZI {
+    fn from(point: IPoint<4>) -> Self {
         Self::new(
             point[0].get(),
             point[1].get(),
@@ -323,7 +325,7 @@ impl From<RPCL2Point<4>> for PointXYZI {
     }
 }
 
-impl From<PointXYZI> for RPCL2Point<4> {
+impl From<PointXYZI> for IPoint<4> {
     fn from(point: PointXYZI) -> Self {
         [
             point.x.into(),
@@ -364,30 +366,31 @@ impl PointXYZL {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        self.xyz_f32()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.xyz()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
+        self.xyz().cast::<f64>()
     }
 }
 
 unsafe impl Send for PointXYZL {}
 unsafe impl Sync for PointXYZL {}
 
-impl From<RPCL2Point<4>> for PointXYZL {
-    fn from(point: RPCL2Point<4>) -> Self {
+impl From<IPoint<4>> for PointXYZL {
+    fn from(point: IPoint<4>) -> Self {
         Self::new(
             point[0].get(),
             point[1].get(),
@@ -397,7 +400,7 @@ impl From<RPCL2Point<4>> for PointXYZL {
     }
 }
 
-impl From<PointXYZL> for RPCL2Point<4> {
+impl From<PointXYZL> for IPoint<4> {
     fn from(point: PointXYZL) -> Self {
         [
             point.x.into(),
@@ -455,30 +458,31 @@ impl PointXYZRGB {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        self.xyz_f32()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.xyz()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
+        self.xyz().cast::<f64>()
     }
 }
 
 unsafe impl Send for PointXYZRGB {}
 unsafe impl Sync for PointXYZRGB {}
 
-impl From<RPCL2Point<4>> for PointXYZRGB {
-    fn from(point: RPCL2Point<4>) -> Self {
+impl From<IPoint<4>> for PointXYZRGB {
+    fn from(point: IPoint<4>) -> Self {
         Self {
             x: point[0].get(),
             y: point[1].get(),
@@ -488,7 +492,7 @@ impl From<RPCL2Point<4>> for PointXYZRGB {
     }
 }
 
-impl From<PointXYZRGB> for RPCL2Point<4> {
+impl From<PointXYZRGB> for IPoint<4> {
     fn from(point: PointXYZRGB) -> Self {
         [
             point.x.into(),
@@ -548,30 +552,31 @@ impl PointXYZRGBA {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        self.xyz_f32()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.xyz()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
+        self.xyz().cast::<f64>()
     }
 }
 
 unsafe impl Send for PointXYZRGBA {}
 unsafe impl Sync for PointXYZRGBA {}
 
-impl From<RPCL2Point<5>> for PointXYZRGBA {
-    fn from(point: RPCL2Point<5>) -> Self {
+impl From<IPoint<5>> for PointXYZRGBA {
+    fn from(point: IPoint<5>) -> Self {
         Self {
             x: point[0].get(),
             y: point[1].get(),
@@ -582,7 +587,7 @@ impl From<RPCL2Point<5>> for PointXYZRGBA {
     }
 }
 
-impl From<PointXYZRGBA> for RPCL2Point<5> {
+impl From<PointXYZRGBA> for IPoint<5> {
     fn from(point: PointXYZRGBA) -> Self {
         [
             point.x.into(),
@@ -661,30 +666,31 @@ impl PointXYZRGBNormal {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        self.xyz_f32()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.xyz()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
+        self.xyz().cast::<f64>()
     }
 }
 
 unsafe impl Send for PointXYZRGBNormal {}
 unsafe impl Sync for PointXYZRGBNormal {}
 
-impl From<RPCL2Point<7>> for PointXYZRGBNormal {
-    fn from(point: RPCL2Point<7>) -> Self {
+impl From<IPoint<7>> for PointXYZRGBNormal {
+    fn from(point: IPoint<7>) -> Self {
         Self {
             x: point[0].get(),
             y: point[1].get(),
@@ -697,7 +703,7 @@ impl From<RPCL2Point<7>> for PointXYZRGBNormal {
     }
 }
 
-impl From<PointXYZRGBNormal> for RPCL2Point<7> {
+impl From<PointXYZRGBNormal> for IPoint<7> {
     fn from(point: PointXYZRGBNormal) -> Self {
         [
             point.x.into(),
@@ -765,30 +771,31 @@ impl PointXYZINormal {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        self.xyz_f32()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.xyz()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
+        self.xyz().cast::<f64>()
     }
 }
 
 unsafe impl Send for PointXYZINormal {}
 unsafe impl Sync for PointXYZINormal {}
 
-impl From<RPCL2Point<7>> for PointXYZINormal {
-    fn from(point: RPCL2Point<7>) -> Self {
+impl From<IPoint<7>> for PointXYZINormal {
+    fn from(point: IPoint<7>) -> Self {
         Self::new(
             point[0].get(),
             point[1].get(),
@@ -801,7 +808,7 @@ impl From<RPCL2Point<7>> for PointXYZINormal {
     }
 }
 
-impl From<PointXYZINormal> for RPCL2Point<7> {
+impl From<PointXYZINormal> for IPoint<7> {
     fn from(point: PointXYZINormal) -> Self {
         [
             point.x.into(),
@@ -876,27 +883,28 @@ impl PointXYZRGBL {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        self.xyz_f32()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.xyz()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
+        self.xyz().cast::<f64>()
     }
 }
 
-impl From<RPCL2Point<5>> for PointXYZRGBL {
-    fn from(point: RPCL2Point<5>) -> Self {
+impl From<IPoint<5>> for PointXYZRGBL {
+    fn from(point: IPoint<5>) -> Self {
         Self {
             x: point[0].get(),
             y: point[1].get(),
@@ -907,7 +915,7 @@ impl From<RPCL2Point<5>> for PointXYZRGBL {
     }
 }
 
-impl From<PointXYZRGBL> for RPCL2Point<5> {
+impl From<PointXYZRGBL> for IPoint<5> {
     fn from(point: PointXYZRGBL) -> Self {
         [
             point.x.into(),
@@ -961,30 +969,31 @@ impl PointXYZNormal {
 
     /// Get the coordinates as a nalgebra Point3.
     #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.5.2", note = "please use `xyz_f32` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        self.xyz_f32()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
 
     #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
+    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
+        self.xyz()
+    }
+
+    #[cfg(feature = "nalgebra")]
+    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        nalgebra::Point3::new(self.x as f64, self.y as f64, self.z as f64)
+        self.xyz().cast::<f64>()
     }
 }
 
 unsafe impl Send for PointXYZNormal {}
 unsafe impl Sync for PointXYZNormal {}
 
-impl From<RPCL2Point<6>> for PointXYZNormal {
-    fn from(point: RPCL2Point<6>) -> Self {
+impl From<IPoint<6>> for PointXYZNormal {
+    fn from(point: IPoint<6>) -> Self {
         Self::new(
             point[0].get(),
             point[1].get(),
@@ -996,7 +1005,7 @@ impl From<RPCL2Point<6>> for PointXYZNormal {
     }
 }
 
-impl From<PointXYZNormal> for RPCL2Point<6> {
+impl From<PointXYZNormal> for IPoint<6> {
     fn from(point: PointXYZNormal) -> Self {
         [
             point.x.into(),

@@ -33,7 +33,7 @@
 //! ];
 //! let cloud_copy = cloud_points.clone(); // For equality test later.
 //!
-//! let out_msg = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
+//! let out_msg = PointCloud2Msg::try_from_iter(&cloud_points).unwrap();
 //!
 //! // Convert to your ROS crate message type.
 //! // let msg: r2r::sensor_msgs::msg::PointCloud2 = in_msg.into();
@@ -55,7 +55,9 @@
 //! # Features
 //! - r2r_msg — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
 //! - rosrust_msg — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
-//! - (rclrs_msg) — Integration for ROS2 [rclrs](https://github.com/ros2-rust/ros2_rust) but it currently needs [this workaround](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#rclrs-ros2_rust).
+//! - safe_drive — Integration with the [safe_drive](https://github.com/tier4/safe_drive) bindings for ROS2.
+//! - ros2-interfaces-jazzy-serde — Integration for the ros2-client compatible [ros2-interfaces-jazzy-serde](https://github.com/stelzo/ros2-interfaces-jazzy-serde) pre-built messages for ROS2 Jazzy.
+//! - ros2-interfaces-jazzy-rkyv — Integration with the [ros2-interfaces-jazzy-rkyv](https://github.com/stelzo/ros2-interfaces-jazzy-rkyv) pre-built messages for ROS2 Jazzy with rkyv (de)serialization, typically used outside of ROS.
 //! - derive — Offers implementations for the [`PointConvertible`] trait needed for custom points.
 //! - rayon — Parallel iterator support for `_par_iter` functions.
 //! - nalgebra — Predefined points offer a nalgebra typed getter for coordinates (e.g. [`xyz`](points::PointXYZ::xyz)).
@@ -72,7 +74,7 @@
 //!     pub x: f32,
 //!     pub y: f32,
 //!     pub z: f32,
-//!     #[rpcl2(rename("i"))]
+//!     #[ros(rename("i"))]
 //!     pub intensity: f32,
 //! }
 //! ```
@@ -96,13 +98,13 @@
 //!     }
 //! }
 //!
-//! impl From<RPCL2Point<4>> for MyPointXYZI {
-//!     fn from(point: RPCL2Point<4>) -> Self {
+//! impl From<IPoint<4>> for MyPointXYZI {
+//!     fn from(point: IPoint<4>) -> Self {
 //!         Self::new(point[0].get(), point[1].get(), point[2].get(), point[3].get())
 //!     }
 //! }
 //!
-//! impl From<MyPointXYZI> for RPCL2Point<4> {
+//! impl From<MyPointXYZI> for IPoint<4> {
 //!     fn from(point: MyPointXYZI) -> Self {
 //!         [point.x.into(), point.y.into(), point.z.into(), point.intensity.into()].into()
 //!     }
@@ -121,13 +123,13 @@
 //!
 //! let first_p = MyPointXYZI::new(1.0, 2.0, 3.0, 0.5);
 //! let cloud_points = vec![first_p, MyPointXYZI::new(4.0, 5.0, 6.0, 0.5)];
-//! let msg_out = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
+//! let msg_out = PointCloud2Msg::try_from_iter(&cloud_points).unwrap();
 //! let cloud_points_out: Vec<MyPointXYZI> = msg_out.try_into_iter().unwrap().collect();
 //! assert_eq!(first_p, *cloud_points_out.first().unwrap());
 //! ```
 #![crate_type = "lib"]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.5.1")]
+#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.6.0")]
 #![warn(clippy::print_stderr)]
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unwrap_used)]
@@ -140,6 +142,7 @@
 // Setup an allocator with #[global_allocator]
 // see: https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html
 #![allow(unexpected_cfgs)]
+#![allow(clippy::multiple_crate_versions)] // nalgebra 0.34 uses many glam versions, fix needs https://github.com/rust-lang/cargo/issues/10801
 
 pub mod points;
 pub mod prelude;
@@ -559,16 +562,16 @@ impl PointCloud2Msg {
     ///     PointXYZ::new(4.0, 5.0, 6.0),
     /// ];
     ///
-    // let msg_out = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
+    // let msg_out = PointCloud2Msg::try_from_iter(&cloud_points).unwrap();
     /// ```
-    pub fn try_from_iter<const N: usize, C>(
-        iterable: impl IntoIterator<Item = C>,
+    pub fn try_from_iter<'a, const N: usize, C>(
+        iterable: impl IntoIterator<Item = &'a C>,
     ) -> Result<Self, MsgConversionError>
     where
-        C: PointConvertible<N>,
+        C: PointConvertible<N> + 'a,
     {
         let (mut cloud, point_step) = {
-            let point: RPCL2Point<N> = C::default().into();
+            let point: IPoint<N> = C::default().into();
             debug_assert!(point.fields.len() == N);
 
             let field_names = crate::ordered_field_names::<N, C>();
@@ -606,7 +609,7 @@ impl PointCloud2Msg {
         let mut cloud_width = 0;
 
         iterable.into_iter().for_each(|pointdata| {
-            let point: RPCL2Point<N> = pointdata.into();
+            let point: IPoint<N> = (*pointdata).into();
 
             point.fields.iter().for_each(|pdata| {
                 let truncated_bytes = unsafe {
@@ -633,7 +636,7 @@ impl PointCloud2Msg {
     where
         C: PointConvertible<N> + Send + Sync,
     {
-        Self::try_from_vec(iterable.collect::<Vec<_>>())
+        Self::try_from_vec(&iterable.collect::<Vec<_>>())
     }
 
     /// Create a [`PointCloud2Msg`] from a Vec of points.
@@ -648,19 +651,19 @@ impl PointCloud2Msg {
     ///     PointXYZ::new(4.0, 5.0, 6.0),
     /// ];
     ///
-    /// let msg_out = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
+    /// let msg_out = PointCloud2Msg::try_from_vec(&cloud_points).unwrap();
     /// ```
     ///
     /// # Errors
     /// Returns an error if the byte buffer does not match the expected layout or the message contains other discrepancies.
-    pub fn try_from_vec<const N: usize, C>(vec: Vec<C>) -> Result<Self, MsgConversionError>
+    pub fn try_from_vec<const N: usize, C>(vec: &[C]) -> Result<Self, MsgConversionError>
     where
         C: PointConvertible<N>,
     {
         match (system_endian(), Endian::default()) {
             (Endian::Big, Endian::Big) | (Endian::Little, Endian::Little) => {
                 let (mut cloud, point_step) = {
-                    let point: RPCL2Point<N> = C::default().into();
+                    let point: IPoint<N> = C::default().into();
                     debug_assert!(point.fields.len() == N);
 
                     let field_names = crate::ordered_field_names::<N, C>();
@@ -716,7 +719,7 @@ impl PointCloud2Msg {
                     .row_step(vec.len() as u32 * point_step)
                     .build()?)
             }
-            _ => Self::try_from_iter(vec),
+            _ => Self::try_from_iter(vec.iter()),
         }
     }
 
@@ -731,7 +734,7 @@ impl PointCloud2Msg {
     ///     PointXYZI::new(4.0, 5.0, 6.0, 1.1),
     /// ];
     ///
-    /// let msg_out = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
+    /// let msg_out = PointCloud2Msg::try_from_vec(&cloud_points).unwrap();
     /// let cloud_points_out: Vec<PointXYZ> = msg_out.try_into_vec().unwrap();
     /// assert_eq!(1.0, cloud_points_out.get(0).unwrap().x);
     /// ```
@@ -789,7 +792,7 @@ impl PointCloud2Msg {
     ///     PointXYZI::new(4.0, 5.0, 6.0, 1.1),
     /// ];
     ///
-    /// let msg_out = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
+    /// let msg_out = PointCloud2Msg::try_from_iter(&cloud_points).unwrap();
     /// let cloud_points_out = msg_out.try_into_iter().unwrap().collect::<Vec<PointXYZ>>();
     /// ```
     /// # Errors
@@ -814,7 +817,7 @@ impl PointCloud2Msg {
     ///    PointXYZI::new(4.0, 5.0, 6.0, 1.1),
     /// ];
     ///
-    /// let msg_out = PointCloud2Msg::try_from_iter(cloud_points).unwrap();
+    /// let msg_out = PointCloud2Msg::try_from_iter(&cloud_points).unwrap();
     /// let cloud_points_out = msg_out.try_into_par_iter().unwrap().collect::<Vec<PointXYZ>>();
     /// assert_eq!(2, cloud_points_out.len());
     /// ```
@@ -836,11 +839,11 @@ impl PointCloud2Msg {
 /// Implement the `From` traits for your point type to use the conversion.
 ///
 /// See the [`PointConvertible`] trait for more information.
-pub struct RPCL2Point<const N: usize> {
+pub struct IPoint<const N: usize> {
     fields: [PointData; N],
 }
 
-impl<const N: usize> core::ops::Index<usize> for RPCL2Point<N> {
+impl<const N: usize> core::ops::Index<usize> for IPoint<N> {
     type Output = PointData;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -848,7 +851,7 @@ impl<const N: usize> core::ops::Index<usize> for RPCL2Point<N> {
     }
 }
 
-impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
+impl<const N: usize> From<[PointData; N]> for IPoint<N> {
     fn from(fields: [PointData; N]) -> Self {
         Self { fields }
     }
@@ -877,7 +880,7 @@ impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
 ///     pub x: f32,
 ///     pub y: f32,
 ///     pub z: f32,
-///     #[rpcl2(rename("l"))]
+///     #[field(rename("l"))]
 ///     pub label: u8,
 /// }
 /// ```
@@ -895,14 +898,14 @@ impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
 ///     pub label: u8,
 /// }
 ///
-/// impl From<MyPointXYZL> for RPCL2Point<4> {
+/// impl From<MyPointXYZL> for IPoint<4> {
 ///     fn from(point: MyPointXYZL) -> Self {
 ///         [point.x.into(), point.y.into(), point.z.into(), point.label.into()].into()
 ///     }
 /// }
 ///
-/// impl From<RPCL2Point<4>> for MyPointXYZL {
-///     fn from(point: RPCL2Point<4>) -> Self {
+/// impl From<IPoint<4>> for MyPointXYZL {
+///     fn from(point: IPoint<4>) -> Self {
 ///         Self {
 ///             x: point[0].get(),
 ///             y: point[1].get(),
@@ -928,7 +931,7 @@ impl<const N: usize> From<[PointData; N]> for RPCL2Point<N> {
 /// The layout is used for raw memory interpretation, where safety can not be guaranteed by the compiler.
 /// Take care when implementing the layout, especially in combination with `#[repr]` or use the `derive` feature when possible to prevent common errors.
 pub unsafe trait PointConvertible<const N: usize>:
-    From<RPCL2Point<N>> + Into<RPCL2Point<N>> + Default + Sized
+    From<IPoint<N>> + Into<IPoint<N>> + Default + Sized + Copy
 {
     fn layout() -> LayoutDescription;
 }
@@ -1471,7 +1474,7 @@ mod test {
 
     use crate::prelude::*;
 
-    #[derive(Debug, Default, Clone, PartialEq)]
+    #[derive(Debug, Default, Clone, PartialEq, Copy)]
     #[repr(C)]
     struct PointA {
         x: f32,
@@ -1485,13 +1488,13 @@ mod test {
         range: u32,
     }
 
-    impl From<RPCL2Point<9>> for PointA {
-        fn from(point: RPCL2Point<9>) -> Self {
+    impl From<IPoint<9>> for PointA {
+        fn from(point: IPoint<9>) -> Self {
             Self::new(point[0].get(), point[1].get(), point[2].get())
         }
     }
 
-    impl From<PointA> for RPCL2Point<9> {
+    impl From<PointA> for IPoint<9> {
         fn from(point: PointA) -> Self {
             [
                 point.x.into(),
@@ -1543,7 +1546,7 @@ mod test {
         }
     }
 
-    #[derive(Debug, Clone, Default, PartialEq)]
+    #[derive(Debug, Clone, Default, PartialEq, Copy)]
     #[repr(C)]
     struct PointB {
         pub x: f32,
@@ -1558,13 +1561,13 @@ mod test {
         }
     }
 
-    impl From<RPCL2Point<4>> for PointB {
-        fn from(point: RPCL2Point<4>) -> Self {
+    impl From<IPoint<4>> for PointB {
+        fn from(point: IPoint<4>) -> Self {
             Self::new(point[0].get(), point[1].get(), point[2].get())
         }
     }
 
-    impl From<PointB> for RPCL2Point<4> {
+    impl From<PointB> for IPoint<4> {
         fn from(point: PointB) -> Self {
             [
                 point.x.into(),
@@ -1587,7 +1590,7 @@ mod test {
         }
     }
 
-    #[derive(Debug, Clone, Default, PartialEq)]
+    #[derive(Debug, Clone, Default, PartialEq, Copy)]
     #[repr(C)]
     struct PointD {
         x: f32,
@@ -1601,13 +1604,13 @@ mod test {
         near_ir: u16,
     }
 
-    impl From<RPCL2Point<9>> for PointD {
-        fn from(point: RPCL2Point<9>) -> Self {
+    impl From<IPoint<9>> for PointD {
+        fn from(point: IPoint<9>) -> Self {
             Self::new(point[0].get(), point[1].get(), point[2].get())
         }
     }
 
-    impl From<PointD> for RPCL2Point<9> {
+    impl From<PointD> for IPoint<9> {
         fn from(point: PointD) -> Self {
             [
                 point.x.into(),
@@ -1662,7 +1665,7 @@ mod test {
 
     #[test]
     fn subtype_iterator_fallback() {
-        let cloud_a = PointCloud2Msg::try_from_iter(vec![
+        let cloud_a = PointCloud2Msg::try_from_iter(&vec![
             PointA::new(1.0, 2.0, 3.0),
             PointA::new(4.0, 5.0, 6.0),
             PointA::new(7.0, 8.0, 9.0),

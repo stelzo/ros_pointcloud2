@@ -21,4 +21,4 @@ jobs:
         with:
           target: thumbv7em-none-eabihf
       - name: no_std build
-        run: cargo build --target thumbv7em-none-eabihf --manifest-path rpcl2/ensure_no_std/Cargo.toml
+        run: cargo build --target thumbv7em-none-eabihf --manifest-path ros_pointcloud2/ensure_no_std/Cargo.toml

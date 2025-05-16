@@ -1,14 +1,14 @@
 use ros_pointcloud2::PointConvertible;
 use rpcl2_derive::*;
 
-#[derive(Debug, PartialEq, Clone, Default, PointConvertible)]
+#[derive(Debug, PartialEq, Clone, Default, Copy, PointConvertible)]
 #[repr(C, align(4))]
 struct MyPointXYZI {
     x: f32,
-    #[rpcl2(rename("test"))]
+    #[ros(rename("test"))]
     y: u16,
     z: f32,
-    #[rpcl2(rename("i"))]
+    #[ros(rename("i"))]
     intensity: i32,
     label: u8,
 }

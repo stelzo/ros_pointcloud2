@@ -21,7 +21,7 @@ fn convertxyz_rosrust_msg() {
         },
     ];
     let copy = cloud.clone();
-    let internal_cloud = PointCloud2Msg::try_from_iter(cloud).unwrap();
+    let internal_cloud = PointCloud2Msg::try_from_iter(&cloud).unwrap();
     let rosrust_msg_cloud: rosrust_msg::sensor_msgs::PointCloud2 = internal_cloud.into();
     let convert_back_internal: PointCloud2Msg = rosrust_msg_cloud.into();
     let to_convert = convert_back_internal.try_into_iter().unwrap();

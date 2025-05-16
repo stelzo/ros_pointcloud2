@@ -23,7 +23,7 @@ fn convertxyz_r2r_msg() {
         },
     ];
     let copy = cloud.clone();
-    let internal_cloud = PointCloud2Msg::try_from_iter(cloud).unwrap();
+    let internal_cloud = PointCloud2Msg::try_from_iter(&cloud).unwrap();
     let r2r_msg_cloud: PointCloud2 = internal_cloud.into();
     let convert_back_internal: PointCloud2Msg = r2r_msg_cloud.into();
     let to_convert = convert_back_internal.try_into_iter().unwrap();

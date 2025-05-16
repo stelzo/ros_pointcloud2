@@ -1,7 +1,6 @@
 //! Iterator implementations for [`PointCloud2Msg`] including a parallel iterator for rayon.
 use crate::{
-    Endian, FieldDatatype, MsgConversionError, PointCloud2Msg, PointConvertible, PointData,
-    RPCL2Point,
+    Endian, FieldDatatype, IPoint, MsgConversionError, PointCloud2Msg, PointConvertible, PointData,
 };
 
 use alloc::borrow::ToOwned;
@@ -202,7 +201,7 @@ impl<const N: usize> ByteBufferView<N> {
     }
 
     #[inline]
-    fn point_at(&self, idx: usize) -> RPCL2Point<N> {
+    fn point_at(&self, idx: usize) -> IPoint<N> {
         let offset = (self.start_point_idx + idx) * self.point_step_size;
         let mut pdata = [PointData::default(); N];
         pdata
@@ -404,7 +403,7 @@ mod test {
             },
         ];
 
-        let internal_msg = crate::PointCloud2Msg::try_from_iter(cloud).unwrap();
+        let internal_msg = crate::PointCloud2Msg::try_from_iter(&cloud).unwrap();
         let mut iter = crate::iterator::PointCloudIterator::try_from(internal_msg).unwrap();
         let last_p = iter.next_back();
 
@@ -458,7 +457,7 @@ mod test {
             },
         ];
 
-        let internal_msg = crate::PointCloud2Msg::try_from_iter(cloud).unwrap();
+        let internal_msg = crate::PointCloud2Msg::try_from_iter(&cloud).unwrap();
         let iter = crate::iterator::PointCloudIterator::try_from(internal_msg).unwrap();
 
         let (mut left, mut right) = iter.split_at(1);

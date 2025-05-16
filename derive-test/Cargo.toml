@@ -15,5 +15,5 @@ categories = [
 ]
 
 [dependencies]
-ros_pointcloud2 = { path = "../rpcl2", features = ["std", "derive"] }
+ros_pointcloud2 = { path = "../ros_pointcloud2", features = ["std", "derive"] }
 rpcl2-derive = { path = "../rpcl2-derive" }

@@ -22,7 +22,7 @@ pub fn generate_random_pointcloud(num_points: usize, min: f32, max: f32) -> Vec<
 
 fn roundtrip(cloud: Vec<PointXYZ>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(&cloud).unwrap();
     let total = internal_msg
         .try_into_iter()
         .unwrap()
@@ -32,7 +32,7 @@ fn roundtrip(cloud: Vec<PointXYZ>) -> bool {
 
 fn roundtrip_filter(cloud: Vec<PointXYZ>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(&cloud).unwrap();
     let total = internal_msg
         .try_into_iter()
         .unwrap()
@@ -50,7 +50,7 @@ fn roundtrip_filter(cloud: Vec<PointXYZ>) -> bool {
 #[cfg(feature = "rayon")]
 fn roundtrip_par(cloud: Vec<PointXYZ>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(&cloud).unwrap();
     let total = internal_msg
         .try_into_par_iter()
         .unwrap()
@@ -61,7 +61,7 @@ fn roundtrip_par(cloud: Vec<PointXYZ>) -> bool {
 #[cfg(feature = "rayon")]
 fn roundtrip_filter_par(cloud: Vec<PointXYZ>) -> bool {
     let orig_len: usize = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_iter(cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_iter(&cloud).unwrap();
     let total = internal_msg
         .try_into_par_iter()
         .unwrap()
