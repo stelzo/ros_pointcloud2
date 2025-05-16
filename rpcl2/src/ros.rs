@@ -46,7 +46,7 @@ impl From<ros2_interfaces_jazzy::builtin_interfaces::msg::Time> for TimeMsg {
     }
 }
 
-#[cfg(feature = "ros2-interfaces-jazzy-rkyv")]
+#[cfg(feature = "lh")]
 impl From<ros2_interfaces_jazzy_rkyv::builtin_interfaces::msg::Time> for TimeMsg {
     fn from(time: ros2_interfaces_jazzy_rkyv::builtin_interfaces::msg::Time) -> Self {
         Self {
@@ -85,7 +85,7 @@ impl From<ros2_interfaces_jazzy::std_msgs::msg::Header> for HeaderMsg {
         }
     }
 }
-#[cfg(feature = "ros2-interfaces-jazzy-rkyv")]
+#[cfg(feature = "lh")]
 impl From<ros2_interfaces_jazzy_rkyv::std_msgs::msg::Header> for HeaderMsg {
     fn from(header: ros2_interfaces_jazzy_rkyv::std_msgs::msg::Header) -> Self {
         Self {
@@ -160,7 +160,7 @@ impl From<ros2_interfaces_jazzy::sensor_msgs::msg::PointCloud2> for crate::Point
     }
 }
 
-#[cfg(feature = "ros2-interfaces-jazzy-rkyv")]
+#[cfg(feature = "lh")]
 impl From<ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointCloud2> for crate::PointCloud2Msg {
     fn from(msg: ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointCloud2) -> Self {
         Self {
@@ -243,7 +243,7 @@ impl From<crate::PointCloud2Msg> for ros2_interfaces_jazzy::sensor_msgs::msg::Po
     }
 }
 
-#[cfg(feature = "ros2-interfaces-jazzy-rkyv")]
+#[cfg(feature = "lh")]
 impl From<crate::PointCloud2Msg> for ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointCloud2 {
     fn from(msg: crate::PointCloud2Msg) -> Self {
         ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointCloud2 {

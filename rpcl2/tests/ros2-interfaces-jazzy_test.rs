@@ -31,7 +31,7 @@ fn convertxyz_ros2_interfaces_jazzy_msg() {
     assert_eq!(copy, back_to_type);
 }
 
-#[cfg(feature = "ros2-interfaces-jazzy-rkyv")]
+#[cfg(feature = "lh")]
 #[test]
 fn convertxyz_ros2_interfaces_jazzy_rkyv_msg() {
     use ros_pointcloud2::{points::PointXYZ, PointCloud2Msg};
