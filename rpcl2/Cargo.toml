@@ -41,6 +41,9 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 ros2-interfaces-jazzy = { version = "0.0.4", features = [
   "sensor_msgs",
 ], optional = true }
+ros2-interfaces-jazzy-rkyv = { version = "0.0.4", features = [
+  "sensor_msgs",
+], git = "https://github.com/stelzo/ros2-interfaces-jazzy-rkyv.git", branch = "main", optional = true }
 
 [dev-dependencies]
 rand = "0.9"
@@ -56,13 +59,14 @@ path = "benches/roundtrip.rs"
 serde = ["dep:serde", "nalgebra/serde-serialize-no-std"]
 rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
+ros2-interfaces-jazzy-rkyv = ["dep:ros2-interfaces-jazzy-rkyv"]
 ros2-interfaces-jazzy = ["dep:ros2-interfaces-jazzy"]
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2-derive"]
 nalgebra = ["dep:nalgebra"]
 std = ["nalgebra/std"]
 
-default = ["std"]
+default = ["std", "ros2-interfaces-jazzy-rkyv"]
 
 [package.metadata.docs.rs]
 features = ["derive", "nalgebra", "rayon", "serde"]
