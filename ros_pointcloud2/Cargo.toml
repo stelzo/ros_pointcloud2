@@ -1,6 +1,6 @@
 [package]
 name = "ros_pointcloud2"
-version = "0.6.0"
+version = "0.16.0"
 edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
@@ -39,13 +39,13 @@ memoffset = { version = "0.9", optional = true }
 
 [dependencies.roslibrust]
 git = "https://github.com/lucasw/roslibrust"
-branch = "get_rx_msg_def_v0_12"
+branch = "get_rx_msg_def_v0_16"
 features = ["ros1"]
 optional = true
 
 [dependencies.roslibrust_util]
 git = "https://github.com/lucasw/tf_roslibrust"
-version = "0.2.0"
+version = "0.16.0"
 optional = true
 
 [dev-dependencies]
