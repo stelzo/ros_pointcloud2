@@ -7,7 +7,7 @@
 
 ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
 
-Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/0.5.2/) for a complete guide.
+Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/latest/ros_pointcloud2/) for a complete guide.
 
 ## Quickstart
 
@@ -20,7 +20,7 @@ let cloud_points = vec![
   PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MIN),
 ];
 
-let out_msg = PointCloud2Msg::try_from_vec(cloud_points).unwrap();
+let out_msg = PointCloud2Msg::try_from_vec(&cloud_points).unwrap();
 
 // Convert the ROS crate message type, we will use r2r here.
 // let msg: r2r::sensor_msgs::msg::PointCloud2 = out_msg.into();
@@ -41,27 +41,29 @@ let processed_cloud = in_msg.try_into_iter().unwrap()
 
 ## Integrations
 
-There are currently 3 integrations for common ROS crates.
+There are currently 4 integrations for common ROS crates. We tested them on the following distros.
 
-- [rosrust_msg](https://github.com/adnanademovic/rosrust)
-  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rosrust_noetic.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rosrust_noetic.yml)
-- [r2r_msg](https://github.com/sequenceplanner/r2r)
-  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_galactic.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_galactic.yml)
-  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_humble.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_humble.yml)
-  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_iron.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_iron.yml)
-  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_jazzy.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/r2r_jazzy.yml)
-- [rclrs_msg](https://github.com/ros2-rust/ros2_rust)
-  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_humble.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_humble.yml)
-  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_iron.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_iron.yml)
-  - [![Tests](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_jazzy.yml/badge.svg)](https://github.com/stelzo/ros_pointcloud2/actions/workflows/rclrs_jazzy.yml)
+- [rosrust](https://github.com/adnanademovic/rosrust)
+  - Noetic
+- [r2r](https://github.com/sequenceplanner/r2r)
+  - Galactic
+  - Humble
+  - Jazzy
+- [rclrs](https://github.com/ros2-rust/ros2_rust)
+  - Humble
+  - Iron
+- [ros2-client](https://github.com/Atostek/ros2-client.git)
+  - Jazzy
 
-You can use `rosrust` and `r2r` by enabling the respective feature:
+You can use `rosrust`, `r2r` or `ros2-client` by enabling the respective feature:
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { version = "*", features = ["r2r_msg"]}
+ros_pointcloud2 = { version = "*", features = ["r2r_msg"]} # r2r
 # or
-ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]}
+ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]} # rosrust ros1
+# or
+ros_pointcloud2 = { version = "*", features = ["ros2-interfaces-jazzy-serde"]} # ros2-client
 ```
 
 ### rclrs (ros2_rust)
