@@ -104,14 +104,14 @@
 //!
 //! // Add your ROS crate impl macro in your crate to enable conversions.
 //! // For example, for r2r:
-//! // ros_pointcloud2::impl_pointcloud2_for_r2r!();
+//! // impl_pointcloud2_for_r2r!();
 //!
 //! // Convert to your ROS crate message type.
-//! // let msg: PointCloud2 = crate::impl_r2r::from_pointcloud2_msg(out_msg);
+//! // let msg = ros_pointcloud2::impl_r2r::from_pointcloud2_msg(out_msg);
 //! // Publish ...
 //!
 //! // ... now incoming from a topic.
-//! // let in_msg: PointCloud2Msg = crate::impl_r2r::to_pointcloud2_msg(msg);
+//! // let in_msg = ros_pointcloud2::impl_r2r::to_pointcloud2_msg(msg);
 //! let in_msg = out_msg;
 //!
 //! let processed_cloud = in_msg.try_into_iter().unwrap()
