@@ -18,7 +18,7 @@ jobs:
         with:
           components: clippy
       - name: Linting
-        run: cargo clippy --all-targets --features derive,nalgebra,rayon,serde,ros2-interfaces-jazzy-serde -- -D warnings
+        run: cargo clippy -p ros_pointcloud2 -p rpcl2-derive -p derive-test --all-targets --features derive,nalgebra,rayon,serde,ros2-interfaces-jazzy-serde -- -D warnings
       - name: Tests
         run: cargo test --features derive,nalgebra,rayon,serde,ros2-interfaces-jazzy-serde
 

@@ -21,7 +21,7 @@ jobs:
         with:
           components: clippy
       - name: Linting
-        run: cargo clippy --all-targets --features derive,nalgebra,rayon,serde,rkyv -- -D warnings
+        run: cargo clippy -p ros_pointcloud2 -p rpcl2-derive -p derive-test --all-targets --features derive,nalgebra,rayon,serde,rkyv -- -D warnings
       - name: Build examples with features
         run: cargo build --examples --features derive,nalgebra,rayon,serde,rkyv,ros2-interfaces-jazzy-serde
       - name: Install cargo-msrv
