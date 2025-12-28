@@ -1,0 +1,22 @@
+[package]
+name = "ros_pointcloud2_tests"
+version = "0.1.0"
+edition = "2021"
+authors = ["ros_pointcloud2 tests"]
+description = "Node-like test crate that depends on ros_pointcloud2 and rclrs (optional)."
+
+[dependencies]
+ros_pointcloud2 = { path = "../.." }
+rclrs = { version = "0.6", optional = true }
+
+[features]
+rclrs = ["dep:rclrs", "ros_pointcloud2/rclrs"]
+
+[dev-dependencies]
+# re-export any test-support crates as needed
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3

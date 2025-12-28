@@ -575,3 +575,98 @@ macro_rules! impl_pointcloud2_for_rosrust {
         }
     };
 }
+
+#[macro_export]
+macro_rules! impl_pointcloud2_for_rclrs {
+    () => {
+        pub mod impl_rclrs {
+            pub fn to_pointcloud2_msg(
+                msg: ::rclrs::sensor_msgs::msg::PointCloud2,
+            ) -> ::ros_pointcloud2::PointCloud2Msg {
+                ::ros_pointcloud2::PointCloud2Msg {
+                    header: ::ros_pointcloud2::ros::HeaderMsg {
+                        seq: 0,
+                        stamp: time_to_internal(msg.header.stamp),
+                        frame_id: msg.header.frame_id,
+                    },
+                    dimensions: ::ros_pointcloud2::CloudDimensions {
+                        width: msg.width,
+                        height: msg.height,
+                    },
+                    fields: msg
+                        .fields
+                        .into_iter()
+                        .map(|field| ::ros_pointcloud2::ros::PointFieldMsg {
+                            name: field.name,
+                            offset: field.offset,
+                            datatype: field.datatype,
+                            count: field.count,
+                        })
+                        .collect(),
+                    endian: if msg.is_bigendian {
+                        ::ros_pointcloud2::Endian::Big
+                    } else {
+                        ::ros_pointcloud2::Endian::Little
+                    },
+                    point_step: msg.point_step,
+                    row_step: msg.row_step,
+                    data: msg.data,
+                    dense: if msg.is_dense {
+                        ::ros_pointcloud2::Denseness::Dense
+                    } else {
+                        ::ros_pointcloud2::Denseness::Sparse
+                    },
+                }
+            }
+
+            pub fn from_pointcloud2_msg(
+                msg: ::ros_pointcloud2::PointCloud2Msg,
+            ) -> ::rclrs::sensor_msgs::msg::PointCloud2 {
+                ::rclrs::sensor_msgs::msg::PointCloud2 {
+                    header: ::rclrs::std_msgs::msg::Header {
+                        stamp: ::rclrs::builtin_interfaces::msg::Time {
+                            sec: msg.header.stamp.sec,
+                            nanosec: msg.header.stamp.nanosec,
+                        },
+                        frame_id: msg.header.frame_id,
+                    },
+                    height: msg.dimensions.height,
+                    width: msg.dimensions.width,
+                    fields: msg
+                        .fields
+                        .into_iter()
+                        .map(|field| ::rclrs::sensor_msgs::msg::PointField {
+                            name: field.name,
+                            offset: field.offset,
+                            datatype: field.datatype,
+                            count: field.count,
+                        })
+                        .collect(),
+                    is_bigendian: matches!(msg.endian, ::ros_pointcloud2::Endian::Big),
+                    point_step: msg.point_step,
+                    row_step: msg.row_step,
+                    data: msg.data,
+                    is_dense: matches!(msg.dense, ::ros_pointcloud2::Denseness::Dense),
+                }
+            }
+
+            pub fn time_to_internal(
+                time: ::rclrs::builtin_interfaces::msg::Time,
+            ) -> ::ros_pointcloud2::ros::TimeMsg {
+                ::ros_pointcloud2::ros::TimeMsg {
+                    sec: time.sec,
+                    nanosec: time.nanosec,
+                }
+            }
+
+            pub fn time_from_internal(
+                time: ::ros_pointcloud2::ros::TimeMsg,
+            ) -> ::rclrs::builtin_interfaces::msg::Time {
+                ::rclrs::builtin_interfaces::msg::Time {
+                    sec: time.sec,
+                    nanosec: time.nanosec,
+                }
+            }
+        }
+    };
+}
