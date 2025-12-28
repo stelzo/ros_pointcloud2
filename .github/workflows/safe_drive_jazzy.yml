@@ -17,5 +17,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh 'safe_drive_msg,derive,nalgebra,rayon,serde' integration/docker/Dockerfile_safe_drive_jazzy copy"
+      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh 'safe_drive_msg,derive,nalgebra,rayon,serde' docker/Dockerfile_safe_drive_jazzy copy"
 
