@@ -53,8 +53,8 @@
 //!
 //! # Features
 
-//! - r2r_msg — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
-//! - rosrust_msg — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
+//! - r2r — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
+//! - rosrust — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
 //! - safe_drive — Integration with the [safe_drive](https://github.com/tier4/safe_drive) bindings for ROS2.
 //! - ros2-interfaces-jazzy-serde — Integration for the ros2-client compatible [ros2-interfaces-jazzy-serde](https://github.com/stelzo/ros2-interfaces-jazzy-serde) pre-built messages for ROS2 Jazzy.
 //! - ros2-interfaces-jazzy-rkyv — Integration with the [ros2-interfaces-jazzy-rkyv](https://github.com/stelzo/ros2-interfaces-jazzy-rkyv) pre-built messages for ROS2 Jazzy with rkyv (de)serialization, typically used outside of ROS.
@@ -147,9 +147,6 @@
 pub mod points;
 pub mod prelude;
 pub mod ros;
-
-#[cfg(feature = "nalgebra")]
-pub use nalgebra;
 
 pub mod iterator;
 

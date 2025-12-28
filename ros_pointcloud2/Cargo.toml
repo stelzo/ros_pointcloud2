@@ -32,7 +32,6 @@ rust-version = "1.87"
 
 [dependencies]
 rayon = { version = "1", optional = true }
-nalgebra = { version = "0.34", optional = true, default-features = false }
 rpcl2-derive = { version = "0.5", optional = true, path = "../rpcl2-derive" }
 serde = { version = "1.0", features = ["derive"], optional = true }
 rkyv = { version = "0.8", optional = true }
@@ -48,22 +47,22 @@ harness = false
 path = "benches/roundtrip.rs"
 
 [features]
-rosrust_msg = []
-r2r_msg = []
-# safe_drive_msg = []
+rosrust = []
+r2r = []
 ros2-interfaces-jazzy-rkyv = []
 ros2-interfaces-jazzy-serde = []
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2-derive"]
 rkyv = ["dep:rkyv", "std"]
-serde = ["dep:serde", "nalgebra/serde-serialize-no-std"]
-nalgebra = ["dep:nalgebra"]
-std = ["nalgebra/std"]
+serde = ["dep:serde"]
+std = []
 strict-type-check = []
+nalgebra = []
+# safe-drive-msg = []
 
 default = ["std", "strict-type-check"]
 
 [package.metadata.docs.rs]
-features = ["derive", "nalgebra", "rayon", "serde"]
+features = ["derive", "rayon", "serde"]
 default-target = "x86_64-unknown-linux-gnu"
 rustdoc-args = ["--cfg", "docsrs"]

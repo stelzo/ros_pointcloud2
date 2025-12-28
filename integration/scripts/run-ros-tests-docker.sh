@@ -64,7 +64,14 @@ MODE=${3:-bind}
 if [[ "$MODE" == "bind" ]]; then
   echo "Mounting project into container at $CONTAINER_DIR..."
   docker run --rm -v "$ROOT":"$CONTAINER_DIR" -w "$CONTAINER_DIR" -e CARGO_TERM_COLOR=always "$TAG" \
-    bash -lc 'for s in /opt/ros/*/setup.sh; do [ -f "$s" ] && . "$s"; done && cargo test -p ros_integration_tests --features '${FEATURE}' -- --nocapture'
+    bash -lc 'for s in /opt/ros/*/setup.sh; do [ -f "$s" ] && . "$s"; done; FEATURES_RAW="'"${FEATURE}"'"; IFS="," read -ra FARR <<< "$FEATURES_RAW"; INT=(); for f in "${FARR[@]}"; do case "$f" in
+      r2r_msg|r2r-msg|r2r) INT+=("r2r") ;;
+      rosrust_msg|rosrust-msg|rosrust) INT+=("rosrust") ;;
+      ros2-interfaces-jazzy-serde|ros2-interfaces-jazzy-rkyv) INT+=("$f") ;;
+      safe_drive_msg|safe-drive-msg|safe_drive) INT+=("safe_drive") ;;
+      "") ;;
+      *) echo "Ignoring non-integration feature: $f" ;;
+    esac; done; INT_FEATURES="$(IFS=,; echo "${INT[*]}")"; if [ -n "$INT_FEATURES" ]; then echo "Running integration tests with features: $INT_FEATURES"; cargo test -p ros_integration_tests --features "$INT_FEATURES" -- --nocapture; else echo "Running integration tests without extra features"; cargo test -p ros_integration_tests -- --nocapture; fi'
 elif [[ "$MODE" == "copy" ]]; then
   echo "Copying project into container image (no host mount)..."
   # Create a stopped container with ENTRYPOINT overridden so we can copy files into it
@@ -95,7 +102,7 @@ elif [[ "$MODE" == "copy" ]]; then
   docker exec -e CARGO_TERM_COLOR=always "$container_id" bash -lc "mkdir -p '$CONTAINER_DIR' && tar -xf /tmp/workspace.tar -C '$CONTAINER_DIR' && rm /tmp/workspace.tar"
 
   echo "Running tests inside container..."
-  docker exec -e CARGO_TERM_COLOR=always "$container_id" bash -lc "for s in /opt/ros/*/setup.sh; do [ -f \"\$s\" ] && . \"\$s\"; done && cd $CONTAINER_DIR && cargo test -p ros_integration_tests --features ${FEATURE} -- --nocapture"
+  docker exec -e CARGO_TERM_COLOR=always "$container_id" bash -lc "for s in /opt/ros/*/setup.sh; do [ -f \"\$s\" ] && . \"\$s\"; done && cd $CONTAINER_DIR; FEATURES_RAW=\"${FEATURE}\"; IFS=\",\" read -ra FARR <<< \"\$FEATURES_RAW\"; INT=(); for f in \"\${FARR[@]}\"; do case \"\$f\" in r2r_msg|r2r-msg|r2r) INT+=(\"r2r\") ;; rosrust_msg|rosrust-msg|rosrust) INT+=(\"rosrust\") ;; ros2-interfaces-jazzy-serde|ros2-interfaces-jazzy-rkyv) INT+=(\"\$f\") ;; safe_drive_msg|safe-drive-msg|safe_drive) INT+=(\"safe_drive\") ;; \"\") ;; *) echo \"Ignoring non-integration feature: \$f\" ;; esac; done; INT_FEATURES=\"\$(IFS=,; echo \"\${INT[*]}\")\"; if [ -n \"\$INT_FEATURES\" ]; then echo \"Running integration tests with features: \$INT_FEATURES\"; cargo test -p ros_integration_tests --features \"\$INT_FEATURES\" -- --nocapture; else echo \"Running integration tests without extra features\"; cargo test -p ros_integration_tests -- --nocapture; fi"
 
 else
   echo "Unknown mode: $MODE. Use 'bind' (default) or 'copy'." >&2

@@ -1,4 +1,4 @@
-// #[cfg(feature = "safe_drive_msg")]
+// #[cfg(feature = "safe-drive-msg")]
 // #[test]
 // fn convertxyz_safe_drive_msg() {
 //     use ros_pointcloud2::{points::PointXYZ, PointCloud2Msg};

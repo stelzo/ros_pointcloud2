@@ -13,9 +13,9 @@ Get started with the example below, check out the other use cases in the `exampl
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { version = "*", features = ["r2r_msg"]} # r2r
+ros_pointcloud2 = { version = "*", features = ["r2r"]} # r2r ros2
 # or
-ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]} # rosrust ros1
+ros_pointcloud2 = { version = "*", features = ["rosrust"]} # rosrust ros1
 # or
 ros_pointcloud2 = { version = "*", features = ["ros2-interfaces-jazzy-serde"]} # ros2-client
 ```

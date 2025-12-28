@@ -13,10 +13,6 @@ if [[ -z "$FEATURE" ]]; then
 fi
 
 echo "Running integration tests locally with feature: $FEATURE"
-
-# Note: The user must ensure ROS env is prepared (e.g. source /opt/ros/<distro>/setup.bash)
-# and any env vars required by the ROS crates (ROS_DISTRO, CMAKE_PREFIX_PATH) are set.
-
 echo "Make sure the ROS environment is sourced (e.g. 'source /opt/ros/$(printenv ROS_DISTRO || echo <distro>)/setup.bash')"
 
 cargo test -p ros_integration_tests --features "$FEATURE" -- --nocapture

@@ -224,100 +224,66 @@ pub struct PointXYZ {
     pub z: f32,
 }
 
-#[cfg(feature = "nalgebra")]
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-impl From<nalgebra::Point3<f32>> for PointXYZ {
-    fn from(point: nalgebra::Point3<f32>) -> Self {
-        Self {
-            x: point.x,
-            y: point.y,
-            z: point.z,
-        }
-    }
-}
-
-#[cfg(feature = "nalgebra")]
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-impl From<&nalgebra::Point3<f32>> for PointXYZ {
-    fn from(point: &nalgebra::Point3<f32>) -> Self {
-        Self {
-            x: point.x,
-            y: point.y,
-            z: point.z,
-        }
-    }
-}
-
-#[cfg(feature = "nalgebra")]
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-impl From<nalgebra::Point3<f64>> for PointXYZ {
-    fn from(point: nalgebra::Point3<f64>) -> Self {
-        Self {
-            x: point.x as f32,
-            y: point.y as f32,
-            z: point.z as f32,
-        }
-    }
-}
-
-#[cfg(feature = "nalgebra")]
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-impl From<&nalgebra::Point3<f64>> for PointXYZ {
-    fn from(point: &nalgebra::Point3<f64>) -> Self {
-        Self {
-            x: point.x as f32,
-            y: point.y as f32,
-            z: point.z as f32,
-        }
-    }
-}
-
-#[cfg(feature = "nalgebra")]
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-impl From<PointXYZ> for nalgebra::Point3<f32> {
-    fn from(point: PointXYZ) -> Self {
-        nalgebra::Point3::new(point.x, point.y, point.z)
-    }
-}
-
-#[cfg(feature = "nalgebra")]
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-impl From<&PointXYZ> for nalgebra::Point3<f32> {
-    fn from(point: &PointXYZ) -> Self {
-        nalgebra::Point3::new(point.x, point.y, point.z)
-    }
-}
-
-#[cfg(feature = "nalgebra")]
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-impl From<PointXYZ> for nalgebra::Point3<f64> {
-    fn from(point: PointXYZ) -> Self {
-        nalgebra::Point3::new(point.x as f64, point.y as f64, point.z as f64)
-    }
-}
-
-#[cfg(feature = "nalgebra")]
-#[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-impl From<&PointXYZ> for nalgebra::Point3<f64> {
-    fn from(point: &PointXYZ) -> Self {
-        nalgebra::Point3::new(point.x as f64, point.y as f64, point.z as f64)
-    }
-}
-
 impl PointXYZ {
     #[must_use]
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
-
-    /// Get the coordinates as a nalgebra Point3.
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
-    }
 }
 
+/// Macro that allows consumer crates (which depend on `nalgebra`) to generate
+/// conversion helpers and a small extension trait for `PointXYZ` without forcing
+/// `ros_pointcloud2` itself to depend on `nalgebra`.
+///
+/// Usage (in the consumer crate):
+///
+/// ```rust
+/// // In Cargo.toml of the consumer add `nalgebra = "..."` and enable it for the test
+/// // Then in a test or module:
+/// ros_pointcloud2::impl_pointxyz_for_nalgebra!();
+/// use impl_nalgebra::AsNalgebra;
+/// let p = ros_pointcloud2::PointXYZ::new(1.0,2.0,3.0);
+/// let np = p.xyz(); // via the extension trait (method name conflicts avoided by importing AsNalgebra)
+/// ```
+#[cfg(feature = "nalgebra")]
+#[macro_export]
+macro_rules! impl_pointxyz_for_nalgebra {
+    () => {
+        pub mod impl_nalgebra {
+            pub trait AsNalgebra {
+                fn xyz(&self) -> ::nalgebra::Point3<f32>;
+            }
+
+            impl AsNalgebra for $crate::prelude::PointXYZ {
+                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+            }
+            impl AsNalgebra for $crate::prelude::PointXYZI {
+                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+            }
+            impl AsNalgebra for $crate::prelude::PointXYZL {
+                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+            }
+            impl AsNalgebra for $crate::prelude::PointXYZRGB {
+                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+            }
+            impl AsNalgebra for $crate::prelude::PointXYZRGBA {
+                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+            }
+            impl AsNalgebra for $crate::prelude::PointXYZRGBNormal {
+                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+            }
+            impl AsNalgebra for $crate::prelude::PointXYZINormal {
+                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+            }
+            impl AsNalgebra for $crate::prelude::PointXYZNormal {
+                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+            }
+            impl AsNalgebra for $crate::prelude::PointXYZRGBL {
+                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+            }
+        }
+    };
+}
 unsafe impl Send for PointXYZ {}
 unsafe impl Sync for PointXYZ {}
 
@@ -362,13 +328,6 @@ pub struct PointXYZI {
 impl PointXYZI {
     pub fn new(x: f32, y: f32, z: f32, intensity: f32) -> Self {
         Self { x, y, z, intensity }
-    }
-
-    /// Get the coordinates as a nalgebra Point3.
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
     }
 }
 
@@ -427,13 +386,6 @@ pub struct PointXYZL {
 impl PointXYZL {
     pub fn new(x: f32, y: f32, z: f32, label: u32) -> Self {
         Self { x, y, z, label }
-    }
-
-    /// Get the coordinates as a nalgebra Point3.
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
     }
 }
 
@@ -510,13 +462,6 @@ impl PointXYZRGB {
     #[must_use]
     pub fn b(&self) -> u8 {
         self.rgb.b()
-    }
-
-    /// Get the coordinates as a nalgebra Point3.
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
     }
 }
 
@@ -595,13 +540,6 @@ impl PointXYZRGBA {
     #[must_use]
     pub fn b(&self) -> u8 {
         self.rgb.b()
-    }
-
-    /// Get the coordinates as a nalgebra Point3.
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
     }
 }
 
@@ -701,13 +639,6 @@ impl PointXYZRGBNormal {
     pub fn b(&self) -> u8 {
         self.rgb.b()
     }
-
-    /// Get the coordinates as a nalgebra Point3.
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
-    }
 }
 
 unsafe impl Send for PointXYZRGBNormal {}
@@ -795,13 +726,6 @@ impl PointXYZINormal {
             normal_y,
             normal_z,
         }
-    }
-
-    /// Get the coordinates as a nalgebra Point3.
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
     }
 }
 
@@ -899,13 +823,6 @@ impl PointXYZRGBL {
     pub fn b(&self) -> u8 {
         self.rgb.b()
     }
-
-    /// Get the coordinates as a nalgebra Point3.
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
-    }
 }
 
 impl From<IPoint<5>> for PointXYZRGBL {
@@ -974,13 +891,6 @@ impl PointXYZNormal {
             normal_y,
             normal_z,
         }
-    }
-
-    /// Get the coordinates as a nalgebra Point3.
-    #[cfg(feature = "nalgebra")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz(&self) -> nalgebra::Point3<f32> {
-        nalgebra::Point3::new(self.x, self.y, self.z)
     }
 }
 
