@@ -129,7 +129,7 @@
 //! ```
 #![crate_type = "lib"]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/0.6.0")]
+#![doc(html_root_url = "https://docs.rs/ros_pointcloud2/1.0.0-rc1")]
 #![warn(clippy::print_stderr)]
 #![warn(clippy::print_stdout)]
 #![warn(clippy::unwrap_used)]
@@ -533,7 +533,7 @@ impl PointCloud2MsgBuilder {
             return Err(MsgConversionError::InvalidFieldFormat);
         }
 
-        if !(self.data.len() as u32).is_multiple_of(self.point_step) {
+        if self.data.len() as u32 % self.point_step != 0 {
             return Err(MsgConversionError::DataLengthMismatch);
         }
 

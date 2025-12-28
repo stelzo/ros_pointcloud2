@@ -1,0 +1,19 @@
+# Ignore Rust/Cargo build artifacts
+/target
+**/target
+
+# Git and editor metadata
+/.git
+/.vscode
+*.swp
+
+# OS files
+.DS_Store
+
+# Other common noisy dirs
+node_modules
+**/node_modules
+
+# Temporary files
+tmp
+*.log

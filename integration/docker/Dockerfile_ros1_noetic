@@ -1,0 +1,22 @@
+FROM osrf/ros:noetic-desktop-full
+
+# Non-interactive
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential curl git cmake pkg-config python3-pip python3-dev \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install rustup and stable toolchain
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Ensure we can build and run tests
+RUN rustup component add clippy rustfmt || true
+
+# Set workdir
+WORKDIR /workspace
+
+# Default command will be supplied by docker run
+ENTRYPOINT ["/bin/bash"]

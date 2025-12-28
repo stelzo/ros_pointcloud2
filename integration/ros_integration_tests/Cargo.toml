@@ -1,0 +1,23 @@
+[package]
+name = "ros_integration_tests"
+version = "0.1.0"
+edition = "2021"
+authors = ["ros_pointcloud2 tests"]
+description = "Integration tests for ros_pointcloud2 that require ROS client crates (optional features)."
+
+[dependencies]
+ros_pointcloud2 = { path = "../../ros_pointcloud2" }
+# Optional ROS client crates — only compiled when corresponding features are enabled
+ros2-interfaces-jazzy-serde = { version = "0.0.4", features = ["sensor_msgs"], optional = true }
+ros2-interfaces-jazzy-rkyv = { version = "0.0.5", features = ["sensor_msgs"], optional = true }
+r2r = { version = "0.9", optional = true }
+rosrust = { version = "0.9.12", optional = true }
+rosrust_msg = { version = "0.1.8", optional = true }
+
+[features]
+ros2-interfaces-jazzy-serde = ["dep:ros2-interfaces-jazzy-serde", "ros_pointcloud2/ros2-interfaces-jazzy-serde"]
+ros2-interfaces-jazzy-rkyv = ["dep:ros2-interfaces-jazzy-rkyv", "ros_pointcloud2/ros2-interfaces-jazzy-rkyv"]
+r2r = ["dep:r2r", "ros_pointcloud2/r2r_msg"]
+rosrust = ["dep:rosrust", "dep:rosrust_msg", "ros_pointcloud2/rosrust_msg"]
+
+default = []

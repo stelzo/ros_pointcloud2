@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ros:humble
+FROM ros:iron
 
 # Update default packages
 RUN apt-get update
@@ -22,13 +22,13 @@ RUN pip install git+https://github.com/colcon/colcon-ros-cargo.git
 
 WORKDIR /ros2_rust_build
 RUN git clone https://github.com/ros2-rust/ros2_rust.git src/ros2_rust
-RUN vcs import src < src/ros2_rust/ros2_rust_humble.repos
+RUN vcs import src < src/ros2_rust/ros2_rust_iron.repos
 
 WORKDIR /ros2_rust_build/src/ros_pointcloud2_tests
 COPY . .
 
 WORKDIR /ros2_rust_build
-RUN . $HOME/.cargo/env && . /opt/ros/humble/setup.sh && colcon build
+RUN . $HOME/.cargo/env && . /opt/ros/iron/setup.sh && colcon build
 
-RUN chmod +x /ros2_rust_build/src/ros_pointcloud2_tests/ros_pointcloud2/tests/rclrs_test.bash
-ENTRYPOINT [ "/ros2_rust_build/src/ros_pointcloud2_tests/ros_pointcloud2/tests/rclrs_test.bash" ]
+RUN chmod +x /ros2_rust_build/src/ros_pointcloud2_tests/tests/rclrs_test.bash
+ENTRYPOINT [ "/ros2_rust_build/src/ros_pointcloud2_tests/tests/rclrs_test.bash" ]

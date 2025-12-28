@@ -31,21 +31,11 @@ exclude = [
 rust-version = "1.87"
 
 [dependencies]
-rosrust_msg = { version = "0.1.8", optional = true }
-rosrust = { version = "0.9.12", optional = true }
-safe_drive = { version = "0.4", optional = true }
-r2r = { version = "0.9", optional = true }
 rayon = { version = "1", optional = true }
 nalgebra = { version = "0.34", optional = true, default-features = false }
 rpcl2-derive = { version = "0.5", optional = true, path = "../rpcl2-derive" }
 serde = { version = "1.0", features = ["derive"], optional = true }
 rkyv = { version = "0.8", optional = true }
-ros2-interfaces-jazzy-serde = { version = "0.0.4", features = [
-  "sensor_msgs",
-], optional = true }
-ros2-interfaces-jazzy-rkyv = { version = "0.0.5", features = [
-  "sensor_msgs",
-], optional = true }
 
 [dev-dependencies]
 rand = "0.9"
@@ -58,15 +48,15 @@ harness = false
 path = "benches/roundtrip.rs"
 
 [features]
-serde = ["dep:serde", "nalgebra/serde-serialize-no-std"]
-rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
-r2r_msg = ["dep:r2r"]
-# safe_drive_msg = ["dep:safe_drive"]
-ros2-interfaces-jazzy-rkyv = ["dep:ros2-interfaces-jazzy-rkyv"]
-rkyv = ["dep:rkyv", "std"]
-ros2-interfaces-jazzy-serde = ["dep:ros2-interfaces-jazzy-serde"]
+rosrust_msg = []
+r2r_msg = []
+# safe_drive_msg = []
+ros2-interfaces-jazzy-rkyv = []
+ros2-interfaces-jazzy-serde = []
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2-derive"]
+rkyv = ["dep:rkyv", "std"]
+serde = ["dep:serde", "nalgebra/serde-serialize-no-std"]
 nalgebra = ["dep:nalgebra"]
 std = ["nalgebra/std"]
 strict-type-check = []

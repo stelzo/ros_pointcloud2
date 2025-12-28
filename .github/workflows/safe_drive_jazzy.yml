@@ -17,6 +17,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      # - run: docker build . --file ./ros_pointcloud2/tests/Dockerfile_safe_drive_jazzy --tag safe_drive_jazzy
-      # - run: docker run safe_drive_jazzy cargo test --features safe_drive_msg,derive,nalgebra,rayon,serde
+      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh 'safe_drive_msg,derive,nalgebra,rayon,serde' integration/docker/Dockerfile_safe_drive_jazzy copy"
 

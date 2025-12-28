@@ -17,5 +17,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: docker build . --file ./ros_pointcloud2/tests/Dockerfile_r2r_jazzy --tag r2r_jazzy
-      - run: docker run r2r_jazzy cargo test --features r2r_msg,derive,nalgebra,rayon,serde
+      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh 'r2r_msg,derive,nalgebra,rayon,serde' integration/docker/Dockerfile_r2r_jazzy copy"
