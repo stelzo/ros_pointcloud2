@@ -45,7 +45,10 @@ if [[ ! -f "$INTEGRATION_DIR/$DOCKERFILE" ]]; then
   exit 2
 fi
 
-TAG="ros_pointcloud2_test:${FEATURE}"
+# Sanitize FEATURE to make a valid Docker tag (commas/spaces -> underscores)
+SANITIZED_FEATURE="${FEATURE//,/__}"
+SANITIZED_FEATURE="${SANITIZED_FEATURE// /_}"
+TAG="ros_pointcloud2_test:${SANITIZED_FEATURE}"
 
 echo "Building Docker image $TAG from $DOCKERFILE..."
 cd "$INTEGRATION_DIR"
