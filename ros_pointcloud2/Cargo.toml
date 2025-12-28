@@ -47,19 +47,12 @@ harness = false
 path = "benches/roundtrip.rs"
 
 [features]
-rosrust = []
-r2r = []
-ros2-interfaces-jazzy-rkyv = []
-ros2-interfaces-jazzy-serde = []
-rclrs = []
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2-derive"]
 rkyv = ["dep:rkyv", "std"]
 serde = ["dep:serde"]
 std = []
 strict-type-check = []
-nalgebra = []
-# safe-drive-msg = []
 
 default = ["std", "strict-type-check"]
 

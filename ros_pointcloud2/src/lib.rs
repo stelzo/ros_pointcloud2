@@ -52,16 +52,12 @@
 //! ```
 //!
 //! # Features
-
-//! - r2r — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
-//! - rosrust — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
-//! - safe_drive — Integration with the [safe_drive](https://github.com/tier4/safe_drive) bindings for ROS2.
-//! - ros2-interfaces-jazzy-serde — Integration for the ros2-client compatible [ros2-interfaces-jazzy-serde](https://github.com/stelzo/ros2-interfaces-jazzy-serde) pre-built messages for ROS2 Jazzy.
-//! - ros2-interfaces-jazzy-rkyv — Integration with the [ros2-interfaces-jazzy-rkyv](https://github.com/stelzo/ros2-interfaces-jazzy-rkyv) pre-built messages for ROS2 Jazzy with rkyv (de)serialization, typically used outside of ROS.
-//! - derive — Offers implementations for the [`PointConvertible`] trait needed for custom points.
-//! - rayon — Parallel iterator support for `_par_iter` functions.
-//! - nalgebra — Predefined points offer a nalgebra typed getter for coordinates (e.g. [`xyz`](points::PointXYZ::xyz)).
 //! - std *(enabled by default)* — Omit this feature to use this library in no_std environments. ROS integrations and 'rayon' will not work with no_std.
+//! - ½strict-type-check *(enabled by default)* — When disabled, allows byte conversions between compatible types even if the field names do not match. Packed RGB fields are specially handled.
+//! - derive — Offers implementations for the [`PointConvertible`] trait needed for custom points.
+//! - serde — Enables serde serialization and deserialization for [`PointCloud2Msg`] and related types.
+//! - rkyv — Enables rkyv serialization and deserialization for [`PointCloud2Msg`] and related types.
+//! - rayon — Parallel iterator support for `_par_iter` functions.
 //!
 //! # Custom Points
 //! Implement [`PointConvertible`] for your point with the `derive` feature or manually.

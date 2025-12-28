@@ -21,12 +21,15 @@ jobs:
         with:
           components: clippy
       - name: Linting
-        run: cargo clippy -p ros_pointcloud2 -p rpcl2-derive -p derive-test --all-targets --features derive,nalgebra,rayon,serde,rkyv -- -D warnings
+        run: cargo clippy -p ros_pointcloud2 -p rpcl2-derive -p derive-test --all-targets --features derive,rayon,serde,rkyv -- -D warnings
       - name: Build examples with features
-        run: cargo build --examples --features derive,nalgebra,rayon,serde,rkyv,ros2-interfaces-jazzy-serde
+        run: cargo build --examples --features derive,rayon,serde,rkyv
       - name: Install cargo-msrv
         run: cargo install cargo-msrv
       - name: Verify MSRV
         run: cd ros_pointcloud2 && cargo msrv verify
       - name: Test library
         run: cargo test --features derive,nalgebra,rayon,serde
+      - name: Crate specific all features tests
+        run: cargo test --package ros_pointcloud2 --all-features
+

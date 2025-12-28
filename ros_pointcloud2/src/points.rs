@@ -231,13 +231,13 @@ impl PointXYZ {
     }
 }
 
-/// Macro that allows consumer crates (which depend on `nalgebra`) to generate
+/// Macro that allows consumer crates to generate
 /// conversion helpers and a small extension trait for `PointXYZ` without forcing
 /// `ros_pointcloud2` itself to depend on `nalgebra`.
 ///
 /// Usage (in the consumer crate):
 ///
-/// ```rust
+/// ```rust ignore
 /// // In Cargo.toml of the consumer add `nalgebra = "..."` and enable it for the test
 /// // Then in a test or module:
 /// ros_pointcloud2::impl_pointxyz_for_nalgebra!();
@@ -245,7 +245,6 @@ impl PointXYZ {
 /// let p = ros_pointcloud2::PointXYZ::new(1.0,2.0,3.0);
 /// let np = p.xyz(); // via the extension trait (method name conflicts avoided by importing AsNalgebra)
 /// ```
-#[cfg(feature = "nalgebra")]
 #[macro_export]
 macro_rules! impl_pointxyz_for_nalgebra {
     () => {
@@ -255,31 +254,49 @@ macro_rules! impl_pointxyz_for_nalgebra {
             }
 
             impl AsNalgebra for $crate::prelude::PointXYZ {
-                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+                fn xyz(&self) -> ::nalgebra::Point3<f32> {
+                    ::nalgebra::Point3::new(self.x, self.y, self.z)
+                }
             }
             impl AsNalgebra for $crate::prelude::PointXYZI {
-                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+                fn xyz(&self) -> ::nalgebra::Point3<f32> {
+                    ::nalgebra::Point3::new(self.x, self.y, self.z)
+                }
             }
             impl AsNalgebra for $crate::prelude::PointXYZL {
-                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+                fn xyz(&self) -> ::nalgebra::Point3<f32> {
+                    ::nalgebra::Point3::new(self.x, self.y, self.z)
+                }
             }
             impl AsNalgebra for $crate::prelude::PointXYZRGB {
-                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+                fn xyz(&self) -> ::nalgebra::Point3<f32> {
+                    ::nalgebra::Point3::new(self.x, self.y, self.z)
+                }
             }
             impl AsNalgebra for $crate::prelude::PointXYZRGBA {
-                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+                fn xyz(&self) -> ::nalgebra::Point3<f32> {
+                    ::nalgebra::Point3::new(self.x, self.y, self.z)
+                }
             }
             impl AsNalgebra for $crate::prelude::PointXYZRGBNormal {
-                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+                fn xyz(&self) -> ::nalgebra::Point3<f32> {
+                    ::nalgebra::Point3::new(self.x, self.y, self.z)
+                }
             }
             impl AsNalgebra for $crate::prelude::PointXYZINormal {
-                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+                fn xyz(&self) -> ::nalgebra::Point3<f32> {
+                    ::nalgebra::Point3::new(self.x, self.y, self.z)
+                }
             }
             impl AsNalgebra for $crate::prelude::PointXYZNormal {
-                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+                fn xyz(&self) -> ::nalgebra::Point3<f32> {
+                    ::nalgebra::Point3::new(self.x, self.y, self.z)
+                }
             }
             impl AsNalgebra for $crate::prelude::PointXYZRGBL {
-                fn xyz(&self) -> ::nalgebra::Point3<f32> { ::nalgebra::Point3::new(self.x, self.y, self.z) }
+                fn xyz(&self) -> ::nalgebra::Point3<f32> {
+                    ::nalgebra::Point3::new(self.x, self.y, self.z)
+                }
             }
         }
     };

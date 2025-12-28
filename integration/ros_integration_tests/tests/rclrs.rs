@@ -11,9 +11,21 @@ fn convertxyz_rclrs_msg() {
     use ros_pointcloud2::points::PointXYZ;
 
     let cloud = vec![
-        PointXYZ { x: 1.0, y: 2.0, z: 3.0 },
-        PointXYZ { x: 4.0, y: 5.0, z: 6.0 },
-        PointXYZ { x: 7.0, y: 8.0, z: 9.0 },
+        PointXYZ {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        },
+        PointXYZ {
+            x: 4.0,
+            y: 5.0,
+            z: 6.0,
+        },
+        PointXYZ {
+            x: 7.0,
+            y: 8.0,
+            z: 9.0,
+        },
     ];
 
     let copy = cloud.clone();

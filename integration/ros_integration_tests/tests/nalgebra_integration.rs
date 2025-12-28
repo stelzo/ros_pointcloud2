@@ -5,7 +5,10 @@ ros_pointcloud2::impl_pointxyz_for_nalgebra!();
 
 use impl_nalgebra::AsNalgebra;
 use nalgebra::Point3;
-use ros_pointcloud2::prelude::{PointXYZ, PointXYZI, PointXYZL, PointXYZRGB, PointXYZRGBA, PointXYZRGBNormal, PointXYZINormal, PointXYZRGBL, PointXYZNormal, RGB};
+use ros_pointcloud2::prelude::{
+    PointXYZ, PointXYZI, PointXYZINormal, PointXYZL, PointXYZNormal, PointXYZRGB, PointXYZRGBA,
+    PointXYZRGBL, PointXYZRGBNormal, RGB,
+};
 
 #[test]
 fn impl_pointxyz_for_nalgebra_all_point_types_xyz() {
@@ -30,7 +33,7 @@ fn impl_pointxyz_for_nalgebra_all_point_types_xyz() {
     assert_eq!(AsNalgebra::xyz(&p_xyzrgba), Point3::new(14.0, 15.0, 16.0));
 
     // PointXYZRGBNormal
-    let p_xyzrgbn = PointXYZRGBNormal::new(17.0, 18.0, 19.0, RGB::new(1,2,3), 0.1, 0.2, 0.3);
+    let p_xyzrgbn = PointXYZRGBNormal::new(17.0, 18.0, 19.0, RGB::new(1, 2, 3), 0.1, 0.2, 0.3);
     assert_eq!(AsNalgebra::xyz(&p_xyzrgbn), Point3::new(17.0, 18.0, 19.0));
 
     // PointXYZINormal
