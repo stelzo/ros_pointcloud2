@@ -1,6 +1,6 @@
 [package]
 name = "ros_pointcloud2"
-version = "0.6.0"
+version = "1.0.0-rc1"
 edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
@@ -28,7 +28,7 @@ exclude = [
   "**/doc/**",
   "**/ensure_no_std/**",
 ]
-rust-version = "1.77"
+rust-version = "1.87"
 
 [dependencies]
 rosrust_msg = { version = "0.1.8", optional = true }
@@ -39,6 +39,7 @@ rayon = { version = "1", optional = true }
 nalgebra = { version = "0.34", optional = true, default-features = false }
 rpcl2-derive = { version = "0.5", optional = true, path = "../rpcl2-derive" }
 serde = { version = "1.0", features = ["derive"], optional = true }
+rkyv = { version = "0.8", optional = true }
 ros2-interfaces-jazzy-serde = { version = "0.0.4", features = [
   "sensor_msgs",
 ], optional = true }
@@ -62,13 +63,15 @@ rosrust_msg = ["dep:rosrust_msg", "dep:rosrust"]
 r2r_msg = ["dep:r2r"]
 # safe_drive_msg = ["dep:safe_drive"]
 ros2-interfaces-jazzy-rkyv = ["dep:ros2-interfaces-jazzy-rkyv"]
+rkyv = ["dep:rkyv", "std"]
 ros2-interfaces-jazzy-serde = ["dep:ros2-interfaces-jazzy-serde"]
 rayon = ["dep:rayon"]
 derive = ["dep:rpcl2-derive"]
 nalgebra = ["dep:nalgebra"]
 std = ["nalgebra/std"]
+strict-type-check = []
 
-default = ["std"]
+default = ["std", "strict-type-check"]
 
 [package.metadata.docs.rs]
 features = ["derive", "nalgebra", "rayon", "serde"]

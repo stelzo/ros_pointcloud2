@@ -129,10 +129,95 @@ impl From<f32> for RGB {
     }
 }
 
+#[cfg(feature = "rkyv")]
+mod rkyv_impls {
+    // Manual rkyv support for `RGB`. Provide Archive/Serialize/Deserialize
+    // implementations that delegate to the packed `f32` representation.
+    use super::RGB;
+    use rkyv::rancor::Fallible;
+    use rkyv::Archive;
+    use rkyv::Place;
+    use rkyv::Serialize;
+
+    impl Archive for RGB {
+        type Archived = <f32 as Archive>::Archived;
+        type Resolver = <f32 as Archive>::Resolver;
+
+        #[inline]
+        fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+            let packed = unsafe { self.packed };
+            <f32 as Archive>::resolve(&packed, resolver, out);
+        }
+    }
+
+    impl<S: Fallible + ?Sized> Serialize<S> for RGB {
+        #[inline]
+        fn serialize(&self, serializer: &mut S) -> Result<<f32 as Archive>::Resolver, S::Error> {
+            let packed = unsafe { self.packed };
+            <f32 as Serialize<S>>::serialize(&packed, serializer)
+        }
+    }
+}
+
+/// Support helpers for using RGB with `#[rkyv(with = "...")]`.
+#[cfg(feature = "rkyv")]
+pub mod with_rgb {
+
+    use super::RGB;
+    use rkyv::rancor::Fallible;
+    use rkyv::with::{ArchiveWith, DeserializeWith, SerializeWith};
+    use rkyv::Archive;
+
+    pub struct AsF32;
+
+    impl ArchiveWith<RGB> for AsF32 {
+        type Archived = <f32 as Archive>::Archived;
+        type Resolver = <f32 as Archive>::Resolver;
+
+        fn resolve_with(field: &RGB, resolver: Self::Resolver, out: rkyv::Place<Self::Archived>) {
+            let packed = unsafe { field.packed };
+            <f32 as Archive>::resolve(&packed, resolver, out);
+        }
+    }
+
+    impl<S> SerializeWith<RGB, S> for AsF32
+    where
+        S: Fallible + ?Sized,
+    {
+        fn serialize_with(
+            field: &RGB,
+            serializer: &mut S,
+        ) -> Result<Self::Resolver, <S as Fallible>::Error> {
+            let packed = unsafe { field.packed };
+            <f32 as rkyv::Serialize<S>>::serialize(&packed, serializer)
+        }
+    }
+
+    impl<D> DeserializeWith<<f32 as Archive>::Archived, RGB, D> for AsF32
+    where
+        D: Fallible + ?Sized,
+    {
+        fn deserialize_with(
+            field: &<f32 as Archive>::Archived,
+            deserializer: &mut D,
+        ) -> Result<RGB, <D as rkyv::rancor::Fallible>::Error> {
+            let val = <<f32 as Archive>::Archived as rkyv::Deserialize<f32, D>>::deserialize(
+                field,
+                deserializer,
+            )?;
+            Ok(RGB::new_from_packed_f32(val))
+        }
+    }
+}
+
 /// 3D point with x, y, z coordinates, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointXYZ {
     pub x: f32,
     pub y: f32,
@@ -231,20 +316,6 @@ impl PointXYZ {
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
     }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.xyz()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.xyz().cast::<f64>()
-    }
 }
 
 unsafe impl Send for PointXYZ {}
@@ -276,7 +347,11 @@ unsafe impl PointConvertible<3> for PointXYZ {
 /// 3D point with x, y, z coordinates and an intensity value, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointXYZI {
     pub x: f32,
     pub y: f32,
@@ -294,20 +369,6 @@ impl PointXYZI {
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.xyz()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.xyz().cast::<f64>()
     }
 }
 
@@ -351,7 +412,11 @@ unsafe impl PointConvertible<4> for PointXYZI {
 /// 3D point with x, y, z coordinates and a label, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointXYZL {
     pub x: f32,
     pub y: f32,
@@ -369,20 +434,6 @@ impl PointXYZL {
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.xyz()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.xyz().cast::<f64>()
     }
 }
 
@@ -426,11 +477,16 @@ unsafe impl PointConvertible<4> for PointXYZL {
 /// 3D point with x, y, z coordinates and an RGB color value, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointXYZRGB {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+    #[cfg_attr(feature = "rkyv", rkyv(with = crate::points::with_rgb::AsF32))]
     pub rgb: RGB,
 }
 
@@ -461,20 +517,6 @@ impl PointXYZRGB {
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.xyz()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.xyz().cast::<f64>()
     }
 }
 
@@ -519,11 +561,16 @@ unsafe impl PointConvertible<4> for PointXYZRGB {
 /// The alpha channel is commonly used as padding but this crate uses every channel and no padding.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointXYZRGBA {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+    #[cfg_attr(feature = "rkyv", rkyv(with = crate::points::with_rgb::AsF32))]
     pub rgb: RGB,
     pub a: u8,
 }
@@ -555,20 +602,6 @@ impl PointXYZRGBA {
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.xyz()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.xyz().cast::<f64>()
     }
 }
 
@@ -616,11 +649,16 @@ unsafe impl PointConvertible<5> for PointXYZRGBA {
 /// 3D point with x, y, z coordinates, an RGB color value and a normal vector, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointXYZRGBNormal {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+    #[cfg_attr(feature = "rkyv", rkyv(with = crate::points::with_rgb::AsF32))]
     pub rgb: RGB,
     pub normal_x: f32,
     pub normal_y: f32,
@@ -669,20 +707,6 @@ impl PointXYZRGBNormal {
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.xyz()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.xyz().cast::<f64>()
     }
 }
 
@@ -736,7 +760,11 @@ unsafe impl PointConvertible<7> for PointXYZRGBNormal {
 /// 3D point with x, y, z coordinates, an intensity value and a normal vector, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointXYZINormal {
     pub x: f32,
     pub y: f32,
@@ -774,20 +802,6 @@ impl PointXYZINormal {
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.xyz()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.xyz().cast::<f64>()
     }
 }
 
@@ -841,11 +855,16 @@ unsafe impl PointConvertible<7> for PointXYZINormal {
 /// 3D point with x, y, z coordinates and a label, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointXYZRGBL {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+    #[cfg_attr(feature = "rkyv", rkyv(with = crate::points::with_rgb::AsF32))]
     pub rgb: RGB,
     pub label: u32,
 }
@@ -886,20 +905,6 @@ impl PointXYZRGBL {
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.xyz()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.xyz().cast::<f64>()
     }
 }
 
@@ -944,7 +949,11 @@ unsafe impl PointConvertible<5> for PointXYZRGBL {
 /// 3D point with x, y, z coordinates and a normal vector, commonly used in ROS with PCL.
 #[derive(Clone, Debug, PartialEq, Copy, Default)]
 #[repr(C, align(16))]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointXYZNormal {
     pub x: f32,
     pub y: f32,
@@ -972,20 +981,6 @@ impl PointXYZNormal {
     #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
     pub fn xyz(&self) -> nalgebra::Point3<f32> {
         nalgebra::Point3::new(self.x, self.y, self.z)
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f32(&self) -> nalgebra::Point3<f32> {
-        self.xyz()
-    }
-
-    #[cfg(feature = "nalgebra")]
-    #[deprecated(since = "0.6.0", note = "please use `xyz().cast::<f64>()` instead")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "nalgebra")))]
-    pub fn xyz_f64(&self) -> nalgebra::Point3<f64> {
-        self.xyz().cast::<f64>()
     }
 }
 

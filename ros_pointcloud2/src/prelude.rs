@@ -1,7 +1,8 @@
 //! Commonly used types and traits for predefined and custom point conversions.
 pub use crate::{
-    FieldDatatype, FromBytes, GetFieldDatatype, IPoint, LayoutDescription, LayoutField,
-    MsgConversionError, PointCloud2Msg, PointConvertible, PointDataBuffer,
+    Denseness, Endian, FieldDatatype, FromBytes, GetFieldDatatype, IPoint, LayoutDescription,
+    LayoutField, MsgConversionError, PointCloud2Msg, PointCloud2MsgBuilder, PointConvertible,
+    PointDataBuffer,
 };
 
 pub use crate::points::*;

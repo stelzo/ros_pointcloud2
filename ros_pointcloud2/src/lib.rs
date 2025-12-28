@@ -1,9 +1,9 @@
 //! A PointCloud2 message conversion library.
 //!
-//! The library provides the [`PointCloud2Msg`] type, which implements conversions to and from `Vec` and (parallel) iterators.
+//! The library provides the [`PointCloud2Msg`] type, which implements conversions to and from slices and iterators.
 //!
 //! Vector conversions are optimized for direct copy. They are useful when you just move similar data around. They are usually a good default.
-//! - [`try_from_vec`](PointCloud2Msg::try_from_vec)
+//! - [`try_from_slice`](PointCloud2Msg::try_from_slice)
 //! - [`try_into_vec`](PointCloud2Msg::try_into_vec)
 //!
 //! You can use the iterator functions for more control over the conversion process.
@@ -21,7 +21,7 @@
 //! See the [`ros`] module for more information on how to integrate more libraries.
 //!
 //! Common point types like [`PointXYZ`](points::PointXYZ) or [`PointXYZI`](points::PointXYZI) are provided. See the full list [`here`](points). You can easily add any additional custom type.
-//! See [custom_enum_field_filter.rs](https://github.com/stelzo/ros_pointcloud2/blob/main/rpcl2/examples/custom_enum_field_filter.rs) for an example.
+//! See [custom_enum_field_filter.rs](https://github.com/stelzo/ros_pointcloud2/blob/main/ros_pointcloud2/examples/custom_enum_field_filter.rs) for an example.
 //!
 //! # Minimal Example
 //! ```
@@ -31,9 +31,8 @@
 //!     PointXYZI::new(9.6, 42.0, -6.2, 0.1),
 //!     PointXYZI::new(46.0, 5.47, 0.5, 0.1),
 //! ];
-//! let cloud_copy = cloud_points.clone(); // For equality test later.
 //!
-//! let out_msg = PointCloud2Msg::try_from_iter(&cloud_points).unwrap();
+//! let out_msg = PointCloud2Msg::try_from_slice(&cloud_points).unwrap();
 //!
 //! // Convert to your ROS crate message type.
 //! // let msg: r2r::sensor_msgs::msg::PointCloud2 = in_msg.into();
@@ -44,15 +43,16 @@
 //! let in_msg = out_msg;
 //!
 //! let processed_cloud = in_msg.try_into_iter().unwrap()
-//!     .map(|point: PointXYZ| { // Define the data you want from the point.
-//!         // Some logic here.
+//!     .map(|point: PointXYZ| { // Define the type you want to map the data to.
+//!         // Access the data like a normal struct.
 //!         PointXYZI::new(point.x, point.y, point.z, 0.1)
 //!     }).collect::<Vec<_>>();
 //!
-//! assert_eq!(processed_cloud, cloud_copy);
+//! assert_eq!(processed_cloud, cloud_points);
 //! ```
 //!
 //! # Features
+
 //! - r2r_msg — Integration for the ROS2 library [r2r](https://github.com/sequenceplanner/r2r).
 //! - rosrust_msg — Integration with the [rosrust](https://github.com/adnanademovic/rosrust) library for ROS1 message types.
 //! - safe_drive — Integration with the [safe_drive](https://github.com/tier4/safe_drive) bindings for ROS2.
@@ -148,14 +148,17 @@ pub mod points;
 pub mod prelude;
 pub mod ros;
 
+#[cfg(feature = "nalgebra")]
+pub use nalgebra;
+
 pub mod iterator;
+
+#[cfg(test)]
+mod tests;
 
 use crate::ros::{HeaderMsg, PointFieldMsg};
 
 use core::str::FromStr;
-
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 
 #[macro_use]
 extern crate alloc;
@@ -166,14 +169,15 @@ use alloc::vec::Vec;
 #[derive(Debug)]
 pub enum MsgConversionError {
     InvalidFieldFormat,
-    #[cfg(feature = "std")]
     UnsupportedFieldType(String),
-    #[cfg(not(feature = "std"))]
-    UnsupportedFieldType,
     DataLengthMismatch,
     FieldsNotFound(Vec<String>),
     UnsupportedFieldCount,
     NumberConversion,
+    TypeMismatch {
+        stored: FieldDatatype,
+        requested: FieldDatatype,
+    },
     ExhaustedSource,
 }
 
@@ -189,18 +193,10 @@ impl core::fmt::Display for MsgConversionError {
             MsgConversionError::InvalidFieldFormat => {
                 write!(f, "The field does not match the expected datatype.")
             }
-            #[cfg(feature = "std")]
             MsgConversionError::UnsupportedFieldType(datatype) => {
                 write!(
                     f,
                     "The field datatype is not supported by the ROS message description: {datatype}"
-                )
-            }
-            #[cfg(not(feature = "std"))]
-            MsgConversionError::UnsupportedFieldType => {
-                write!(
-                    f,
-                    "There is an unsupported field type in the ROS message description."
                 )
             }
             MsgConversionError::DataLengthMismatch => {
@@ -218,6 +214,13 @@ impl core::fmt::Display for MsgConversionError {
             MsgConversionError::NumberConversion => {
                 write!(f, "The number is too large to be converted into a PointCloud2 supported datatype.")
             }
+            MsgConversionError::TypeMismatch { stored, requested } => {
+                write!(
+                    f,
+                    "Stored datatype {:?} is not compatible with requested datatype {:?}.",
+                    stored, requested
+                )
+            }
             MsgConversionError::ExhaustedSource => {
                 write!(
                     f,
@@ -228,10 +231,8 @@ impl core::fmt::Display for MsgConversionError {
     }
 }
 
-#[allow(clippy::std_instead_of_core)] // will be stable soon (https://github.com/rust-lang/rust/issues/103765)
-#[cfg(feature = "std")]
-impl std::error::Error for MsgConversionError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl core::error::Error for MsgConversionError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         None
     }
 }
@@ -260,8 +261,8 @@ impl LayoutDescription {
 #[derive(Clone, Debug)]
 pub enum LayoutField {
     Field {
-        name: alloc::borrow::Cow<'static, str>,
-        ty: alloc::borrow::Cow<'static, str>,
+        name: &'static str,
+        ty: &'static str,
         size: usize,
     },
     Padding {
@@ -271,11 +272,7 @@ pub enum LayoutField {
 
 impl LayoutField {
     pub fn new(name: &'static str, ty: &'static str, size: usize) -> Self {
-        LayoutField::Field {
-            name: name.into(),
-            ty: ty.into(),
-            size,
-        }
+        LayoutField::Field { name, ty, size }
     }
 
     pub fn padding(size: usize) -> Self {
@@ -283,12 +280,46 @@ impl LayoutField {
     }
 }
 
-/// The intermediate point cloud type for ROS integrations.
+/// The intermediate point cloud type.
 ///
-/// To assert consistency, the type should be build with the [`PointCloud2MsgBuilder`].
-/// See the offical [ROS message description](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointCloud2.html) for more information on the fields.
+/// To assert consistency, the type should be built with the [`PointCloud2MsgBuilder`].
+/// The builder performs basic validation (e.g. that `fields` is non-empty, each `PointFieldMsg.count == 1`,
+/// `point_step` is large enough for the configured fields, and `data.len()` matches the `point_step`).
+///
+/// Example
+/// ```rust
+/// use ros_pointcloud2::prelude::*;
+///
+/// let header = HeaderMsg { seq: 1, stamp: TimeMsg { sec: 0, nanosec: 0 }, frame_id: "frame".into() };
+/// let fields = vec![
+///     PointFieldMsg { name: "x".into(), offset: 0, datatype: FieldDatatype::F32.into(), count: 1 },
+///     PointFieldMsg { name: "y".into(), offset: 4, datatype: FieldDatatype::F32.into(), count: 1 },
+///     PointFieldMsg { name: "z".into(), offset: 8, datatype: FieldDatatype::F32.into(), count: 1 },
+/// ];
+///
+/// let data = vec![0u8; 12]; // one point containing 3 f32 values
+///
+/// let msg = PointCloud2MsgBuilder::new()
+///     .with_header(header)
+///     .with_fields(fields)
+///     .with_endian(Endian::Little)
+///     .with_point_step(12)
+///     .with_row_step(12)
+///     .with_data(data)
+///     .with_dense(Denseness::Dense)
+///     .with_width(1)
+///     .build()
+///     .unwrap();
+///
+/// assert_eq!(msg.point_step, 12);
+/// assert_eq!(msg.dimensions.len(), 1);
+/// ```
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct PointCloud2Msg {
     pub header: HeaderMsg,
     pub dimensions: CloudDimensions,
@@ -302,7 +333,11 @@ pub struct PointCloud2Msg {
 
 /// Endianess encoding hint for the message.
 #[derive(Default, Clone, Debug, PartialEq, Copy)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub enum Endian {
     Big,
     #[default]
@@ -311,7 +346,8 @@ pub enum Endian {
 
 /// Density flag for the message. Writing sparse point clouds is not supported.
 #[derive(Default, Clone, Debug, PartialEq, Copy)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "rkyv", derive(rkyv::Archive, rkyv::Serialize))]
 pub enum Denseness {
     #[default]
     Dense,
@@ -354,11 +390,11 @@ pub struct PointCloud2MsgBuilder {
     header: HeaderMsg,
     width: u32,
     fields: Vec<PointFieldMsg>,
-    is_big_endian: bool,
+    endian: Endian,
     point_step: u32,
     row_step: u32,
     data: Vec<u8>,
-    is_dense: bool,
+    dense: Denseness,
 }
 
 impl PointCloud2MsgBuilder {
@@ -368,51 +404,107 @@ impl PointCloud2MsgBuilder {
     }
 
     #[must_use]
-    pub fn header(mut self, header: HeaderMsg) -> Self {
+    pub fn with_header(mut self, header: HeaderMsg) -> Self {
         self.header = header;
         self
     }
 
+    #[deprecated(since = "1.0.0", note = "use `with_header` instead")]
+    #[doc(hidden)]
+    pub fn header(self, header: HeaderMsg) -> Self {
+        self.with_header(header)
+    }
+
     #[must_use]
-    pub fn width(mut self, width: u32) -> Self {
+    pub fn with_width(mut self, width: u32) -> Self {
         self.width = width;
         self
     }
 
+    #[deprecated(since = "1.0.0", note = "use `with_width` instead")]
+    #[doc(hidden)]
+    pub fn width(self, width: u32) -> Self {
+        self.with_width(width)
+    }
+
     #[must_use]
-    pub fn fields(mut self, fields: Vec<PointFieldMsg>) -> Self {
+    pub fn with_fields(mut self, fields: Vec<PointFieldMsg>) -> Self {
         self.fields = fields;
         self
     }
 
-    #[must_use]
-    pub fn endian(mut self, is_big_endian: bool) -> Self {
-        self.is_big_endian = is_big_endian;
-        self
+    #[deprecated(since = "1.0.0", note = "use `with_fields` instead")]
+    #[doc(hidden)]
+    pub fn fields(self, fields: Vec<PointFieldMsg>) -> Self {
+        self.with_fields(fields)
     }
 
     #[must_use]
-    pub fn point_step(mut self, point_step: u32) -> Self {
+    pub fn with_endian(mut self, endian: Endian) -> Self {
+        self.endian = endian;
+        self
+    }
+
+    #[deprecated(since = "1.0.0", note = "use `with_endian` instead")]
+    #[doc(hidden)]
+    pub fn endian(self, is_big_endian: bool) -> Self {
+        self.with_endian(if is_big_endian {
+            Endian::Big
+        } else {
+            Endian::Little
+        })
+    }
+
+    #[must_use]
+    pub fn with_point_step(mut self, point_step: u32) -> Self {
         self.point_step = point_step;
         self
     }
 
+    #[deprecated(since = "1.0.0", note = "use `with_point_step` instead")]
+    #[doc(hidden)]
+    pub fn point_step(self, point_step: u32) -> Self {
+        self.with_point_step(point_step)
+    }
+
     #[must_use]
-    pub fn row_step(mut self, row_step: u32) -> Self {
+    pub fn with_row_step(mut self, row_step: u32) -> Self {
         self.row_step = row_step;
         self
     }
 
+    #[deprecated(since = "1.0.0", note = "use `with_row_step` instead")]
+    #[doc(hidden)]
+    pub fn row_step(self, row_step: u32) -> Self {
+        self.with_row_step(row_step)
+    }
+
     #[must_use]
-    pub fn data(mut self, data: Vec<u8>) -> Self {
+    pub fn with_data(mut self, data: Vec<u8>) -> Self {
         self.data = data;
         self
     }
 
+    #[deprecated(since = "1.0.0", note = "use `with_data` instead")]
+    #[doc(hidden)]
+    pub fn data(self, data: Vec<u8>) -> Self {
+        self.with_data(data)
+    }
+
     #[must_use]
-    pub fn dense(mut self, is_dense: bool) -> Self {
-        self.is_dense = is_dense;
+    pub fn with_dense(mut self, dense: Denseness) -> Self {
+        self.dense = dense;
         self
+    }
+
+    #[deprecated(since = "1.0.0", note = "use `with_dense` instead")]
+    #[doc(hidden)]
+    pub fn dense(self, is_dense: bool) -> Self {
+        self.with_dense(if is_dense {
+            Denseness::Dense
+        } else {
+            Denseness::Sparse
+        })
     }
 
     /// Build the [`PointCloud2Msg`] from the builder.
@@ -441,7 +533,7 @@ impl PointCloud2MsgBuilder {
             return Err(MsgConversionError::InvalidFieldFormat);
         }
 
-        if self.data.len() as u32 % self.point_step != 0 {
+        if !(self.data.len() as u32).is_multiple_of(self.point_step) {
             return Err(MsgConversionError::DataLengthMismatch);
         }
 
@@ -449,51 +541,48 @@ impl PointCloud2MsgBuilder {
             header: self.header,
             dimensions: CloudDimensionsBuilder::new_with_width(self.width as usize).build()?,
             fields: self.fields,
-            endian: if self.is_big_endian {
-                Endian::Big
-            } else {
-                Endian::Little
-            },
+            endian: self.endian,
             point_step: self.point_step,
             row_step: self.row_step,
             data: self.data,
-            dense: if self.is_dense {
-                Denseness::Dense
-            } else {
-                Denseness::Sparse
-            },
+            dense: self.dense,
         })
     }
 }
 
 /// Dimensions of the point cloud as width and height.
-#[derive(Clone, Debug, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Default, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
 pub struct CloudDimensions {
     pub width: u32,
     pub height: u32,
 }
 
-fn ordered_field_names<const N: usize, C: PointConvertible<N>>() -> Vec<String> {
-    C::layout()
+impl CloudDimensions {
+    /// Total number of points in the cloud.
+    #[inline]
+    pub fn len(&self) -> usize {
+        (self.width as usize) * (self.height as usize)
+    }
+
+    /// Check if the cloud is empty.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+fn ordered_field_names_from_layout(layout: &LayoutDescription) -> Vec<&str> {
+    layout
         .0
         .iter()
-        .filter(|field| {
-            matches!(
-                field,
-                LayoutField::Field {
-                    name: _,
-                    ty: _,
-                    size: _,
-                }
-            )
-        })
+        .filter(|field| matches!(field, LayoutField::Field { .. }))
         .map(|field| match field {
-            LayoutField::Field {
-                name,
-                ty: _,
-                size: _,
-            } => name.as_ref().into(),
+            LayoutField::Field { name, .. } => *name,
             _ => unreachable!("Fields must be filtered before."),
         })
         .collect()
@@ -505,11 +594,12 @@ impl PointCloud2Msg {
     where
         C: PointConvertible<N>,
     {
-        let field_names = ordered_field_names::<N, C>();
-        let target_layout = KnownLayoutInfo::try_from(C::layout())?;
+        let layout = C::layout();
+        let field_names = ordered_field_names_from_layout(&layout);
+        let target_layout = KnownLayoutInfo::try_from(layout.clone())?;
 
         debug_assert!(field_names.len() <= target_layout.fields.len());
-        debug_assert!(self.fields.len() >= target_layout.fields.len());
+        debug_assert!(self.fields.len() >= field_names.len());
 
         let mut offset: u32 = 0;
         let mut field_counter = 0;
@@ -574,12 +664,14 @@ impl PointCloud2Msg {
             let point: IPoint<N> = C::default().into();
             debug_assert!(point.fields.len() == N);
 
-            let field_names = crate::ordered_field_names::<N, C>();
+            let layout = C::layout();
+            let field_names = crate::ordered_field_names_from_layout(&layout);
             debug_assert!(field_names.len() == N);
 
             let mut pdata_offsets_acc: u32 = 0;
             let mut fields = vec![PointFieldMsg::default(); N];
             let field_count: u32 = 1;
+            use alloc::string::ToString;
             for ((pdata_entry, field_name), field_val) in point
                 .fields
                 .into_iter()
@@ -590,7 +682,7 @@ impl PointCloud2Msg {
                 let _ = FieldDatatype::try_from(datatype_code)?;
 
                 *field_val = PointFieldMsg {
-                    name: field_name,
+                    name: field_name.to_string(),
                     offset: pdata_offsets_acc,
                     datatype: datatype_code,
                     count: 1,
@@ -601,8 +693,8 @@ impl PointCloud2Msg {
 
             (
                 PointCloud2MsgBuilder::new()
-                    .fields(fields)
-                    .point_step(pdata_offsets_acc),
+                    .with_fields(fields)
+                    .with_point_step(pdata_offsets_acc),
                 pdata_offsets_acc,
             )
         };
@@ -621,8 +713,8 @@ impl PointCloud2Msg {
             cloud_width += 1;
         });
 
-        cloud = cloud.width(cloud_width);
-        cloud = cloud.row_step(cloud_width * point_step);
+        cloud = cloud.with_width(cloud_width);
+        cloud = cloud.with_row_step(cloud_width * point_step);
 
         cloud.build()
     }
@@ -636,7 +728,7 @@ impl PointCloud2Msg {
     where
         C: PointConvertible<N> + Send + Sync,
     {
-        Self::try_from_vec(&iterable.collect::<Vec<_>>())
+        Self::try_from_slice(&iterable.collect::<Vec<_>>())
     }
 
     /// Create a [`PointCloud2Msg`] from a Vec of points.
@@ -651,12 +743,12 @@ impl PointCloud2Msg {
     ///     PointXYZ::new(4.0, 5.0, 6.0),
     /// ];
     ///
-    /// let msg_out = PointCloud2Msg::try_from_vec(&cloud_points).unwrap();
+    /// let msg_out = PointCloud2Msg::try_from_slice(&cloud_points).unwrap();
     /// ```
     ///
     /// # Errors
     /// Returns an error if the byte buffer does not match the expected layout or the message contains other discrepancies.
-    pub fn try_from_vec<const N: usize, C>(vec: &[C]) -> Result<Self, MsgConversionError>
+    pub fn try_from_slice<const N: usize, C>(slice: &[C]) -> Result<Self, MsgConversionError>
     where
         C: PointConvertible<N>,
     {
@@ -666,7 +758,8 @@ impl PointCloud2Msg {
                     let point: IPoint<N> = C::default().into();
                     debug_assert!(point.fields.len() == N);
 
-                    let field_names = crate::ordered_field_names::<N, C>();
+                    let layout = C::layout();
+                    let field_names = crate::ordered_field_names_from_layout(&layout);
                     debug_assert!(field_names.len() == N);
 
                     let layout = KnownLayoutInfo::try_from(C::layout())?;
@@ -674,6 +767,7 @@ impl PointCloud2Msg {
 
                     let mut offset = 0;
                     let mut fields: Vec<PointFieldMsg> = Vec::with_capacity(field_names.len());
+                    use alloc::string::ToString;
                     for f in layout.fields.into_iter() {
                         match f {
                             PointField::Field {
@@ -682,7 +776,7 @@ impl PointCloud2Msg {
                                 count,
                             } => {
                                 fields.push(PointFieldMsg {
-                                    name: field_names[fields.len()].clone(),
+                                    name: field_names[fields.len()].to_string(),
                                     offset,
                                     datatype,
                                     ..Default::default()
@@ -697,30 +791,40 @@ impl PointCloud2Msg {
 
                     (
                         PointCloud2MsgBuilder::new()
-                            .fields(fields)
-                            .point_step(offset),
+                            .with_fields(fields)
+                            .with_point_step(offset),
                         offset,
                     )
                 };
 
-                let bytes_total = vec.len() * point_step as usize;
+                let bytes_total = slice.len() * point_step as usize;
                 cloud.data.resize(bytes_total, u8::default());
                 let raw_data: *mut C = cloud.data.as_mut_ptr() as *mut C;
                 unsafe {
                     core::ptr::copy_nonoverlapping(
-                        vec.as_ptr().cast::<u8>(),
+                        slice.as_ptr().cast::<u8>(),
                         raw_data.cast::<u8>(),
                         bytes_total,
                     );
                 }
 
                 Ok(cloud
-                    .width(vec.len() as u32)
-                    .row_step(vec.len() as u32 * point_step)
+                    .with_width(slice.len() as u32)
+                    .with_row_step(slice.len() as u32 * point_step)
                     .build()?)
             }
-            _ => Self::try_from_iter(vec.iter()),
+            _ => Self::try_from_iter(slice.iter()),
         }
+    }
+
+    #[deprecated(since = "1.0.0", note = "use `try_from_slice` instead")]
+    #[doc(hidden)]
+    pub fn try_from_vec<const N: usize, C>(vec: &Vec<C>) -> Result<Self, MsgConversionError>
+    where
+        C: PointConvertible<N>,
+    {
+        // Forward to `try_from_slice` without allocating; keep the old signature for a deprecation window.
+        Self::try_from_slice(vec.as_slice())
     }
 
     /// Convert the [`PointCloud2Msg`] to a Vec of points.
@@ -734,14 +838,14 @@ impl PointCloud2Msg {
     ///     PointXYZI::new(4.0, 5.0, 6.0, 1.1),
     /// ];
     ///
-    /// let msg_out = PointCloud2Msg::try_from_vec(&cloud_points).unwrap();
+    /// let msg_out = PointCloud2Msg::try_from_slice(&cloud_points).unwrap();
     /// let cloud_points_out: Vec<PointXYZ> = msg_out.try_into_vec().unwrap();
     /// assert_eq!(1.0, cloud_points_out.get(0).unwrap().x);
     /// ```
     ///
     /// # Errors
     /// Returns an error if the byte buffer does not match the expected layout or the message contains other discrepancies.
-    pub fn try_into_vec<const N: usize, C>(self) -> Result<Vec<C>, MsgConversionError>
+    pub fn try_into_vec<const N: usize, C>(&self) -> Result<Vec<C>, MsgConversionError>
     where
         C: PointConvertible<N>,
     {
@@ -753,9 +857,9 @@ impl PointCloud2Msg {
                     ByteSimilarity::Different => return Ok(self.try_into_iter()?.collect()),
                 };
 
-                let cloud_width = self.dimensions.width as usize;
+                let cloud_len = self.dimensions.len();
                 let point_step = self.point_step as usize;
-                let mut vec: Vec<C> = Vec::with_capacity(cloud_width);
+                let mut vec: Vec<C> = Vec::with_capacity(cloud_len);
                 if bytematch {
                     unsafe {
                         core::ptr::copy_nonoverlapping(
@@ -763,11 +867,11 @@ impl PointCloud2Msg {
                             vec.as_mut_ptr().cast::<u8>(),
                             self.data.len(),
                         );
-                        vec.set_len(cloud_width);
+                        vec.set_len(cloud_len);
                     }
                 } else {
                     unsafe {
-                        for i in 0..cloud_width {
+                        for i in 0..cloud_len {
                             let point_ptr = self.data.as_ptr().add(i * point_step).cast::<C>();
                             let point = point_ptr.read();
                             vec.push(point);
@@ -797,12 +901,13 @@ impl PointCloud2Msg {
     /// ```
     /// # Errors
     /// Returns an error if the byte buffer does not match the expected layout or the message contains other discrepancies.
-    pub fn try_into_iter<const N: usize, C>(
-        self,
-    ) -> Result<impl Iterator<Item = C>, MsgConversionError>
+    pub fn try_into_iter<'a, const N: usize, C>(
+        &'a self,
+    ) -> Result<impl Iterator<Item = C> + 'a, MsgConversionError>
     where
-        C: PointConvertible<N>,
+        C: PointConvertible<N> + 'a,
     {
+        // Return a borrowed, zero-copy iterator that reads directly from `&self.data`.
         iterator::PointCloudIterator::try_from(self)
     }
 
@@ -823,11 +928,11 @@ impl PointCloud2Msg {
     /// ```
     #[cfg_attr(docsrs, doc(cfg(feature = "rayon")))]
     #[cfg(feature = "rayon")]
-    pub fn try_into_par_iter<const N: usize, C>(
-        self,
-    ) -> Result<impl rayon::iter::ParallelIterator<Item = C>, MsgConversionError>
+    pub fn try_into_par_iter<'a, const N: usize, C>(
+        &'a self,
+    ) -> Result<impl rayon::iter::ParallelIterator<Item = C> + 'a, MsgConversionError>
     where
-        C: PointConvertible<N> + Send + Sync,
+        C: PointConvertible<N> + Send + Sync + 'a,
     {
         iterator::PointCloudIterator::try_from(self)
     }
@@ -953,7 +1058,7 @@ impl TryFrom<LayoutField> for PointField {
     fn try_from(f: LayoutField) -> Result<Self, Self::Error> {
         match f {
             LayoutField::Field { name: _, ty, size } => {
-                let typename: String = ty.into_owned().to_lowercase();
+                let typename: String = ty.to_lowercase();
                 let datatype = FieldDatatype::from_str(typename.as_str())?;
                 Ok(Self::Field {
                     size: size.try_into()?,
@@ -1055,6 +1160,30 @@ impl PointData {
             Endian::Little => T::from_le_bytes(PointDataBuffer::new(self.bytes)),
         }
     }
+
+    /// Runtime-checked variant of `get`.
+    ///
+    /// - When the `strict-type-check` feature is enabled this will return an `Err(MsgConversionError::TypeMismatch)`
+    ///   if the stored field datatype is incompatible with the requested type.
+    /// - When the feature is not enabled this behaves like `get` and returns `Ok(value)`.
+    pub fn get_checked<T: FromBytes>(&self) -> Result<T, MsgConversionError> {
+        #[cfg(feature = "strict-type-check")]
+        {
+            let stored = self.datatype;
+            let requested = T::field_datatype();
+            let compatible = stored == requested
+                || (matches!(stored, FieldDatatype::RGB) && requested == FieldDatatype::F32)
+                || (stored == FieldDatatype::F32 && requested == FieldDatatype::RGB);
+            if !compatible {
+                return Err(MsgConversionError::TypeMismatch { stored, requested });
+            }
+        }
+        let val = match self.endian {
+            Endian::Big => T::from_be_bytes(PointDataBuffer::new(self.bytes)),
+            Endian::Little => T::from_le_bytes(PointDataBuffer::new(self.bytes)),
+        };
+        Ok(val)
+    }
 }
 
 impl From<f32> for PointData {
@@ -1153,10 +1282,7 @@ impl core::str::FromStr for FieldDatatype {
             "i8" => Ok(FieldDatatype::I8),
             "i16" => Ok(FieldDatatype::I16),
             "rgb" => Ok(FieldDatatype::RGB),
-            #[cfg(feature = "std")]
             _ => Err(MsgConversionError::UnsupportedFieldType(s.into())),
-            #[cfg(not(feature = "std"))]
-            _ => Err(MsgConversionError::UnsupportedFieldType),
         }
     }
 }
@@ -1225,6 +1351,7 @@ impl TryFrom<u8> for FieldDatatype {
     type Error = MsgConversionError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
+        use alloc::string::ToString;
         match value {
             1 => Ok(FieldDatatype::I8),
             2 => Ok(FieldDatatype::U8),
@@ -1234,10 +1361,7 @@ impl TryFrom<u8> for FieldDatatype {
             6 => Ok(FieldDatatype::U32),
             7 => Ok(FieldDatatype::F32),
             8 => Ok(FieldDatatype::F64),
-            #[cfg(feature = "std")]
             _ => Err(MsgConversionError::UnsupportedFieldType(value.to_string())),
-            #[cfg(not(feature = "std"))]
-            _ => Err(MsgConversionError::UnsupportedFieldType),
         }
     }
 }
@@ -1466,218 +1590,5 @@ impl FromBytes for u8 {
 
     fn from_le_bytes(bytes: PointDataBuffer) -> Self {
         Self::from_le_bytes([bytes[0]])
-    }
-}
-
-mod test {
-    #![allow(clippy::unwrap_used)]
-
-    use crate::prelude::*;
-
-    #[derive(Debug, Default, Clone, PartialEq, Copy)]
-    #[repr(C)]
-    struct PointA {
-        x: f32,
-        y: f32,
-        z: f32,
-        intensity: f32,
-        t: u32,
-        reflectivity: u16,
-        ring: u16,
-        ambient: u16,
-        range: u32,
-    }
-
-    impl From<IPoint<9>> for PointA {
-        fn from(point: IPoint<9>) -> Self {
-            Self::new(point[0].get(), point[1].get(), point[2].get())
-        }
-    }
-
-    impl From<PointA> for IPoint<9> {
-        fn from(point: PointA) -> Self {
-            [
-                point.x.into(),
-                point.y.into(),
-                point.z.into(),
-                point.intensity.into(),
-                point.t.into(),
-                point.reflectivity.into(),
-                point.ring.into(),
-                point.ambient.into(),
-                point.range.into(),
-            ]
-            .into()
-        }
-    }
-
-    unsafe impl PointConvertible<9> for PointA {
-        fn layout() -> LayoutDescription {
-            LayoutDescription::new(&[
-                LayoutField::new("x", "f32", 4),
-                LayoutField::new("y", "f32", 4),
-                LayoutField::new("z", "f32", 4),
-                LayoutField::new("intensity", "f32", 4),
-                LayoutField::new("t", "u32", 4),
-                LayoutField::new("reflectivity", "u16", 2),
-                LayoutField::padding(2),
-                LayoutField::new("ring", "u16", 2),
-                LayoutField::padding(2),
-                LayoutField::new("ambient", "u16", 2),
-                LayoutField::padding(2),
-                LayoutField::new("range", "u32", 4),
-            ])
-        }
-    }
-
-    impl PointA {
-        fn new(x: f32, y: f32, z: f32) -> Self {
-            Self {
-                x,
-                y,
-                z,
-                intensity: 0.0,
-                t: 0,
-                reflectivity: 0,
-                ring: 0,
-                ambient: 0,
-                range: 0,
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, Default, PartialEq, Copy)]
-    #[repr(C)]
-    struct PointB {
-        pub x: f32,
-        pub y: f32,
-        pub z: f32,
-        pub t: u32,
-    }
-
-    impl PointB {
-        fn new(x: f32, y: f32, z: f32) -> Self {
-            Self { x, y, z, t: 0 }
-        }
-    }
-
-    impl From<IPoint<4>> for PointB {
-        fn from(point: IPoint<4>) -> Self {
-            Self::new(point[0].get(), point[1].get(), point[2].get())
-        }
-    }
-
-    impl From<PointB> for IPoint<4> {
-        fn from(point: PointB) -> Self {
-            [
-                point.x.into(),
-                point.y.into(),
-                point.z.into(),
-                point.t.into(),
-            ]
-            .into()
-        }
-    }
-
-    unsafe impl PointConvertible<4> for PointB {
-        fn layout() -> LayoutDescription {
-            LayoutDescription::new(&[
-                LayoutField::new("x", "f32", 4),
-                LayoutField::new("y", "f32", 4),
-                LayoutField::new("z", "f32", 4),
-                LayoutField::new("t", "u32", 4),
-            ])
-        }
-    }
-
-    #[derive(Debug, Clone, Default, PartialEq, Copy)]
-    #[repr(C)]
-    struct PointD {
-        x: f32,
-        y: f32,
-        z: f32,
-        t: u32,
-        ring: u16,
-        range: u32,
-        signal: u16,
-        reflectivity: u16,
-        near_ir: u16,
-    }
-
-    impl From<IPoint<9>> for PointD {
-        fn from(point: IPoint<9>) -> Self {
-            Self::new(point[0].get(), point[1].get(), point[2].get())
-        }
-    }
-
-    impl From<PointD> for IPoint<9> {
-        fn from(point: PointD) -> Self {
-            [
-                point.x.into(),
-                point.y.into(),
-                point.z.into(),
-                point.t.into(),
-                point.ring.into(),
-                point.range.into(),
-                point.signal.into(),
-                point.reflectivity.into(),
-                point.near_ir.into(),
-            ]
-            .into()
-        }
-    }
-
-    unsafe impl PointConvertible<9> for PointD {
-        fn layout() -> LayoutDescription {
-            LayoutDescription::new(&[
-                LayoutField::new("x", "f32", 4),
-                LayoutField::new("y", "f32", 4),
-                LayoutField::new("z", "f32", 4),
-                LayoutField::new("t", "u32", 4),
-                LayoutField::new("ring", "u16", 2),
-                LayoutField::padding(2),
-                LayoutField::new("range", "u32", 4),
-                LayoutField::new("signal", "u16", 2),
-                LayoutField::padding(2),
-                LayoutField::new("reflectivity", "u16", 2),
-                LayoutField::padding(2),
-                LayoutField::new("near_ir", "u16", 2),
-                LayoutField::padding(2),
-            ])
-        }
-    }
-
-    impl PointD {
-        fn new(x: f32, y: f32, z: f32) -> Self {
-            Self {
-                x,
-                y,
-                z,
-                t: 0,
-                ring: 0,
-                range: 0,
-                signal: 0,
-                reflectivity: 0,
-                near_ir: 0,
-            }
-        }
-    }
-
-    #[test]
-    fn subtype_iterator_fallback() {
-        let cloud_a = PointCloud2Msg::try_from_iter(&vec![
-            PointA::new(1.0, 2.0, 3.0),
-            PointA::new(4.0, 5.0, 6.0),
-            PointA::new(7.0, 8.0, 9.0),
-        ])
-        .unwrap();
-
-        let cloud_c: PointB = cloud_a.clone().try_into_iter().unwrap().next().unwrap();
-        assert_eq!(cloud_c, PointB::new(1.0, 2.0, 3.0));
-
-        let cloud_b: Vec<PointB> = cloud_a.try_into_vec().unwrap();
-        assert_eq!(cloud_b[0], PointB::new(1.0, 2.0, 3.0));
-        assert_eq!(cloud_b[1], PointB::new(4.0, 5.0, 6.0));
-        assert_eq!(cloud_b[2], PointB::new(7.0, 8.0, 9.0));
     }
 }

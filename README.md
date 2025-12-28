@@ -11,18 +11,27 @@ Get started with the example below, check out the other use cases in the `exampl
 
 ## Quickstart
 
+```toml
+[dependencies]
+ros_pointcloud2 = { version = "*", features = ["r2r_msg"]} # r2r
+# or
+ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]} # rosrust ros1
+# or
+ros_pointcloud2 = { version = "*", features = ["ros2-interfaces-jazzy-serde"]} # ros2-client
+```
+
 ```rust
 use ros_pointcloud2::prelude::*;
 
 // PointXYZ (and many others) are provided by the crate.
 let cloud_points = vec![
-  PointXYZI::new(91.486, -4.1, 42.0001, 0.1),
-  PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MIN),
+  PointXYZI::new(9.6, 42.0, -6.2, 0.1),
+  PointXYZI::new(46.0, 5.47, 0.5, 0.1),
 ];
 
-let out_msg = PointCloud2Msg::try_from_vec(&cloud_points).unwrap();
+let out_msg = PointCloud2Msg::try_from_slice(&cloud_points).unwrap();
 
-// Convert the ROS crate message type, we will use r2r here.
+// Convert to your ROS crate message type.
 // let msg: r2r::sensor_msgs::msg::PointCloud2 = out_msg.into();
 // Publish ...
 
@@ -31,10 +40,9 @@ let out_msg = PointCloud2Msg::try_from_vec(&cloud_points).unwrap();
 let in_msg = out_msg;
 
 let processed_cloud = in_msg.try_into_iter().unwrap()
-  .map(|point: PointXYZ| { // Define the info you want to have from the Msg.
-      // Some logic here ...
-
-      point
+  .map(|point: PointXYZI| { // Define the type you want to map the data to.
+    // Access the data like a normal struct.
+    PointXYZI::new(point.x, point.y, point.z, 0.1)
   })
   .collect::<Vec<_>>();
 ```
@@ -57,18 +65,11 @@ There are currently 4 integrations for common ROS crates. We tested them on the 
 
 You can use `rosrust`, `r2r` or `ros2-client` by enabling the respective feature:
 
-```toml
-[dependencies]
-ros_pointcloud2 = { version = "*", features = ["r2r_msg"]} # r2r
-# or
-ros_pointcloud2 = { version = "*", features = ["rosrust_msg"]} # rosrust ros1
-# or
-ros_pointcloud2 = { version = "*", features = ["ros2-interfaces-jazzy-serde"]} # ros2-client
-```
-
 ### rclrs (ros2_rust)
 
-Features do not work properly with `rcrls` because the messages are linked externally. You need to use tags instead:
+Features do not work properly with `rcrls` because the messages are linked externally. You need to use tags instead.
+
+Mind that this integration is deprecated until rclrs has a better message generation strategy.
 
 ```toml
 [dependencies]

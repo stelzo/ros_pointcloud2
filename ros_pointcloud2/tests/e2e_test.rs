@@ -18,7 +18,7 @@ macro_rules! convert_from_into_vec {
 
 macro_rules! convert_from_into_in_out_cloud {
     ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
-        let msg = PointCloud2Msg::try_from_iter($in_cloud.clone().iter());
+        let msg = PointCloud2Msg::try_from_iter($in_cloud.iter());
         assert!(msg.is_ok(), "{:?}", msg);
         let msg = msg.unwrap();
         let to_p_type = msg.try_into_iter();
@@ -32,7 +32,7 @@ macro_rules! convert_from_into_in_out_cloud {
 
 macro_rules! convert_from_into_in_out_cloud_vec {
     ($in_cloud:expr, $in_point:ty, $out_cloud:expr, $out_point:ty) => {
-        let msg = PointCloud2Msg::try_from_vec(&$in_cloud.clone());
+        let msg = PointCloud2Msg::try_from_slice(&$in_cloud);
         assert!(msg.is_ok(), "{:?}", msg);
         let msg = msg.unwrap();
         let to_p_type = msg.try_into_iter();
@@ -79,14 +79,14 @@ fn write_cloud_from_vec() {
         PointXYZ::new(f32::MAX, f32::MIN, f32::MAX),
     ];
 
-    let msg = PointCloud2Msg::try_from_vec(&cloud);
+    let msg = PointCloud2Msg::try_from_slice(&cloud);
     assert!(msg.is_ok());
 }
 
 #[test]
 fn write_empty_cloud_vec() {
     let cloud: Vec<PointXYZ> = vec![];
-    let msg = PointCloud2Msg::try_from_vec(&cloud);
+    let msg = PointCloud2Msg::try_from_slice(&cloud);
     assert!(msg.is_ok());
     assert!(msg.unwrap().data.is_empty());
 }
@@ -109,7 +109,7 @@ fn conv_cloud_par_iter() {
     ];
     let copy = cloud.clone();
 
-    let msg: Result<PointCloud2Msg, MsgConversionError> = PointCloud2Msg::try_from_vec(&cloud);
+    let msg: Result<PointCloud2Msg, MsgConversionError> = PointCloud2Msg::try_from_slice(&cloud);
     assert!(msg.is_ok());
     let msg = msg.unwrap();
     let to_p_type = msg.try_into_par_iter();
@@ -138,6 +138,85 @@ fn conv_cloud_par_par_iter() {
     let to_p_type = to_p_type.unwrap();
     let back_to_type = to_p_type.collect::<Vec<PointXYZ>>();
     assert_eq!(copy, back_to_type);
+}
+
+#[test]
+#[cfg(feature = "rayon")]
+fn conv_cloud_par_iter_large() {
+    let n = 10_000usize;
+    let cloud: Vec<PointXYZ> = (0..n)
+        .map(|i| PointXYZ::new(i as f32, i as f32 + 0.5, i as f32 + 1.0))
+        .collect();
+    let copy = cloud.clone();
+
+    let msg = PointCloud2Msg::try_from_slice(&cloud);
+    assert!(msg.is_ok());
+    let msg = msg.unwrap();
+    let to_p_type = msg.try_into_par_iter::<3, PointXYZ>();
+    assert!(to_p_type.is_ok());
+    let back_to_type = to_p_type.unwrap().collect::<Vec<PointXYZ>>();
+    assert_eq!(copy, back_to_type);
+
+    // convenience: (none) — collect via iterator directly
+    let msg2 = PointCloud2Msg::try_from_slice(&copy).unwrap();
+    let out = msg2
+        .try_into_par_iter::<3, PointXYZ>()
+        .unwrap()
+        .collect::<Vec<_>>();
+    assert_eq!(out, copy);
+}
+
+#[test]
+#[cfg(feature = "rayon")]
+fn conv_cloud_par_iter_endian_mismatch() {
+    let cloud = vec![
+        PointXYZ::new(0.0, 1.0, 5.0),
+        PointXYZ::new(1.0, 1.5, 5.0),
+        PointXYZ::new(1.3, 1.6, 5.7),
+    ];
+
+    let mut msg = PointCloud2Msg::try_from_slice(&cloud).unwrap();
+    // Convert the stored bytes to big-endian representation, then set the endian flag.
+    use ros_pointcloud2::{Endian, FieldDatatype};
+    if cfg!(target_endian = "little") {
+        for i in 0..cloud.len() {
+            let base = i * (msg.point_step as usize);
+            for f in msg.fields.iter() {
+                let datatype = FieldDatatype::try_from(f).unwrap();
+                let sz = datatype.size();
+                if sz > 1 {
+                    let start = base + f.offset as usize;
+                    let end = start + sz;
+                    msg.data[start..end].reverse();
+                }
+            }
+        }
+    }
+    msg.endian = Endian::Big;
+
+    let to_p_type = msg.try_into_par_iter::<3, PointXYZ>();
+    assert!(to_p_type.is_ok());
+    let back_to_type = to_p_type.unwrap().collect::<Vec<PointXYZ>>();
+    assert_eq!(cloud, back_to_type);
+}
+
+#[test]
+#[cfg(feature = "rayon")]
+fn conv_cloud_par_iter_concurrent() {
+    let cloud: Vec<PointXYZ> = (0..1024)
+        .map(|i| PointXYZ::new(i as f32, i as f32 + 1.0, i as f32 + 2.0))
+        .collect();
+    let copy = cloud.clone();
+
+    let msg = PointCloud2Msg::try_from_slice(&cloud).unwrap();
+
+    let it1 = msg.try_into_par_iter::<3, PointXYZ>().unwrap();
+    let it2 = msg.try_into_par_iter::<3, PointXYZ>().unwrap();
+
+    let (r1, r2) = rayon::join(|| it1.collect::<Vec<_>>(), || it2.collect::<Vec<_>>());
+
+    assert_eq!(r1, r2);
+    assert_eq!(r1, copy);
 }
 
 #[test]
@@ -179,7 +258,7 @@ fn custom_xyz_f32() {
 
     convert_from_into!(
         CustomPoint,
-        vec![
+        [
             CustomPoint {
                 x: 1.0,
                 y: 2.0,
@@ -194,7 +273,7 @@ fn custom_xyz_f32() {
                 x: 7.0,
                 y: 8.0,
                 z: 9.0,
-            },
+            }
         ]
     );
 }
@@ -337,7 +416,7 @@ fn custom_rgba_f32() {
         }
     }
 
-    let cloud = vec![
+    let cloud = [
         CustomPoint {
             x: 0.0,
             y: 1.0,
@@ -380,7 +459,7 @@ fn custom_rgba_f32() {
 
 #[test]
 fn converterxyz() {
-    let cloud = vec![
+    let cloud = [
         PointXYZ::new(0.0, 1.0, 5.0),
         PointXYZ::new(1.0, 1.5, 5.0),
         PointXYZ::new(1.3, 1.6, 5.7),
@@ -394,7 +473,7 @@ fn converterxyz() {
 fn converterxyzrgba() {
     convert_from_into!(
         PointXYZRGBA,
-        vec![
+        [
             PointXYZRGBA::new(0.0, 1.0, 5.0, 0, 0, 0, 0),
             PointXYZRGBA::new(1.0, 1.5, 5.0, 1, 1, 1, 1),
             PointXYZRGBA::new(1.3, 1.6, 5.7, 2, 2, 2, 2),
@@ -406,7 +485,7 @@ fn converterxyzrgba() {
                 u8::MAX,
                 u8::MAX,
                 u8::MAX
-            ),
+            )
         ]
     );
 }
@@ -415,10 +494,10 @@ fn converterxyzrgba() {
 fn converterxyzinormal() {
     convert_from_into!(
         PointXYZINormal,
-        vec![
+        [
             PointXYZINormal::new(0.0, 1.0, 5.0, 0.0, 0.0, 0.0, 0.0),
             PointXYZINormal::new(1.0, 1.5, 5.0, 1.0, 1.0, 1.0, 1.0),
-            PointXYZINormal::new(1.3, 1.6, 5.7, 2.0, 2.0, 2.0, 2.0),
+            PointXYZINormal::new(1.3, 1.6, 5.7, 2.0, 2.0, 2.0, 2.0)
         ]
     );
 }
@@ -427,7 +506,7 @@ fn converterxyzinormal() {
 fn converterxyzrgbnormal() {
     convert_from_into!(
         PointXYZRGBNormal,
-        vec![
+        [
             PointXYZRGBNormal::new(0.0, 1.0, 5.0, RGB::new(0, 0, 0), 0.0, 0.0, 0.0),
             PointXYZRGBNormal::new(1.0, 1.5, 5.0, RGB::new(1, 1, 1), 1.0, 1.0, 1.0),
             PointXYZRGBNormal::new(1.3, 1.6, 5.7, RGB::new(2, 2, 2), 2.0, 2.0, 2.0),
@@ -439,7 +518,7 @@ fn converterxyzrgbnormal() {
                 f32::MAX,
                 f32::MAX,
                 f32::MAX,
-            ),
+            )
         ]
     );
 }
@@ -448,11 +527,11 @@ fn converterxyzrgbnormal() {
 fn converterxyznormal() {
     convert_from_into!(
         PointXYZNormal,
-        vec![
+        [
             PointXYZNormal::new(0.0, 1.0, 5.0, 0.0, 0.0, 0.0),
             PointXYZNormal::new(1.0, 1.5, 5.0, 1.0, 1.0, 1.0),
             PointXYZNormal::new(1.3, 1.6, 5.7, 2.0, 2.0, 2.0),
-            PointXYZNormal::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX, f32::MAX, f32::MAX),
+            PointXYZNormal::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX, f32::MAX, f32::MAX)
         ]
     );
 }
@@ -461,7 +540,7 @@ fn converterxyznormal() {
 fn converterxyzrgbl() {
     convert_from_into!(
         PointXYZRGBL,
-        vec![
+        [
             PointXYZRGBL::new(0.0, 1.0, 5.0, 0, 0, 0, 0),
             PointXYZRGBL::new(1.0, 1.5, 5.0, 1, 1, 1, 1),
             PointXYZRGBL::new(1.3, 1.6, 5.7, 2, 2, 2, 2),
@@ -473,7 +552,7 @@ fn converterxyzrgbl() {
                 u8::MAX,
                 u8::MAX,
                 u32::MAX
-            ),
+            )
         ]
     );
 }
@@ -482,11 +561,11 @@ fn converterxyzrgbl() {
 fn converterxyzrgb() {
     convert_from_into!(
         PointXYZRGB,
-        vec![
+        [
             PointXYZRGB::new(0.0, 1.0, 5.0, 0, 0, 0),
             PointXYZRGB::new(1.0, 1.5, 5.0, 1, 1, 1),
             PointXYZRGB::new(1.3, 1.6, 5.7, 2, 2, 2),
-            PointXYZRGB::new(f32::MAX, f32::MIN, f32::MAX, u8::MAX, u8::MAX, u8::MAX),
+            PointXYZRGB::new(f32::MAX, f32::MIN, f32::MAX, u8::MAX, u8::MAX, u8::MAX)
         ]
     );
 }
@@ -507,11 +586,11 @@ fn converterxyzrgb_from_vec() {
 fn converterxyzl() {
     convert_from_into!(
         PointXYZL,
-        vec![
+        [
             PointXYZL::new(0.0, 1.0, 5.0, 0),
             PointXYZL::new(1.0, 1.5, 5.0, 1),
             PointXYZL::new(1.3, 1.6, 5.7, 2),
-            PointXYZL::new(f32::MAX, f32::MIN, f32::MAX, u32::MAX),
+            PointXYZL::new(f32::MAX, f32::MIN, f32::MAX, u32::MAX)
         ]
     );
 }
@@ -520,18 +599,18 @@ fn converterxyzl() {
 fn converterxyzi() {
     convert_from_into!(
         PointXYZI,
-        vec![
+        [
             PointXYZI::new(0.0, 1.0, 5.0, 0.0),
             PointXYZI::new(1.0, 1.5, 5.0, 1.0),
             PointXYZI::new(1.3, 1.6, 5.7, 2.0),
-            PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX),
+            PointXYZI::new(f32::MAX, f32::MIN, f32::MAX, f32::MAX)
         ]
     );
 }
 
 #[test]
 fn write_xyzi_read_xyz() {
-    let write_cloud = vec![
+    let write_cloud = [
         PointXYZI::new(0.0, 1.0, 5.0, 0.0),
         PointXYZI::new(1.0, 1.5, 5.0, 1.0),
         PointXYZI::new(1.3, 1.6, 5.7, 2.0),
@@ -605,7 +684,7 @@ fn write_less_than_available() {
         }
     }
 
-    let write_cloud = vec![
+    let write_cloud = [
         CustomPoint {
             x: 1.0,
             y: 2.0,
