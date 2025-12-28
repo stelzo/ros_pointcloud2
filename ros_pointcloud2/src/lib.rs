@@ -533,7 +533,7 @@ impl PointCloud2MsgBuilder {
             return Err(MsgConversionError::InvalidFieldFormat);
         }
 
-        if self.data.len() as u32 % self.point_step != 0 {
+        if !(self.data.len() as u32).is_multiple_of(self.point_step) {
             return Err(MsgConversionError::DataLengthMismatch);
         }
 

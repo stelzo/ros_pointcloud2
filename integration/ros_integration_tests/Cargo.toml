@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 authors = ["ros_pointcloud2 tests"]
 description = "Integration tests for ros_pointcloud2 that require ROS client crates (optional features)."
+repository = "https://github.com/stelzo/ros_pointcloud2"
+license = "MIT OR Apache-2.0"
+keywords = ["ros", "pointcloud2", "integration", "tests"]
+categories = [
+  "development-tools::testing",
+]
 
 [dependencies]
 ros_pointcloud2 = { path = "../../ros_pointcloud2" }

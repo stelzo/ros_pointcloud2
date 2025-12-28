@@ -367,7 +367,7 @@ mod test {
     use pretty_assertions::assert_eq;
 
     #[cfg(feature = "derive")]
-    use std::fmt::Debug;
+    use core::fmt::Debug;
 
     macro_rules! convert_from_into {
         ($point:ty, $cloud:expr) => {
@@ -530,7 +530,7 @@ mod test {
 
         let mut msg = PointCloud2Msg::try_from_slice(&cloud).unwrap();
         // Convert the stored bytes to big-endian representation, then set the endian flag.
-        use ros_pointcloud2::{Endian, FieldDatatype};
+        use crate::{Endian, FieldDatatype};
         if cfg!(target_endian = "little") {
             for i in 0..cloud.len() {
                 let base = i * (msg.point_step as usize);
