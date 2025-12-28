@@ -64,14 +64,17 @@
 //! ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_serde!();
 //! // rclrs (experimental)
 //! ros_pointcloud2::impl_pointcloud2_for_rclrs!();
+//! ```
 //!
-//! // nalgebra support
+//! There is also nalgebra support to convert common point types to nalgebra `Point3` type.
+//! ```ignore
 //! ros_pointcloud2::impl_pointxyz_for_nalgebra!();
+//!
 //! use ros_pointcloud2::points::PointXYZI;
 //! use ros_pointcloud2::impl_nalgebra::AsNalgebra;
 //! use nalgebra::Point3;
 //! let p_xyzi = PointXYZI::new(4.0, 5.0, 6.0, 7.0);
-//! assert_eq!(AsNalgebra::xyz(&p_xyzi), Point3::new(4.0, 5.0, 6.0));
+//! assert_eq!(AsNalgebra::xyz(&p_xyzi), nalgebra::Point3::new(4.0, 5.0, 6.0));
 //! ```
 //!
 //! ## rclrs note
