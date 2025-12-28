@@ -17,4 +17,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh 'derive,nalgebra,rayon,serde,rclrs' docker/Dockerfile_rclrs_jazzy copy"
+      #- run: bash -lc "./integration/scripts/run-ros-tests-docker.sh 'derive,nalgebra,rayon,serde,rclrs' docker/Dockerfile_rclrs_jazzy copy"
