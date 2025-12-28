@@ -21,6 +21,7 @@ exclude = [
   "**/tests/**",
   "**/examples/**",
   "**/benches/**",
+  "**/docker/**",
   "**/target/**",
   "**/build/**",
   "**/dist/**",
