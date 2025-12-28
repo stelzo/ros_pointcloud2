@@ -6,7 +6,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ros_pointcloud2 = { path = "..", default-features = false, features = ["nalgebra", "derive"] }
+ros_pointcloud2 = { path = "..", default-features = false, features = [
+    "derive",
+] }
 
 [profile.dev]
 panic = "abort"
