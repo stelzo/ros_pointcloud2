@@ -5,7 +5,9 @@
   </p>
 </p>
 
-ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with feature flags.
+## NOTE: This crate is under active development for v1.0.0 release. See the docs.rs page for the latest stable documentation.
+
+ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with impl macros for common crates.
 
 Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/latest/ros_pointcloud2/) for a complete guide.
 
@@ -13,11 +15,7 @@ Get started with the example below, check out the other use cases in the `exampl
 
 ```toml
 [dependencies]
-ros_pointcloud2 = { version = "*", features = ["r2r"]} # r2r ros2
-# or
-ros_pointcloud2 = { version = "*", features = ["rosrust"]} # rosrust ros1
-# or
-ros_pointcloud2 = { version = "*", features = ["ros2-interfaces-jazzy-serde"]} # ros2-client
+ros_pointcloud2 = "1"
 ```
 
 ```rust
@@ -63,13 +61,33 @@ There are currently 4 integrations for common ROS crates. We tested them on the 
 - [ros2-client](https://github.com/Atostek/ros2-client.git)
   - Jazzy
 
-You can use `rosrust`, `r2r` or `ros2-client` by enabling the respective feature:
+You can use `rosrust`, `r2r` or `ros2-client` by prefixing the designated macro somewhere in your scope after adding your ros crate to your `Cargo.toml`.
+
+```rust
+// r2r
+ros_pointcloud2::impl_pointcloud2_for_r2r!();
+// rosrust
+ros_pointcloud2::impl_pointcloud2_for_rosrust!();
+// ros2-client
+ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_serde!();
+// ½[experimental] rclrs
+ros_pointcloud2::impl_pointcloud2_for_rclrs!();
+
+// nalgebra support for getting points as nalgebra types
+ros_pointcloud2::impl_pointxyz_for_nalgebra!();
+// then you can use the conversions with your current nalgebra setup
+use ros_pointcloud2::points::PointXYZI;
+use ros_pointcloud2::impl_nalgebra::AsNalgebra;
+let p_xyzi = PointXYZI::new(4.0, 5.0, 6.0, 7.0);
+assert_eq!(AsNalgebra::xyz(&p_xyzi), Point3::new(4.0, 5.0, 6.0));
+```
 
 ### rclrs (ros2_rust)
 
-Features do not work properly with `rcrls` because the messages are linked externally. You need to use tags instead.
+`rcrls` is not as easy to use as other crates due to its deep integration with ROS2. For v1.0.0, I tried to setup CI tests but was not able to compile the most recent `rclrs`. This does not affect the general API of this crate so it is here as an untested option for users who can get `rclrs` working in their environment. If you can get it working, please open a PR or issue to help others.
 
-Mind that this integration is deprecated until rclrs has a better message generation strategy.
+
+For all others, there is a special tag `v0.5.2_rclrs` that contains a tested version from some time ago that you can use as follows:
 
 ```toml
 [dependencies]

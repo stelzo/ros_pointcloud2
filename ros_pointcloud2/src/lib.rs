@@ -17,8 +17,73 @@
 //! - [`try_into_par_iter`](PointCloud2Msg::try_into_par_iter) requires `rayon` feature
 //! - [`try_from_par_iter`](PointCloud2Msg::try_from_par_iter) requires `rayon` feature
 //!
-//! For ROS interoperability, there are integrations available with feature flags. If you miss a message type, please open an issue or a PR.
-//! See the [`ros`] module for more information on how to integrate more libraries.
+//! # Integrations for ROS client crates
+//!
+//! Each integration is exposed as a consumer-side macro that generates the conversions between `PointCloud2Msg` and the client crate's message types. Simply add the client crate to your `Cargo.toml` and invoke the dedicated macro in your crate or test scope.
+//!
+//! - `rosrust` (ROS1)
+//!   - Macro: `ros_pointcloud2::impl_pointcloud2_for_rosrust!()`
+//! - `r2r` (Async ROS2 with C bindings)
+//!   - Macro: `ros_pointcloud2::impl_pointcloud2_for_r2r!()`
+//! - `rclrs` (ROS2 Rust client) — experimental
+//!   - Macro: `ros_pointcloud2::impl_pointcloud2_for_rclrs!()`
+//!   - Note: `rclrs` can be difficult to compile across environments due to its deep ROS2 toolchain integration. If you need
+//!     a working combination, consider using the `v0.5.2_rclrs` tag of this repository (see section below) or file an issue/PR
+//!     with your environment details so we can improve support.
+//! - `ros2-client` (ROS2 implementation on top of RustDDS. Via pre-generated `ros2-interfaces-jazzy` crate.)
+//!   - Macros: `ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_serde!()` (serde) and
+//!     `ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_rkyv!()` (rkyv)
+//!
+//! Additionally, nalgebra helper macros are provided to convert point types into nalgebra types:
+//!
+//! `ros_pointcloud2::impl_pointxyz_for_nalgebra!()`
+//!
+//! ## Quick examples
+//!
+//! Add the client crate to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! ros_pointcloud2 = "*"
+//!
+//! r2r = "0.9"
+//! # ... or maybe for ROS1:
+//! rosrust = "0.9"
+//!
+//! nalgebra = "0.34"
+//! ```
+//!
+//! Then invoke the macro in your crate root or tests to generate conversions:
+//!
+//! ```ignore
+//! // r2r
+//! ros_pointcloud2::impl_pointcloud2_for_r2r!();
+//! // rosrust
+//! ros_pointcloud2::impl_pointcloud2_for_rosrust!();
+//! // ros2-client (serde)
+//! ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_serde!();
+//! // rclrs (experimental)
+//! ros_pointcloud2::impl_pointcloud2_for_rclrs!();
+//!
+//! // nalgebra support
+//! ros_pointcloud2::impl_pointxyz_for_nalgebra!();
+//! use ros_pointcloud2::points::PointXYZI;
+//! use ros_pointcloud2::impl_nalgebra::AsNalgebra;
+//! use nalgebra::Point3;
+//! let p_xyzi = PointXYZI::new(4.0, 5.0, 6.0, 7.0);
+//! assert_eq!(AsNalgebra::xyz(&p_xyzi), Point3::new(4.0, 5.0, 6.0));
+//! ```
+//!
+//! ## rclrs note
+//!
+//! There is a non-experimental option to use the `v0.5.2_rclrs` tag which was tested but uses an older version of this crate:
+//!
+//! ```toml
+//! [dependencies]
+//! ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.2_rclrs" }
+//! ```
+//!
+//! For `rclrs`, you may also need to add runtime dependencies in your ROS package `package.xml` for linking (e.g. `std_msgs`, `sensor_msgs`, `builtin_interfaces`).
 //!
 //! Common point types like [`PointXYZ`](points::PointXYZ) or [`PointXYZI`](points::PointXYZI) are provided. See the full list [`here`](points). You can easily add any additional custom type.
 //! See [custom_enum_field_filter.rs](https://github.com/stelzo/ros_pointcloud2/blob/main/ros_pointcloud2/examples/custom_enum_field_filter.rs) for an example.
@@ -53,7 +118,7 @@
 //!
 //! # Features
 //! - std *(enabled by default)* — Omit this feature to use this library in no_std environments. ROS integrations and 'rayon' will not work with no_std.
-//! - ½strict-type-check *(enabled by default)* — When disabled, allows byte conversions between compatible types even if the field names do not match. Packed RGB fields are specially handled.
+//! - ½strict-type-check *(enabled by default)* — When disabled, allows byte conversions between compatible types even if the field names do not match. Packed RGB fields are specially handled and allowed.
 //! - derive — Offers implementations for the [`PointConvertible`] trait needed for custom points.
 //! - serde — Enables serde serialization and deserialization for [`PointCloud2Msg`] and related types.
 //! - rkyv — Enables rkyv serialization and deserialization for [`PointCloud2Msg`] and related types.

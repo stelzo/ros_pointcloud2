@@ -2,21 +2,11 @@
 //!
 //! This intermediate layer allows various ROS libraries to be integrated to the conversion process.
 //!
-//!   1. Add an *optional* dependency and a matching feature in `Cargo.toml`, e.g.:
-//!      ```toml
-//!      [dependencies]
-//!      r2r = { version = "...", optional = true }
-//!
-//!      [features]
-//!      r2r = []
-//!      ```
-//!   2. Gate conversion implementations with `#[cfg(feature = "r2r")]`.
-//!   3. Prefer consumer-side macros when possible to avoid pulling optional ROS crates into this crate.
-//!       - Provide a macro like `impl_pointcloud2_for_<crate>!()` that users can invoke in their own crates or tests to generate conversions.
-//!
-//! - **Integration tests**:
-//!   - Add optional ROS client deps to `integration/ros_integration_tests/Cargo.toml` and provide a feature that depends on both the client crate and `ros_pointcloud2/<feature>` (e.g. `r2r = ["dep:r2r", "ros_pointcloud2/r2r"]`).
-//!   - Add tests under `integration/`. Use the existing tests as examples.
+//!   1. Write your conversion macro in this file to generate conversion functions between `PointCloud2Msg` and the target ROS crate.
+//!       - A typical name is `impl_pointcloud2_for_<crate>!()`.
+//!   2. Test your implementation in `integration/ros_integration_tests/`. See existing tests for examples and use Docker if needed to set up ROS environments.
+//!   3. Create a Workflow in `.github/workflows/` to run the tests with the appropriate features enabled.
+//!   4. Create a PR to add the new feature to `Cargo.toml` and document it in `lib.rs`.
 //!
 use alloc::string::String;
 
