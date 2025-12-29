@@ -8,11 +8,9 @@
 //!   3. Create a Workflow in `.github/workflows/` to run the tests with the appropriate features enabled.
 //!   4. Create a PR to add the new feature to `Cargo.toml` and document it in `lib.rs`.
 //!
-use alloc::borrow::Cow;
 use alloc::string::String;
 
 /// Describing a point encoded in the byte buffer of a PointCloud2 message. See the [official message description](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointField.html) for more information.
-
 /// [Time](https://docs.ros2.org/latest/api/builtin_interfaces/msg/Time.html) representation for ROS messages.
 #[derive(Clone, Debug, Default, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -46,7 +44,8 @@ pub struct HeaderMsg {
     derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
 )]
 pub struct PointFieldMsg {
-    pub name: Cow<'static, str>,
+    #[cfg_attr(feature = "rkyv", rkyv(with = crate::ros::cowstr_with::AsString))]
+    pub name: CowStr,
     pub offset: u32,
     pub datatype: u8,
     pub count: u32,
@@ -56,10 +55,129 @@ pub struct PointFieldMsg {
 impl Default for PointFieldMsg {
     fn default() -> Self {
         Self {
-            name: Cow::Borrowed(""),
+            name: make_field_name(""),
             offset: 0,
             datatype: 0,
             count: 1,
+        }
+    }
+}
+
+// Newtype wrapper that preserves `Cow<'static, str>` at runtime but serializes as `String`.
+// This avoids requiring `Cow<'static, str>` to implement `rkyv::Archive` while preserving
+// zero-copy behavior in the normal runtime path.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct CowStr(pub alloc::borrow::Cow<'static, str>);
+
+impl From<&'static str> for CowStr {
+    fn from(s: &'static str) -> Self {
+        Self(alloc::borrow::Cow::Borrowed(s))
+    }
+}
+
+impl From<String> for CowStr {
+    fn from(s: String) -> Self {
+        Self(alloc::borrow::Cow::Owned(s))
+    }
+}
+
+impl CowStr {
+    #[must_use]
+    pub fn into_owned(self) -> alloc::string::String {
+        match self.0 {
+            alloc::borrow::Cow::Owned(s) => s,
+            alloc::borrow::Cow::Borrowed(b) => b.to_string(),
+        }
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+pub fn make_field_name(s: &'static str) -> CowStr {
+    CowStr::from(s)
+}
+
+impl core::ops::Deref for CowStr {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+
+impl PartialEq<str> for CowStr {
+    fn eq(&self, other: &str) -> bool {
+        self.0.as_ref() == other
+    }
+}
+
+impl PartialEq<&str> for CowStr {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.as_ref() == *other
+    }
+}
+
+#[cfg(feature = "rkyv")]
+pub mod cowstr_with {
+    use super::CowStr;
+    use alloc::borrow::Cow;
+    use alloc::string::String;
+    use rkyv::rancor::Fallible;
+    use rkyv::with::{ArchiveWith, DeserializeWith, SerializeWith};
+    use rkyv::{Archive, Deserialize, Serialize};
+
+    pub struct AsString;
+
+    impl ArchiveWith<CowStr> for AsString {
+        type Archived = <String as Archive>::Archived;
+        type Resolver = <String as Archive>::Resolver;
+
+        fn resolve_with(
+            field: &CowStr,
+            resolver: Self::Resolver,
+            out: rkyv::Place<Self::Archived>,
+        ) {
+            let s: String = match &field.0 {
+                Cow::Owned(s) => s.clone(),
+                Cow::Borrowed(b) => b.to_string(),
+            };
+            <String as Archive>::resolve(&s, resolver, out);
+        }
+    }
+
+    impl<S> SerializeWith<CowStr, S> for AsString
+    where
+        S: Fallible + ?Sized,
+        <S as Fallible>::Error: rkyv::rancor::Source,
+        str: rkyv::SerializeUnsized<S>,
+    {
+        fn serialize_with(field: &CowStr, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+            let s: String = match &field.0 {
+                Cow::Owned(s) => s.clone(),
+                Cow::Borrowed(b) => b.to_string(),
+            };
+            <String as Serialize<S>>::serialize(&s, serializer)
+        }
+    }
+
+    impl<D> DeserializeWith<<String as Archive>::Archived, CowStr, D> for AsString
+    where
+        D: Fallible + ?Sized,
+        String: Deserialize<<String as Archive>::Archived, D>,
+    {
+        fn deserialize_with(
+            field: &<String as Archive>::Archived,
+            deserializer: &mut D,
+        ) -> Result<CowStr, D::Error> {
+            let s: String =
+                <<String as Archive>::Archived as rkyv::Deserialize<String, D>>::deserialize(
+                    field,
+                    deserializer,
+                )?;
+            Ok(CowStr(Cow::Owned(s)))
         }
     }
 }
@@ -86,7 +204,7 @@ impl From<safe_drive::msg::common_interfaces::sensor_msgs::msg::PointCloud2>
                 .fields
                 .iter()
                 .map(|field| PointFieldMsg {
-                    name: field.name.get_string().into(),
+                    name: make_field_name(field.name.get_string()),
                     offset: field.offset,
                     datatype: field.datatype,
                     count: field.count,

@@ -117,7 +117,7 @@ elif [[ "$MODE" == "copy" ]]; then
     echo "Copying package to container $container_id:/ros2_rust_ws/src/ros_pointcloud2..."
     docker cp "$ROOT/ros_pointcloud2" "$container_id":/ros2_rust_ws/src/ros_pointcloud2
 
-    echo "Starting container $container_id... (ENTRYPOINT will run inside)"
+    echo "Starting container $container_id..."
     docker start "$container_id"
 
     echo "Streaming container logs (Ctrl-C to detach)..."

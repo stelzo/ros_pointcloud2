@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    #![allow(clippy::unwrap_used)]
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::unnecessary_cast)]
 
     use crate::prelude::*;
     use crate::{ByteSimilarity, PointData};
@@ -424,19 +424,15 @@ mod test {
         let msg = PointCloud2Msg::try_from_slice(&pts).unwrap();
 
         // strict zero-copy view
-        let slice: &[PointXYZ] = msg
-            .try_into_slice_strict::<3, PointXYZ>()
-            .expect("strict should view as slice");
+        let slice: &[PointXYZ] = msg.try_into_slice_strict::<3, PointXYZ>().unwrap();
         assert_eq!(slice.len(), pts.len());
         assert_eq!(slice[0].x, pts[0].x);
-        assert_eq!(slice.as_ptr() as *const u8, msg.data.as_ptr() as *const u8);
+        assert_eq!(slice.as_ptr() as *const u8, msg.data.as_ptr());
 
         // non-strict convenience API should return a borrowed slice in the same case
-        let cow = msg
-            .try_into_slice::<3, PointXYZ>()
-            .expect("should return borrowed in this case");
+        let cow = msg.try_into_slice::<3, PointXYZ>().unwrap();
         match cow {
-            Cow::Borrowed(s) => assert_eq!(s.as_ptr() as *const u8, msg.data.as_ptr() as *const u8),
+            Cow::Borrowed(s) => assert_eq!(s.as_ptr() as *const u8, msg.data.as_ptr()),
             Cow::Owned(_) => panic!("expected borrowed slice but got owned"),
         }
     }
@@ -462,9 +458,7 @@ mod test {
         assert!(msg.try_into_slice_strict::<4, PointB>().is_err());
 
         // The convenience API should fall back to an owned Vec (Cow::Owned)
-        let cow = msg
-            .try_into_slice::<4, PointB>()
-            .expect("fallback to owned vec should succeed");
+        let cow = msg.try_into_slice::<4, PointB>().unwrap();
         match cow {
             Cow::Owned(vec) => assert_eq!(vec.len(), pts.len()),
             Cow::Borrowed(_) => panic!("expected owned fallback due to stride mismatch"),
@@ -503,9 +497,7 @@ mod test {
         assert!(msg.try_into_slice_strict::<3, PointXYZ>().is_err());
 
         // convenience API should succeed and return an owned, converted Vec
-        let cow = msg
-            .try_into_slice::<3, PointXYZ>()
-            .expect("fallback should succeed");
+        let cow = msg.try_into_slice::<3, PointXYZ>().unwrap();
         match cow {
             Cow::Owned(v) => assert_eq!(v, pts),
             Cow::Borrowed(_) => panic!("expected owned fallback due to endian mismatch"),
@@ -583,13 +575,12 @@ mod test {
         // strict owned variant should succeed and reuse allocation of the consumed vector
         let owned = pts.clone();
         let ptr_owned = owned.as_ptr() as *const u8;
-        let msg_strict =
-            PointCloud2Msg::try_from_vec_strict(owned).expect("try_from_vec_strict should succeed");
+        let msg_strict = PointCloud2Msg::try_from_vec_strict(owned).unwrap();
         assert_eq!(msg_strict.dimensions.len(), len);
         assert_eq!(msg_strict.data.as_ptr() as *const u8, ptr_owned);
 
         // convenience API should also succeed and prefer strict path when possible
-        let msg = PointCloud2Msg::try_from_vec(pts).expect("try_from_vec should succeed");
+        let msg = PointCloud2Msg::try_from_vec(pts).unwrap();
         assert_eq!(msg.dimensions.len(), len);
     }
 

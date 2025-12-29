@@ -209,8 +209,6 @@ pub mod iterator;
 mod tests;
 
 use crate::ros::{HeaderMsg, PointFieldMsg};
-use alloc::borrow::Cow;
-
 use core::str::FromStr;
 
 #[macro_use]
@@ -745,7 +743,7 @@ impl PointCloud2Msg {
                     count,
                 } => {
                     fields.push(PointFieldMsg {
-                        name: Cow::Borrowed(field_names[fields.len()]),
+                        name: crate::ros::make_field_name(field_names[fields.len()]),
                         offset: offset as u32,
                         datatype,
                         ..Default::default()
@@ -806,7 +804,7 @@ impl PointCloud2Msg {
                 let _ = FieldDatatype::try_from(datatype_code)?;
 
                 *field_val = PointFieldMsg {
-                    name: Cow::Borrowed(field_name),
+                    name: crate::ros::make_field_name(field_name),
                     offset: pdata_offsets_acc,
                     datatype: datatype_code,
                     count: 1,
@@ -903,7 +901,7 @@ impl PointCloud2Msg {
                                 count,
                             } => {
                                 fields.push(PointFieldMsg {
-                                    name: Cow::Borrowed(field_names[fields.len()]),
+                                    name: crate::ros::make_field_name(field_names[fields.len()]),
                                     offset,
                                     datatype,
                                     ..Default::default()
@@ -927,6 +925,7 @@ impl PointCloud2Msg {
                 let bytes_total = slice.len() * point_step as usize;
                 cloud.data.resize(bytes_total, u8::default());
                 let raw_data: *mut C = cloud.data.as_mut_ptr() as *mut C;
+
                 // SAFETY: `cloud.data` was resized to `bytes_total` above, so the destination
                 // pointer is valid for `bytes_total` bytes. `slice` points to `slice.len()` elements
                 // of `C` and `bytes_total == slice.len() * point_step`, so copying `bytes_total`
@@ -962,27 +961,25 @@ impl PointCloud2Msg {
 
         let c_size = core::mem::size_of::<C>();
         let vec_len = vec.len();
-        let point_step_usize = point_step as usize;
-
-        if c_size != point_step_usize {
+        if c_size != point_step {
             return Err((
                 ConversionError::VecElementSizeMismatch {
                     element_size: c_size,
-                    expected_point_step: point_step_usize,
+                    expected_point_step: point_step,
                 },
                 vec,
             ));
         }
 
-        let bytes_total = vec_len * point_step_usize;
-        let cap_bytes = vec.capacity() * point_step_usize;
+        let bytes_total = vec_len * point_step;
+        let cap_bytes = vec.capacity() * point_step;
         let ptr = vec.as_mut_ptr() as *mut u8;
+
         // Move ownership of the allocation from `vec` into a `Vec<u8>` without copying.
         // SAFETY: `ptr` came from the `vec` allocation and `bytes_total` is the number of
         // bytes actually used by the elements (vec.len() * point_step). `cap_bytes` is the
-        // original capacity in bytes (vec.capacity() * point_step). `Vec::from_raw_parts`
-        // therefore reconstructs a valid `Vec<u8>` that owns the same allocation we just
-        // forgot. After this point we must not use the original `vec` value (we forgot it).
+        // original capacity in bytes. `Vec::from_raw_parts` therefore reconstructs a valid `Vec<u8>` that owns the same allocation we just
+        // forgot. After this point we must not use the original `vec` value.
         core::mem::forget(vec);
         let data = unsafe { Vec::from_raw_parts(ptr, bytes_total, cap_bytes) };
 
@@ -1141,9 +1138,7 @@ impl PointCloud2Msg {
     /// - the field layout is byte-compatible (`byte_similarity == Equal`)
     /// - `point_step == size_of::<C>()` (no interleaving)
     /// - the underlying buffer pointer is properly aligned for `C`
-    pub fn try_into_slice_strict<'a, const N: usize, C>(
-        &'a self,
-    ) -> Result<&'a [C], ConversionError>
+    pub fn try_into_slice_strict<const N: usize, C>(&self) -> Result<&[C], ConversionError>
     where
         C: PointConvertible<N> + Copy,
     {
@@ -1162,12 +1157,12 @@ impl PointCloud2Msg {
             return Err(ConversionError::UnsupportedSliceView);
         }
 
-        if self.data.len() % c_size != 0 {
+        if !self.data.len().is_multiple_of(c_size) {
             return Err(ConversionError::DataLengthMismatch);
         }
 
         let ptr = self.data.as_ptr() as *const C;
-        if (ptr as usize) % core::mem::align_of::<C>() != 0 {
+        if !(ptr as usize).is_multiple_of(core::mem::align_of::<C>()) {
             return Err(ConversionError::UnalignedBuffer);
         }
 
