@@ -252,12 +252,11 @@ impl PointXYZ {
 /// Usage (in the consumer crate):
 ///
 /// ```rust ignore
-/// // In Cargo.toml of the consumer add `nalgebra = "..."` and enable it for the test
-/// // Then in a test or module:
+/// // In Cargo.toml of the consumer add `nalgebra = "..."`
 /// ros_pointcloud2::impl_pointxyz_for_nalgebra!();
 /// use impl_nalgebra::AsNalgebra;
 /// let p = ros_pointcloud2::PointXYZ::new(1.0,2.0,3.0);
-/// let np = p.xyz(); // via the extension trait (method name conflicts avoided by importing AsNalgebra)
+/// let np = p.xyz();
 /// ```
 #[macro_export]
 macro_rules! impl_pointxyz_for_nalgebra {

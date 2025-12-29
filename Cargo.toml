@@ -5,6 +5,7 @@ members = [
     "ros_pointcloud2",
     "rpcl2-derive",
     "integration/ros_integration_tests",
+    "integration/roslibrust_tests",
 ]
 
 resolver = "2"

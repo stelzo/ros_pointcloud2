@@ -2,11 +2,7 @@ name: Tests
 
 on:
   push:
-    branches-ignore:
-      - rclrs
   pull_request:
-    branches-ignore:
-      - rclrs
   workflow_dispatch:
 
 env:
@@ -17,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -24,8 +22,10 @@ jobs:
         run: cargo clippy -p ros_pointcloud2 -p rpcl2-derive -p derive-test --all-targets --features derive,rayon,serde,rkyv -- -D warnings
       - name: Build examples with features
         run: cargo build --examples --features derive,rayon,serde,rkyv
+      - name: Binstall
+        run: cargo install cargo-binstall
       - name: Install cargo-msrv
-        run: cargo install cargo-msrv
+        run: cargo binstall --disable-telemetry --no-track --no-confirm cargo-msrv
       - name: Verify MSRV
         run: cd ros_pointcloud2 && cargo msrv verify
       - name: Test library

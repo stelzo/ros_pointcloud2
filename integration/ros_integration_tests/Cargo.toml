@@ -2,7 +2,7 @@
 name = "ros_integration_tests"
 version = "0.1.0"
 edition = "2021"
-authors = ["ros_pointcloud2 tests"]
+authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Integration tests for ros_pointcloud2 that require ROS client crates (optional features)."
 repository = "https://github.com/stelzo/ros_pointcloud2"
 license = "MIT OR Apache-2.0"

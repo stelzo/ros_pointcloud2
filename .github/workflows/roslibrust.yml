@@ -1,4 +1,4 @@
-name: Build no_std
+name: roslibrust
 
 on:
   workflow_run:
@@ -16,8 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
         with:
-          target: thumbv7em-none-eabihf
-      - name: no_std build
-        run: cargo build --target thumbv7em-none-eabihf --manifest-path ros_pointcloud2/ensure_no_std/Cargo.toml
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@stable
+      - name: ROS1
+        run: cargo run --features roslibrust --bin roslibrust_ros1_tests
+      - name: ROS2
+        run: cargo run --features roslibrust --bin roslibrust_ros2_tests

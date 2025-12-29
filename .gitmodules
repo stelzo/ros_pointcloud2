@@ -1,0 +1,9 @@
+[submodule "integration/roslibrust_tests/assets/ros1"]
+	path = integration/roslibrust_tests/assets/ros1
+	url = https://github.com/ros/common_msgs.git
+[submodule "integration/roslibrust_tests/assets/ros2_common_interfaces"]
+	path = integration/roslibrust_tests/assets/ros2_common_interfaces
+	url = https://github.com/ros2/common_interfaces.git
+[submodule "integration/roslibrust_tests/assets/ros2_required_msgs/rcl_interfaces"]
+	path = integration/roslibrust_tests/assets/ros2_required_msgs/rcl_interfaces
+	url = https://github.com/ros2/rcl_interfaces.git

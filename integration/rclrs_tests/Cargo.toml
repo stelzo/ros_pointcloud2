@@ -2,8 +2,8 @@
 name = "ros_pointcloud2_tests"
 version = "0.1.0"
 edition = "2021"
-authors = ["ros_pointcloud2 tests"]
-description = "Node-like test crate that depends on ros_pointcloud2 and rclrs (optional)."
+authors = ["Christopher Sieh <stelzo@steado.de>"]
+description = "Test crate for rclrs with ros_pointcloud2."
 
 [dependencies]
 ros_pointcloud2 = { path = "../../ros_pointcloud2" }

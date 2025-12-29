@@ -1,28 +1,36 @@
-//! The library provides the [`PointCloud2Msg`] type, which implements conversions to and from slices and iterators.
+//! This library provides the [`PointCloud2Msg`] type, which implements conversions to and from slices and iterators.
+//! All conversions are optimized for performance and minimal memory operations. They range from zero-copy to fully owned allocations.
 //!
-//! Vector conversions are optimized for zero-copy or minimal copy. They are usually a good default for moving data around.
-//! - [`try_into_slice`](PointCloud2Msg::try_into_slice) tries to create a zero-copy slice view, falls back to owned Vec if needed
-//! - [`try_into_slice_strict`](PointCloud2Msg::try_into_slice_strict) hard fail on unsupported layouts
-//! - [`try_from_slice`](PointCloud2Msg::try_from_slice) minimal copy from a slice
-
-//! - [`try_into_vec`](PointCloud2Msg::try_into_vec) creates an owned Vec with minimal memory operations
-//! - [`try_from_vec`](PointCloud2Msg::try_from_vec) creates a message from an owned Vec with minimal memory operations
-//! - [`try_from_vec_strict`](PointCloud2Msg::try_from_vec_strict) hard fail on unsupported layouts
+//! Vector conversions are optimal for moving data around and a good default choice.
+//! - [`try_into_slice`](PointCloud2Msg::try_into_slice) creates a slice view
+//! - [`try_from_slice`](PointCloud2Msg::try_from_slice) creates a message from a slice
 //!
-//! Iterators are useful for more sophisticated point types or when doing a lot of processing per point.
-//! - [`try_from_iter`](PointCloud2Msg::try_from_iter) allocates a new message from an iterator with minimal copies
-//! - [`try_into_iter`](PointCloud2Msg::try_into_iter) zero-copy
+//! - [`try_into_vec`](PointCloud2Msg::try_into_vec) creates an owned Vec
+//! - [`try_from_vec`](PointCloud2Msg::try_from_vec) creates a message from an owned Vec
 //!
-//! These feature predictable performance but they do not scale well with large clouds. Learn more about that in the [performance section](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#performance) of the repository.
+//! When the layout is compatible, the following functions reuse the underlying buffer without copies but error on unsupported layouts.
+//! They are internally used by the non-strict versions when possible, but if you need to ensure zero-copy (and you can guarantee the memory layout) you can use them directly.
+//! - [`try_into_slice_strict`](PointCloud2Msg::try_into_slice_strict) zero-copy slice view, errors on missmatched layouts
+//! - [`try_from_vec_strict`](PointCloud2Msg::try_from_vec_strict) zero-copy from owned Vec, errors on missmatched layouts
+//!
+//! Iterators are useful for more sophisticated point types, layout missmatches or when doing a lot of processing per point.
+//! They offer maximum flexibility and fully support all edge cases of the PointCloud2 message.
+//! While, in theory, this comes at the cost of performance, they often get compiled to similar performant binaries as the slice and Vec conversions when used with simple point types thanks to SIMD and other optimizations.
+//! - [`try_from_iter`](PointCloud2Msg::try_from_iter) allocates a new message from an iterator
+//! - [`try_into_iter`](PointCloud2Msg::try_into_iter) iterator over points in the message
+//!
+//! They feature predictable performance but they do not scale well with large clouds. Learn more about that in the [performance section](https://github.com/stelzo/ros_pointcloud2?tab=readme-ov-file#performance) of the repository.
 //! The iterators are useful when your conversions are more complex than a simple copy or the cloud is small enough.
 //!
-//! When the cloud is getting larger or you are doing a lot of processing per point, switch to the parallel iterators.
+//! When the cloud is getting larger or you are doing a lot of processing per point, turn on the `rayon` feature and switch to the parallel iterators.
 //! - [`try_into_par_iter`](PointCloud2Msg::try_into_par_iter) requires `rayon` feature
 //! - [`try_from_par_iter`](PointCloud2Msg::try_from_par_iter) requires `rayon` feature
 //!
+//! They often outperform all other methods, even for smaller clouds thanks to the rayon optimizations but come at the cost of higher memory and CPU usage.
+//!
 //! # Support for ROS client crates
 //!
-//! Support for the following client crates is provided via consumer-side macros that generate conversions between `PointCloud2Msg` and the client crate's message types: `r2r`, `rclrs`, `rosrust`, and `ros2-interfaces-jazzy-serde`.
+//! Support for client crates is provided via consumer-side macros that generate conversions between `PointCloud2Msg` and the client crate's message types.
 //!
 //! Simply add the client crate to your `Cargo.toml` and invoke the corresponding macro in your crate scope.
 //!
@@ -46,6 +54,12 @@
 //! - rclrs: [`impl_pointcloud2_for_rclrs!`]
 //! - rosrust: [`impl_pointcloud2_for_rosrust!`]
 //! - ros2-client: [`impl_pointcloud2_for_ros2_interfaces_jazzy_serde!`]
+//! - roslibrust ROS1: [`impl_pointcloud2_for_roslibrust_ros1!`]
+//! - roslibrust ROS2: [`impl_pointcloud2_for_roslibrust_ros2!`]
+//!
+//! The roslibrust macros need to be invoked with the crate root where the messages are included via `include!`.
+//!
+//! For example: `impl_pointcloud2_for_roslibrust_ros2!(crate);`
 //!
 //! Also, indicate the following dependencies to your linker inside the `package.xml` of your package if your crate of choice uses the xml to link messages.
 //!
@@ -55,7 +69,7 @@
 //! <depend>builtin_interfaces</depend>
 //! ```
 //!
-//! There is also nalgebra support to convert common point types to nalgebra `Point3` type [`impl_pointxyz_for_nalgebra!`].
+//! There is also [nalgebra](https://docs.rs/nalgebra/latest/nalgebra/) support to convert common point types to nalgebra `Point3` type [`impl_pointxyz_for_nalgebra!`].
 //!
 //! ```ignore
 //! ros_pointcloud2::impl_pointxyz_for_nalgebra!();
@@ -87,11 +101,11 @@
 //! // impl_pointcloud2_for_r2r!();
 //!
 //! // Convert to your ROS crate message type.
-//! // let msg = ros_pointcloud2::impl_r2r::from_pointcloud2_msg(out_msg);
+//! // let msg = impl_r2r::from_pointcloud2_msg(out_msg);
 //! // Publish ...
 //!
 //! // ... now incoming from a topic.
-//! // let in_msg = ros_pointcloud2::impl_r2r::to_pointcloud2_msg(msg);
+//! // let in_msg = impl_r2r::to_pointcloud2_msg(msg);
 //! let in_msg = out_msg;
 //!
 //! let processed_cloud = in_msg.try_into_iter().unwrap()

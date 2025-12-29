@@ -18,5 +18,7 @@ pub use crate::impl_pointcloud2_for_r2r;
 pub use crate::impl_pointcloud2_for_rclrs;
 pub use crate::impl_pointcloud2_for_ros2_interfaces_jazzy_rkyv;
 pub use crate::impl_pointcloud2_for_ros2_interfaces_jazzy_serde;
+pub use crate::impl_pointcloud2_for_roslibrust_ros1;
+pub use crate::impl_pointcloud2_for_roslibrust_ros2;
 pub use crate::impl_pointcloud2_for_rosrust;
 pub use crate::impl_pointxyz_for_nalgebra;

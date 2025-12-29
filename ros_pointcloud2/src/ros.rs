@@ -306,7 +306,7 @@ macro_rules! impl_pointcloud2_for_r2r {
             ) -> ::ros_pointcloud2::PointCloud2Msg {
                 ::ros_pointcloud2::PointCloud2Msg {
                     header: ::ros_pointcloud2::ros::HeaderMsg {
-                        seq: 0,
+                        seq: 0, // removed in ROS2
                         stamp: time_to_internal(msg.header.stamp),
                         frame_id: msg.header.frame_id,
                     },
@@ -401,7 +401,7 @@ macro_rules! impl_pointcloud2_for_ros2_interfaces_jazzy_serde {
             ) -> ::ros_pointcloud2::PointCloud2Msg {
                 ::ros_pointcloud2::PointCloud2Msg {
                     header: ::ros_pointcloud2::ros::HeaderMsg {
-                        seq: 0,
+                        seq: 0, // removed in ROS2
                         stamp: time_to_internal(msg.header.stamp),
                         frame_id: msg.header.frame_id,
                     },
@@ -498,7 +498,7 @@ macro_rules! impl_pointcloud2_for_ros2_interfaces_jazzy_rkyv {
             ) -> ::ros_pointcloud2::PointCloud2Msg {
                 ::ros_pointcloud2::PointCloud2Msg {
                     header: ::ros_pointcloud2::ros::HeaderMsg {
-                        seq: 0,
+                        seq: 0, // removed in ROS2
                         stamp: time_to_internal(msg.header.stamp),
                         frame_id: msg.header.frame_id,
                     },
@@ -697,7 +697,7 @@ macro_rules! impl_pointcloud2_for_rclrs {
             ) -> ::ros_pointcloud2::PointCloud2Msg {
                 ::ros_pointcloud2::PointCloud2Msg {
                     header: ::ros_pointcloud2::ros::HeaderMsg {
-                        seq: 0,
+                        seq: 0, // removed in ROS2
                         stamp: time_to_internal(msg.header.stamp),
                         frame_id: msg.header.frame_id,
                     },
@@ -777,6 +777,169 @@ macro_rules! impl_pointcloud2_for_rclrs {
                 builtin_interfaces::msg::Time {
                     sec: time.sec,
                     nanosec: time.nanosec,
+                }
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_pointcloud2_for_roslibrust_ros1 {
+    ($root:path) => {
+        pub mod impl_roslibrust_ros1 {
+            use $root as msg_root;
+            pub fn to_pointcloud2_msg(
+                msg: msg_root::sensor_msgs::PointCloud2,
+            ) -> ::ros_pointcloud2::PointCloud2Msg {
+                ::ros_pointcloud2::PointCloud2Msg {
+                    header: ::ros_pointcloud2::ros::HeaderMsg {
+                        seq: msg.header.seq,
+                        stamp: ::ros_pointcloud2::ros::TimeMsg {
+                            sec: msg.header.stamp.secs as i32,
+                            nanosec: msg.header.stamp.nsecs as u32,
+                        },
+                        frame_id: msg.header.frame_id,
+                    },
+                    dimensions: ::ros_pointcloud2::CloudDimensions {
+                        width: msg.width,
+                        height: msg.height,
+                    },
+                    fields: msg
+                        .fields
+                        .into_iter()
+                        .map(|field| ::ros_pointcloud2::ros::PointFieldMsg {
+                            name: field.name.into(),
+                            offset: field.offset,
+                            datatype: field.datatype,
+                            count: field.count,
+                        })
+                        .collect(),
+                    endian: if msg.is_bigendian {
+                        ::ros_pointcloud2::Endian::Big
+                    } else {
+                        ::ros_pointcloud2::Endian::Little
+                    },
+                    point_step: msg.point_step,
+                    row_step: msg.row_step,
+                    data: msg.data,
+                    dense: if msg.is_dense {
+                        ::ros_pointcloud2::Denseness::Dense
+                    } else {
+                        ::ros_pointcloud2::Denseness::Sparse
+                    },
+                }
+            }
+
+            pub fn from_pointcloud2_msg(
+                msg: ::ros_pointcloud2::PointCloud2Msg,
+            ) -> msg_root::sensor_msgs::PointCloud2 {
+                msg_root::sensor_msgs::PointCloud2 {
+                    header: msg_root::std_msgs::Header {
+                        seq: msg.header.seq,
+                        stamp: roslibrust::codegen::integral_types::Time {
+                            secs: msg.header.stamp.sec,
+                            nsecs: msg.header.stamp.nanosec as i32,
+                        },
+                        frame_id: msg.header.frame_id,
+                    },
+                    height: msg.dimensions.height,
+                    width: msg.dimensions.width,
+                    fields: msg
+                        .fields
+                        .into_iter()
+                        .map(|field| msg_root::sensor_msgs::PointField {
+                            name: field.name.into_owned(),
+                            offset: field.offset,
+                            datatype: field.datatype,
+                            count: field.count,
+                        })
+                        .collect(),
+                    is_bigendian: matches!(msg.endian, ::ros_pointcloud2::Endian::Big),
+                    point_step: msg.point_step,
+                    row_step: msg.row_step,
+                    data: msg.data,
+                    is_dense: matches!(msg.dense, ::ros_pointcloud2::Denseness::Dense),
+                }
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_pointcloud2_for_roslibrust_ros2 {
+    ($root:path) => {
+        pub mod impl_roslibrust_ros2 {
+            use $root as msg_root;
+            pub fn to_pointcloud2_msg(
+                msg: msg_root::sensor_msgs::PointCloud2,
+            ) -> ::ros_pointcloud2::PointCloud2Msg {
+                ::ros_pointcloud2::PointCloud2Msg {
+                    header: ::ros_pointcloud2::ros::HeaderMsg {
+                        seq: 0, // removed in ROS2
+                        stamp: ::ros_pointcloud2::ros::TimeMsg {
+                            sec: msg.header.stamp.sec as i32,
+                            nanosec: msg.header.stamp.nanosec as u32,
+                        },
+                        frame_id: msg.header.frame_id,
+                    },
+                    dimensions: ::ros_pointcloud2::CloudDimensions {
+                        width: msg.width,
+                        height: msg.height,
+                    },
+                    fields: msg
+                        .fields
+                        .into_iter()
+                        .map(|field| ::ros_pointcloud2::ros::PointFieldMsg {
+                            name: field.name.into(),
+                            offset: field.offset,
+                            datatype: field.datatype,
+                            count: field.count,
+                        })
+                        .collect(),
+                    endian: if msg.is_bigendian {
+                        ::ros_pointcloud2::Endian::Big
+                    } else {
+                        ::ros_pointcloud2::Endian::Little
+                    },
+                    point_step: msg.point_step,
+                    row_step: msg.row_step,
+                    data: msg.data,
+                    dense: if msg.is_dense {
+                        ::ros_pointcloud2::Denseness::Dense
+                    } else {
+                        ::ros_pointcloud2::Denseness::Sparse
+                    },
+                }
+            }
+
+            pub fn from_pointcloud2_msg(
+                msg: ::ros_pointcloud2::PointCloud2Msg,
+            ) -> msg_root::sensor_msgs::PointCloud2 {
+                msg_root::sensor_msgs::PointCloud2 {
+                    header: msg_root::std_msgs::Header {
+                        stamp: msg_root::builtin_interfaces::Time {
+                            sec: msg.header.stamp.sec,
+                            nanosec: msg.header.stamp.nanosec as u32,
+                        },
+                        frame_id: msg.header.frame_id,
+                    },
+                    height: msg.dimensions.height,
+                    width: msg.dimensions.width,
+                    fields: msg
+                        .fields
+                        .into_iter()
+                        .map(|field| msg_root::sensor_msgs::PointField {
+                            name: field.name.into_owned(),
+                            offset: field.offset,
+                            datatype: field.datatype,
+                            count: field.count,
+                        })
+                        .collect(),
+                    is_bigendian: matches!(msg.endian, ::ros_pointcloud2::Endian::Big),
+                    point_step: msg.point_step,
+                    row_step: msg.row_step,
+                    data: msg.data,
+                    is_dense: matches!(msg.dense, ::ros_pointcloud2::Denseness::Dense),
                 }
             }
         }

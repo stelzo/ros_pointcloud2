@@ -1,0 +1,36 @@
+[package]
+name = "roslibrust_tests"
+version = "0.1.0"
+edition = "2021"
+authors = ["Christopher Sieh <stelzo@steado.de>"]
+description = "Test crate for roslibrust with ros_pointcloud2."
+repository = "https://github.com/stelzo/ros_pointcloud2"
+license = "MIT OR Apache-2.0"
+keywords = ["ros", "pointcloud2", "integration", "tests"]
+categories = ["development-tools::testing"]
+
+[dependencies]
+roslibrust = { optional = true, version = "0.18", features = ["codegen"] }
+ros_pointcloud2 = { path = "../../ros_pointcloud2" }
+
+[build-dependencies]
+roslibrust = { version = "0.18", features = ["codegen"] }
+
+[features]
+roslibrust = ["dep:roslibrust"]
+
+default = []
+
+[[bin]]
+name = "roslibrust_ros1_tests"
+path = "ros1.rs"
+
+[[bin]]
+name = "roslibrust_ros2_tests"
+path = "ros2.rs"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3

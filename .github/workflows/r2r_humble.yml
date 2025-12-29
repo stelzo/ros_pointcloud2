@@ -1,8 +1,10 @@
 name: r2r_humble
 
 on:
-  push:
-  pull_request:
+  workflow_run:
+    workflows: ["Tests"]
+    types:
+      - completed
   workflow_dispatch:
 
 env:
@@ -10,7 +12,8 @@ env:
 
 jobs:
   tests_humble:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh r2r integration/docker/Dockerfile_r2r_humble copy"

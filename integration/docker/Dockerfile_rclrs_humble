@@ -26,7 +26,7 @@ WORKDIR /ros2_rust_ws/src/ros_pointcloud2
 COPY . .
 
 # Modify Cargo.toml to include the ros node
-RUN awk 'BEGIN{added=0} /members[[:space:]]*=[[:space:]]*\[/{print; while(getline){ if($0 ~ /\]/ && added==0){ print "    \"integration/ros_pointcloud2_tests\","; added=1; print; break } print} next} {print}' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
+RUN awk 'BEGIN{added=0} /members[[:space:]]*=[[:space:]]*\[/{print; while(getline){ if($0 ~ /\]/ && added==0){ print "    \"integration/rclrs_tests\","; added=1; print; break } print} next} {print}' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
 
 WORKDIR /ros2_rust_ws
 

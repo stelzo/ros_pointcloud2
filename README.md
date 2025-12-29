@@ -34,11 +34,11 @@ let out_msg = PointCloud2Msg::try_from_slice(&cloud_points).unwrap();
 // impl_pointcloud2_for_r2r!();
 
 // Convert to your ROS crate message type.
-// let msg = ros_pointcloud2::impl_r2r::from_pointcloud2_msg(out_msg);
+// let msg = impl_r2r::from_pointcloud2_msg(out_msg);
 // Publish ...
 
 // ... now incoming from a topic.
-// let in_msg = ros_pointcloud2::impl_r2r::to_pointcloud2_msg(msg);
+// let in_msg = impl_r2r::to_pointcloud2_msg(msg);
 let in_msg = out_msg;
 
 let processed_cloud = in_msg.try_into_iter().unwrap()
@@ -57,6 +57,7 @@ There is currently support for the following ROS libraries.
 - [rclrs](https://github.com/ros2-rust/ros2_rust)
 - [ros2-client](https://github.com/Atostek/ros2-client.git)
 - [rosrust](https://github.com/adnanademovic/rosrust)
+- [roslibrust](https://github.com/roslibrust/roslibrust)
 
 They are tested on various distros with CI. Since the message definition itself never changed, this crate should work on all ROS distros for as long as the respective crate does not change its message generation pipeline.
 
@@ -71,6 +72,10 @@ ros_pointcloud2::impl_pointcloud2_for_rclrs!();
 ros_pointcloud2::impl_pointcloud2_for_rosrust!();
 // ros2-client
 ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_serde!();
+// roslibrust ROS1 (needs the root path where messages are included via include!)
+ros_pointcloud2::impl_pointcloud2_for_roslibrust_ros1!(crate);
+// roslibrust ROS2 (same here)
+ros_pointcloud2::impl_pointcloud2_for_roslibrust_ros2!(crate);
 ```
 
 Also, indicate the following dependencies to your linker inside the `package.xml` of your package if your crate of choice uses them.
