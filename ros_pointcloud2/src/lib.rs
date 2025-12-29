@@ -1,5 +1,3 @@
-//! A PointCloud2 message conversion library.
-//!
 //! The library provides the [`PointCloud2Msg`] type, which implements conversions to and from slices and iterators.
 //!
 //! Vector conversions are optimized for zero-copy or minimal copy. They are usually a good default for moving data around.
@@ -106,7 +104,7 @@
 //! ```
 //!
 //! # Features
-//! - std *(enabled by default)* — Omit this feature to use this library in no_std environments. ROS integrations and 'rayon' will not work with no_std.
+//! - std *(enabled by default)* — Omit this feature to use this library in no_std environments. ROS integrations and `rayon` will not work with no_std.
 //! - strict-type-check *(enabled by default)* — When disabled, allows byte conversions between size-compatible types like i32 and f32. Packed RGB fields are specially handled and allowed.
 //! - derive — Offers implementations for the [`PointConvertible`] trait needed for custom points.
 //! - serde — Enables serde serialization and deserialization for [`PointCloud2Msg`] and related types.
@@ -196,7 +194,7 @@
 #![allow(unexpected_cfgs)]
 
 #[cfg(doc)]
-#[doc = concat!("Custom Field Type Example:\n\n```rust\n", include_str!("../examples/custom_enum_field_filter.rs"), "\n```")]
+#[doc = concat!("Custom Field Type Example (docs only).\n\n```rust\n", include_str!("../examples/custom_enum_field_filter.rs"), "\n```")]
 pub mod custom_enum_field_filter {}
 
 pub mod points;
@@ -230,15 +228,11 @@ pub enum ConversionError {
         requested: FieldDatatype,
     },
     ExhaustedSource,
-    /// The buffer memory is not aligned for the requested target type.
     UnalignedBuffer,
-    /// Elements in an incoming `Vec` do not match the expected per-point size (`point_step`),
-    /// so ownership cannot be transferred without copying.
     VecElementSizeMismatch {
         element_size: usize,
         expected_point_step: usize,
     },
-    /// The message layout cannot be represented as a contiguous slice of the target type (e.g., stride != size_of::<T>).
     UnsupportedSliceView,
 }
 

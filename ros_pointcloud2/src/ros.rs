@@ -8,7 +8,7 @@
 //!   3. Create a Workflow in `.github/workflows/` to run the tests with the appropriate features enabled.
 //!   4. Create a PR to add the new feature to `Cargo.toml` and document it in `lib.rs`.
 //!
-use alloc::string::String;
+use alloc::string::{String, ToString};
 
 /// Describing a point encoded in the byte buffer of a PointCloud2 message. See the [official message description](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointField.html) for more information.
 /// [Time](https://docs.ros2.org/latest/api/builtin_interfaces/msg/Time.html) representation for ROS messages.
