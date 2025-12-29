@@ -1,1 +1,2 @@
-integration linguist-vendored
+integration/tests/*.bash linguist-vendored
+integration/scripts/*.sh linguist-vendored

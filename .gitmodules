@@ -7,3 +7,6 @@
 [submodule "integration/roslibrust_tests/assets/ros2_required_msgs/rcl_interfaces"]
 	path = integration/roslibrust_tests/assets/ros2_required_msgs/rcl_interfaces
 	url = https://github.com/ros2/rcl_interfaces.git
+[submodule "integration/roslibrust_tests/assets/ros1_std"]
+	path = integration/roslibrust_tests/assets/ros1_std
+	url = https://github.com/ros/std_msgs.git

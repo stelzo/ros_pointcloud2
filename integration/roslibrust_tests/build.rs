@@ -4,6 +4,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let (source_ros1, dependent_paths_ros1) =
             roslibrust::codegen::find_and_generate_ros_messages_without_ros_package_path(vec![
                 "./assets/ros1".into(),
+                "./assets/ros1_std".into(),
             ])?;
         let (source_ros2, dependent_paths_ros2) =
             roslibrust::codegen::find_and_generate_ros_messages_without_ros_package_path(vec![
