@@ -1,6 +1,6 @@
 #![cfg(feature = "r2r")]
 
-// Run with: cargo test -p ros_integration_tests --features r2r
+// Run locally: ./integration/scripts/run-ros-tests-local.sh "r2r" or in Docker: ./integration/scripts/run-ros-tests-docker.sh r2r integration/docker/Dockerfile_r2r_humble
 
 use ros_pointcloud2::PointCloud2Msg;
 

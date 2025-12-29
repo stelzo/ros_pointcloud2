@@ -2,11 +2,7 @@ name: rclrs_humble
 
 on:
   push:
-    branches:
-      - rclrs
   pull_request:
-    branches:
-      - rclrs
   workflow_dispatch:
 
 env:
@@ -17,4 +13,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      #- run: bash -lc "./integration/scripts/run-ros-tests-docker.sh 'derive,nalgebra,rayon,serde,rclrs' docker/Dockerfile_rclrs_humble copy"
+      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh rclrs integration/docker/Dockerfile_rclrs_humble copy"

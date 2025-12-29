@@ -1,7 +1,7 @@
 #![cfg(feature = "ros2-interfaces-jazzy-serde")]
 
 // Tests that require ROS2 Jazzy serde messages.
-// Run with: cargo test -p ros_integration_tests --features ros2-interfaces-jazzy-serde
+// Run locally: ./integration/scripts/run-ros-tests-local.sh "ros2_jazzy_serde" or in Docker: ./integration/scripts/run-ros-tests-docker.sh r2r integration/docker/Dockerfile_r2r_humble
 
 use ros_pointcloud2::PointCloud2Msg;
 

@@ -21,18 +21,8 @@
 //!
 //! Each integration is exposed as a consumer-side macro that generates the conversions between `PointCloud2Msg` and the client crate's message types. Simply add the client crate to your `Cargo.toml` and invoke the dedicated macro in your crate or test scope.
 //!
-//! - `rosrust` (ROS1)
-//!   - Macro: `ros_pointcloud2::impl_pointcloud2_for_rosrust!()`
-//! - `r2r` (Async ROS2 with C bindings)
-//!   - Macro: `ros_pointcloud2::impl_pointcloud2_for_r2r!()`
-//! - `rclrs` (ROS2 Rust client) — experimental
-//!   - Macro: `ros_pointcloud2::impl_pointcloud2_for_rclrs!()`
-//!   - Note: `rclrs` can be difficult to compile across environments due to its deep ROS2 toolchain integration. If you need
-//!     a working combination, consider using the `v0.5.2_rclrs` tag of this repository (see section below) or file an issue/PR
-//!     with your environment details so we can improve support.
-//! - `ros2-client` (ROS2 implementation on top of RustDDS. Via pre-generated `ros2-interfaces-jazzy` crate.)
-//!   - Macros: `ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_serde!()` (serde) and
-//!     `ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_rkyv!()` (rkyv)
+//! Also, indicate the following dependencies to your linker inside the `package.xml` of your package if your crate of choice uses them.
+//!
 //!
 //! Additionally, nalgebra helper macros are provided to convert point types into nalgebra types:
 //!
@@ -58,12 +48,20 @@
 //! ```ignore
 //! // r2r
 //! ros_pointcloud2::impl_pointcloud2_for_r2r!();
+//! // rclrs
+//! ros_pointcloud2::impl_pointcloud2_for_rclrs!();
 //! // rosrust
 //! ros_pointcloud2::impl_pointcloud2_for_rosrust!();
-//! // ros2-client (serde)
+//! // ros2-client
 //! ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_serde!();
-//! // rclrs (experimental)
-//! ros_pointcloud2::impl_pointcloud2_for_rclrs!();
+//! ```
+//!
+//! Also, indicate the following dependencies to your linker inside the `package.xml` of your package if your crate of choice uses them.
+//!
+//! ```xml
+//! <depend>std_msgs</depend>
+//! <depend>sensor_msgs</depend>
+//! <depend>builtin_interfaces</depend>
 //! ```
 //!
 //! There is also nalgebra support to convert common point types to nalgebra `Point3` type.
@@ -76,17 +74,6 @@
 //! let p_xyzi = PointXYZI::new(4.0, 5.0, 6.0, 7.0);
 //! assert_eq!(AsNalgebra::xyz(&p_xyzi), nalgebra::Point3::new(4.0, 5.0, 6.0));
 //! ```
-//!
-//! ## rclrs note
-//!
-//! There is a non-experimental option to use the `v0.5.2_rclrs` tag which was tested but uses an older version of this crate:
-//!
-//! ```toml
-//! [dependencies]
-//! ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.2_rclrs" }
-//! ```
-//!
-//! For `rclrs`, you may also need to add runtime dependencies in your ROS package `package.xml` for linking (e.g. `std_msgs`, `sensor_msgs`, `builtin_interfaces`).
 //!
 //! Common point types like [`PointXYZ`](points::PointXYZ) or [`PointXYZI`](points::PointXYZI) are provided. See the full list [`here`](points). You can easily add any additional custom type.
 //! See [custom_enum_field_filter.rs](https://github.com/stelzo/ros_pointcloud2/blob/main/ros_pointcloud2/examples/custom_enum_field_filter.rs) for an example.

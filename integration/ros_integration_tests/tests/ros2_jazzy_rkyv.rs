@@ -1,7 +1,7 @@
 #![cfg(feature = "ros2-interfaces-jazzy-rkyv")]
 
 // Tests that require ROS2 Jazzy rkyv messages.
-// Run with: cargo test -p ros_integration_tests --features ros2-interfaces-jazzy-rkyv
+// Run locally: ./integration/scripts/run-ros-tests-local.sh "ros2_jazzy_rkyv" or in Docker: ./integration/scripts/run-ros-tests-docker.sh r2r integration/docker/Dockerfile_r2r_humble
 
 use ros_pointcloud2::PointCloud2Msg;
 

@@ -571,7 +571,7 @@ macro_rules! impl_pointcloud2_for_rclrs {
     () => {
         pub mod impl_rclrs {
             pub fn to_pointcloud2_msg(
-                msg: ::rclrs::sensor_msgs::msg::PointCloud2,
+                msg: sensor_msgs::msg::PointCloud2,
             ) -> ::ros_pointcloud2::PointCloud2Msg {
                 ::ros_pointcloud2::PointCloud2Msg {
                     header: ::ros_pointcloud2::ros::HeaderMsg {
@@ -611,10 +611,10 @@ macro_rules! impl_pointcloud2_for_rclrs {
 
             pub fn from_pointcloud2_msg(
                 msg: ::ros_pointcloud2::PointCloud2Msg,
-            ) -> ::rclrs::sensor_msgs::msg::PointCloud2 {
-                ::rclrs::sensor_msgs::msg::PointCloud2 {
-                    header: ::rclrs::std_msgs::msg::Header {
-                        stamp: ::rclrs::builtin_interfaces::msg::Time {
+            ) -> sensor_msgs::msg::PointCloud2 {
+                sensor_msgs::msg::PointCloud2 {
+                    header: std_msgs::msg::Header {
+                        stamp: builtin_interfaces::msg::Time {
                             sec: msg.header.stamp.sec,
                             nanosec: msg.header.stamp.nanosec,
                         },
@@ -625,7 +625,7 @@ macro_rules! impl_pointcloud2_for_rclrs {
                     fields: msg
                         .fields
                         .into_iter()
-                        .map(|field| ::rclrs::sensor_msgs::msg::PointField {
+                        .map(|field| sensor_msgs::msg::PointField {
                             name: field.name,
                             offset: field.offset,
                             datatype: field.datatype,
@@ -641,7 +641,7 @@ macro_rules! impl_pointcloud2_for_rclrs {
             }
 
             pub fn time_to_internal(
-                time: ::rclrs::builtin_interfaces::msg::Time,
+                time: builtin_interfaces::msg::Time,
             ) -> ::ros_pointcloud2::ros::TimeMsg {
                 ::ros_pointcloud2::ros::TimeMsg {
                     sec: time.sec,
@@ -651,8 +651,8 @@ macro_rules! impl_pointcloud2_for_rclrs {
 
             pub fn time_from_internal(
                 time: ::ros_pointcloud2::ros::TimeMsg,
-            ) -> ::rclrs::builtin_interfaces::msg::Time {
-                ::rclrs::builtin_interfaces::msg::Time {
+            ) -> builtin_interfaces::msg::Time {
+                builtin_interfaces::msg::Time {
                     sec: time.sec,
                     nanosec: time.nanosec,
                 }

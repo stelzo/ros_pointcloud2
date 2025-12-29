@@ -16,13 +16,13 @@ Local integration tests build ROS client crates — make sure your ROS environme
 Examples:
 
 ```bash
-# From repository root
-./integration/scripts/run-ros-tests-local.sh <feature>
-# Example:
-./integration/scripts/run-ros-tests-local.sh r2r
+# From repository root — run all integration tests
+./integration/scripts/run-ros-tests-local.sh
+# Or run only tests matching a pattern (optional):
+./integration/scripts/run-ros-tests-local.sh "ros2_*"
 
 # Or run tests directly:
-cargo test -p ros_integration_tests --features r2r -- --nocapture
+cargo test -p ros_integration_tests -- --nocapture
 ```
 
 Note: export `ROS_DISTRO` and any other env vars (e.g. `CMAKE_PREFIX_PATH`) if required before running the script.
@@ -30,15 +30,19 @@ Note: export `ROS_DISTRO` and any other env vars (e.g. `CMAKE_PREFIX_PATH`) if r
 ## Docker-backed execution
 
 ```bash
-./integration/scripts/run-ros-tests-docker.sh <feature> [dockerfile] [mode]
+# Usage: <target> (optional) picks a sensible Dockerfile; pass a repo-root-relative Dockerfile path if you prefer
+./integration/scripts/run-ros-tests-docker.sh [target] [integration/docker/Dockerfile_*] [mode]
 
-./integration/scripts/run-ros-tests-docker.sh r2r docker/Dockerfile_r2r_jazzy
+# Example (repo-root-relative Dockerfile path):
+./integration/scripts/run-ros-tests-docker.sh r2r integration/docker/Dockerfile_r2r_humble
 ```
+
+**rclrs special case:** the `rclrs` images expect the repository to be mounted at `/ros2_rust_ws` and use an ENTRYPOINT script to build and run tests. When running the `rclrs` target, the script will mount the repo root at `/ros2_rust_ws` in `bind` mode, or copy the repo into `/ros2_rust_ws` in `copy` mode so the image entrypoint can find and run the test script.
 
 Mode description:
 
-- `copy` (default): creates a tarball of the workspace and copies it into a temporary container (suitable for reproducible CI runs and the default behavior).
-- `bind`: mounts the `integration/` workspace into the container and runs tests on the real workspace. Useful for iterative development.
+- `copy` (default): creates a tarball of the repository and copies it into a temporary container (suitable for reproducible CI runs and the default behavior).
+- `bind`: mounts the repository root into the container and runs tests on the real workspace. Useful for iterative development.
 
 ## Available Dockerfiles (in `integration/docker`) 🧾
 
@@ -55,10 +59,10 @@ Mode description:
 Example for ROS1 (rosrust):
 
 ```bash
-./integration/scripts/run-ros-tests-docker.sh rosrust docker/Dockerfile_ros1_noetic
+./integration/scripts/run-ros-tests-docker.sh rosrust integration/docker/Dockerfile_ros1_noetic
 ```
 
 ## Notes about test layout
 
-- Some tests have been moved to the integration crate (e.g. `r2r`, `rosrust`, `ros2-interfaces-jazzy-*`). Use `cargo test -p ros_integration_tests --features <feature>` or the helper scripts above.
+- Some tests have been moved to the integration crate (e.g. `r2r`, `rosrust`, `ros2-interfaces-jazzy-*`). Use `cargo test -p ros_integration_tests -- --nocapture` or the helper scripts above.
 - Crate unit tests remain in `ros_pointcloud2/src/tests.rs` and run with `cargo test -p ros_pointcloud2`.

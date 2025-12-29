@@ -1,4 +1,4 @@
-name: r2r_iron
+name: rclrs_humble
 
 on:
   push:
@@ -13,4 +13,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh r2r integration/docker/Dockerfile_r2r_iron copy"
+      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh rclrs integration/docker/Dockerfile_rclrs_rolling copy"

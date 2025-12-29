@@ -6,14 +6,25 @@ authors = ["ros_pointcloud2 tests"]
 description = "Node-like test crate that depends on ros_pointcloud2 and rclrs (optional)."
 
 [dependencies]
-ros_pointcloud2 = { path = "../.." }
+ros_pointcloud2 = { path = "../../ros_pointcloud2" }
 rclrs = { version = "0.6", optional = true }
+std_msgs = { version = "*", optional = true }
+sensor_msgs = { version = "*", optional = true }
+builtin_interfaces = { version = "*", optional = true }
 
 [features]
-rclrs = ["dep:rclrs", "ros_pointcloud2/rclrs"]
+rclrs = [
+    "dep:rclrs",
+    "dep:std_msgs",
+    "dep:sensor_msgs",
+    "dep:builtin_interfaces",
+]
 
-[dev-dependencies]
-# re-export any test-support crates as needed
+default = []
+
+[[bin]]
+name = "rclrs_tests"
+path = "rclrs.rs"
 
 [profile.dev]
 opt-level = 0

@@ -1,5 +1,10 @@
 [workspace]
 
-members = [ "derive-test", "ros_pointcloud2", "rpcl2-derive", "integration/ros_integration_tests" ]
+members = [
+    "derive-test",
+    "ros_pointcloud2",
+    "rpcl2-derive",
+    "integration/ros_integration_tests",
+]
 
 resolver = "2"

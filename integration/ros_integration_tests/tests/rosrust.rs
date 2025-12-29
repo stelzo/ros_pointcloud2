@@ -1,6 +1,6 @@
 #![cfg(feature = "rosrust")]
 
-// Run with: cargo test -p ros_integration_tests --features rosrust
+// Run locally: ./integration/scripts/run-ros-tests-local.sh "rosrust" or in Docker: ./integration/scripts/run-ros-tests-docker.sh rosrust integration/docker/Dockerfile_ros1_noetic
 
 use ros_pointcloud2::PointCloud2Msg;
 

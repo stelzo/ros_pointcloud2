@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ros:humble
+FROM ros:rolling
 
 # Update default packages
 RUN apt-get update
@@ -12,14 +12,14 @@ RUN apt-get install -y \
     git \
     python3-pip \
     python3-vcstool \
-    ros-humble-test-msgs ros-humble-example-interfaces
+    ros-rolling-test-msgs ros-rolling-example-interfaces
 
 # Get Rust
 RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 
 # colcon tooling
-RUN pip install colcon-cargo-ros2 # is a fork but easier
+RUN pip install --break-system-packages colcon-cargo-ros2 # is a fork but easier
 
 WORKDIR /ros2_rust_ws
 WORKDIR /ros2_rust_ws/src/ros_pointcloud2

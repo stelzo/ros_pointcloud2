@@ -2,11 +2,7 @@ name: r2r_galactic
 
 on:
   push:
-    branches-ignore:
-      - rclrs
   pull_request:
-    branches-ignore:
-      - rclrs
   workflow_dispatch:
 
 env:
@@ -17,4 +13,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh r2r docker/Dockerfile_r2r_galactic copy"
+      - run: bash -lc "./integration/scripts/run-ros-tests-docker.sh r2r integration/docker/Dockerfile_r2r_galactic copy"

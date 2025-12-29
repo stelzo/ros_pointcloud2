@@ -51,31 +51,39 @@ let processed_cloud = in_msg.try_into_iter().unwrap()
 
 ## Integrations
 
-There are currently 4 integrations for common ROS crates. We tested them on the following distros.
+There are currently 4 implementations for common ROS crates. They were tested on the following distros.
 
-- [rosrust](https://github.com/adnanademovic/rosrust)
-  - Noetic
 - [r2r](https://github.com/sequenceplanner/r2r)
   - Galactic
   - Humble
   - Jazzy
 - [rclrs](https://github.com/ros2-rust/ros2_rust)
   - Humble
-  - Iron
+  - Rolling
 - [ros2-client](https://github.com/Atostek/ros2-client.git)
   - Jazzy
+- [rosrust](https://github.com/adnanademovic/rosrust)
+  - Noetic
 
-You can use `rosrust`, `r2r` or `ros2-client` by prefixing the designated macro somewhere in your scope after adding your ros crate to your `Cargo.toml`.
+You can use `rosrust`, `r2r`, `rclrs`, or `ros2-client` by prefixing the designated macro somewhere in your scope after adding your ros crate to your `Cargo.toml`.
 
 ```rust
 // r2r
 ros_pointcloud2::impl_pointcloud2_for_r2r!();
+// rclrs
+ros_pointcloud2::impl_pointcloud2_for_rclrs!();
 // rosrust
 ros_pointcloud2::impl_pointcloud2_for_rosrust!();
 // ros2-client
 ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_serde!();
-// ½[experimental] rclrs
-ros_pointcloud2::impl_pointcloud2_for_rclrs!();
+```
+
+Also, indicate the following dependencies to your linker inside the `package.xml` of your package if your crate of choice uses them.
+
+```xml
+<depend>std_msgs</depend>
+<depend>sensor_msgs</depend>
+<depend>builtin_interfaces</depend>
 ```
 
 There is also nalgebra support to convert common point types to nalgebra `Point3` type.
@@ -87,26 +95,6 @@ use ros_pointcloud2::points::PointXYZI;
 use ros_pointcloud2::impl_nalgebra::AsNalgebra;
 let p_xyzi = PointXYZI::new(4.0, 5.0, 6.0, 7.0);
 assert_eq!(AsNalgebra::xyz(&p_xyzi), nalgebra::Point3::new(4.0, 5.0, 6.0));
-```
-
-### rclrs (ros2_rust)
-
-`rcrls` is not as easy to use as other crates due to its deep integration with ROS2. For v1.0.0, I tried to setup CI tests but was not able to compile the most recent `rclrs`. This does not affect the general API of this crate so it is here as an untested option for users who can get `rclrs` working in their environment. If you can get it working, please open a PR or issue to help others.
-
-
-For all others, there is a special tag `v0.5.2_rclrs` that contains a tested version from some time ago that you can use as follows:
-
-```toml
-[dependencies]
-ros_pointcloud2 = { git = "https://github.com/stelzo/ros_pointcloud2", tag = "v0.5.2_rclrs" }
-```
-
-Also, indicate the following dependencies to your linker inside the `package.xml` of your package.
-
-```xml
-<depend>std_msgs</depend>
-<depend>sensor_msgs</depend>
-<depend>builtin_interfaces</depend>
 ```
 
 Please open an issue or PR if you need other integrations.

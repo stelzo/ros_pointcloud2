@@ -2,22 +2,24 @@
 
 . "$HOME/.cargo/env"
 
-# run rustup to test with latest rust version
-rustup update
-
 if [ -e "/opt/ros/jazzy/setup.bash" ]; then
     . "/opt/ros/jazzy/setup.bash"
 fi
 
-if [ -e "/opt/ros/iron/setup.bash" ]; then
-    . "/opt/ros/iron/setup.bash"
+if [ -e "/opt/ros/rolling/setup.bash" ]; then
+    . "/opt/ros/rolling/setup.bash"
 fi
 
 if [ -e "/opt/ros/humble/setup.bash" ]; then
     . "/opt/ros/humble/setup.bash"
 fi
 
-. "/ros2_rust_build/install/local_setup.bash"
-cd /ros2_rust_build/src/ros_pointcloud2_tests/ || exit
+cd /ros2_rust_ws || exit
+
+colcon build --cargo-args --features rclrs
+
+. "/ros2_rust_ws/install/local_setup.bash"
+
+ros2 run ros_pointcloud2_tests rclrs_tests
 
 "$@"
