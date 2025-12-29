@@ -4,9 +4,8 @@
 /// we need to encode the enum into a supported type.
 /// This needs some manual work to tell the library how to encode and decode the enum.
 ///
-/// Important Note: This example is only possible with disabled `derive` feature,
-/// because the library (currently) does not know the size of your chosen supported type at compile time.
-/// This makes direct copies impossible.
+/// *Important Note*: This example is only possible with disabled `derive` feature,
+/// because the library does not know the size of your chosen supported type at compile time.
 use ros_pointcloud2::prelude::*;
 
 #[derive(Debug, PartialEq, Clone, Default, Copy)]
@@ -99,7 +98,7 @@ unsafe impl PointConvertible<5> for CustomPoint {
             LayoutField::new("z", "f32", 4),
             LayoutField::new("intensity", "f32", 4),
             LayoutField::new("my_custom_label", "u8", 1),
-            LayoutField::padding(3),
+            LayoutField::padding(3), // Padding to align to 4 bytes
         ])
     }
 }
@@ -142,7 +141,7 @@ fn main() {
 
     println!("Original cloud: {cloud:?}");
 
-    let msg = PointCloud2Msg::try_from_iter(&cloud).unwrap();
+    let msg = PointCloud2Msg::try_from_slice(&cloud).unwrap();
 
     println!("filtering by label == Deer");
     let out = msg

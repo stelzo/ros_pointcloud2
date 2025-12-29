@@ -1,6 +1,6 @@
 //! Types used to represent ROS messages and convert between different ROS crates.
 //!
-//! This intermediate layer allows various ROS libraries to be integrated to the conversion process.
+//! This intermediate layer allows various ROS libraries to be supported in the conversion process.
 //!
 //!   1. Write your conversion macro in this file to generate conversion functions between `PointCloud2Msg` and the target ROS crate.
 //!       - A typical name is `impl_pointcloud2_for_<crate>!()`.
@@ -8,7 +8,10 @@
 //!   3. Create a Workflow in `.github/workflows/` to run the tests with the appropriate features enabled.
 //!   4. Create a PR to add the new feature to `Cargo.toml` and document it in `lib.rs`.
 //!
+use alloc::borrow::Cow;
 use alloc::string::String;
+
+/// Describing a point encoded in the byte buffer of a PointCloud2 message. See the [official message description](https://docs.ros2.org/latest/api/sensor_msgs/msg/PointField.html) for more information.
 
 /// [Time](https://docs.ros2.org/latest/api/builtin_interfaces/msg/Time.html) representation for ROS messages.
 #[derive(Clone, Debug, Default, Copy)]
@@ -43,16 +46,17 @@ pub struct HeaderMsg {
     derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
 )]
 pub struct PointFieldMsg {
-    pub name: String,
+    pub name: Cow<'static, str>,
     pub offset: u32,
     pub datatype: u8,
     pub count: u32,
 }
 
+// Needed for Vec<PointFieldMsg> default initialization but typically empty on default PointCloud2Msg.
 impl Default for PointFieldMsg {
     fn default() -> Self {
         Self {
-            name: String::new(),
+            name: Cow::Borrowed(""),
             offset: 0,
             datatype: 0,
             count: 1,
@@ -82,7 +86,7 @@ impl From<safe_drive::msg::common_interfaces::sensor_msgs::msg::PointCloud2>
                 .fields
                 .iter()
                 .map(|field| PointFieldMsg {
-                    name: field.name.get_string(),
+                    name: field.name.get_string().into(),
                     offset: field.offset,
                     datatype: field.datatype,
                     count: field.count,
@@ -196,7 +200,7 @@ macro_rules! impl_pointcloud2_for_r2r {
                         .fields
                         .into_iter()
                         .map(|field| ::ros_pointcloud2::ros::PointFieldMsg {
-                            name: field.name,
+                            name: field.name.into(),
                             offset: field.offset,
                             datatype: field.datatype,
                             count: field.count,
@@ -235,7 +239,7 @@ macro_rules! impl_pointcloud2_for_r2r {
                         .fields
                         .into_iter()
                         .map(|field| ::r2r::sensor_msgs::msg::PointField {
-                            name: field.name,
+                            name: field.name.into_owned(),
                             offset: field.offset,
                             datatype: field.datatype,
                             count: field.count,
@@ -291,7 +295,7 @@ macro_rules! impl_pointcloud2_for_ros2_interfaces_jazzy_serde {
                         .fields
                         .into_iter()
                         .map(|field| ::ros_pointcloud2::ros::PointFieldMsg {
-                            name: field.name,
+                            name: field.name.into(),
                             offset: field.offset,
                             datatype: field.datatype,
                             count: field.count,
@@ -331,7 +335,7 @@ macro_rules! impl_pointcloud2_for_ros2_interfaces_jazzy_serde {
                         .into_iter()
                         .map(
                             |field| ::ros2_interfaces_jazzy_serde::sensor_msgs::msg::PointField {
-                                name: field.name,
+                                name: field.name.into_owned(),
                                 offset: field.offset,
                                 datatype: field.datatype,
                                 count: field.count,
@@ -388,7 +392,7 @@ macro_rules! impl_pointcloud2_for_ros2_interfaces_jazzy_rkyv {
                         .fields
                         .into_iter()
                         .map(|field| ::ros_pointcloud2::ros::PointFieldMsg {
-                            name: field.name,
+                            name: field.name.into(),
                             offset: field.offset,
                             datatype: field.datatype,
                             count: field.count,
@@ -428,7 +432,7 @@ macro_rules! impl_pointcloud2_for_ros2_interfaces_jazzy_rkyv {
                         .into_iter()
                         .map(
                             |field| ::ros2_interfaces_jazzy_rkyv::sensor_msgs::msg::PointField {
-                                name: field.name,
+                                name: field.name.into_owned(),
                                 offset: field.offset,
                                 datatype: field.datatype,
                                 count: field.count,
@@ -486,7 +490,7 @@ macro_rules! impl_pointcloud2_for_rosrust {
                         .fields
                         .into_iter()
                         .map(|field| ::ros_pointcloud2::ros::PointFieldMsg {
-                            name: field.name,
+                            name: field.name.into(),
                             offset: field.offset,
                             datatype: field.datatype,
                             count: field.count,
@@ -527,7 +531,7 @@ macro_rules! impl_pointcloud2_for_rosrust {
                         .fields
                         .into_iter()
                         .map(|field| rosrust_msg::sensor_msgs::PointField {
-                            name: field.name,
+                            name: field.name.into_owned(),
                             offset: field.offset,
                             datatype: field.datatype,
                             count: field.count,
@@ -587,7 +591,7 @@ macro_rules! impl_pointcloud2_for_rclrs {
                         .fields
                         .into_iter()
                         .map(|field| ::ros_pointcloud2::ros::PointFieldMsg {
-                            name: field.name,
+                            name: field.name.into(),
                             offset: field.offset,
                             datatype: field.datatype,
                             count: field.count,
@@ -626,7 +630,7 @@ macro_rules! impl_pointcloud2_for_rclrs {
                         .fields
                         .into_iter()
                         .map(|field| sensor_msgs::msg::PointField {
-                            name: field.name,
+                            name: field.name.into_owned(),
                             offset: field.offset,
                             datatype: field.datatype,
                             count: field.count,

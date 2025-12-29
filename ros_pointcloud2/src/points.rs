@@ -35,6 +35,8 @@ impl Serialize for RGB {
     }
 }
 
+// SAFETY: `RGB` is a plain-data union composed only of `f32` and `[u8; 4]`, both of
+// which are `Send`/`Sync`. Implementing `Send`/`Sync` for `RGB` is therefore safe.
 unsafe impl Send for RGB {}
 unsafe impl Sync for RGB {}
 
@@ -86,33 +88,45 @@ impl RGB {
 
     #[must_use]
     pub fn raw(&self) -> f32 {
+        // SAFETY: Reading the `packed` representation is a valid reinterpretation of the
+        // union bytes. All constructors initialize either `packed` or `unpacked`, and
+        // reading the `packed` bit-pattern is defined behavior for observing the raw
+        // packed representation.
         unsafe { self.packed }
     }
 
     #[must_use]
     pub fn r(&self) -> u8 {
+        // SAFETY: The `unpacked` byte-array maps directly to the RGBA byte layout used
+        // by ROS packed RGB. Reading individual bytes is always safe.
         unsafe { self.unpacked[2] }
     }
 
     #[must_use]
     pub fn g(&self) -> u8 {
+        // SAFETY: See `r()`.
         unsafe { self.unpacked[1] }
     }
 
     #[must_use]
     pub fn b(&self) -> u8 {
+        // SAFETY: See `r()`.
         unsafe { self.unpacked[0] }
     }
 
     pub fn set_r(&mut self, r: u8) {
+        // SAFETY: Writing a single byte into the `unpacked` array is safe and preserves
+        // a valid packed representation.
         unsafe { self.unpacked[2] = r }
     }
 
     pub fn set_g(&mut self, g: u8) {
+        // SAFETY: See `set_r()`.
         unsafe { self.unpacked[1] = g }
     }
 
     pub fn set_b(&mut self, b: u8) {
+        // SAFETY: See `set_r()`.
         unsafe { self.unpacked[0] = b }
     }
 }

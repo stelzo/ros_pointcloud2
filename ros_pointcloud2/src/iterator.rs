@@ -1,6 +1,6 @@
 //! Iterator implementations for [`PointCloud2Msg`] including a parallel iterator for rayon.
 use crate::{
-    Endian, FieldDatatype, IPoint, MsgConversionError, PointCloud2Msg, PointConvertible, PointData,
+    ConversionError, Endian, FieldDatatype, IPoint, PointCloud2Msg, PointConvertible, PointData,
 };
 
 use alloc::string::{String, ToString};
@@ -104,7 +104,7 @@ impl<'a, const N: usize, C> TryFrom<&'a PointCloud2Msg> for PointCloudIterator<'
 where
     C: PointConvertible<N> + 'a,
 {
-    type Error = MsgConversionError;
+    type Error = ConversionError;
 
     fn try_from(cloud: &'a PointCloud2Msg) -> Result<Self, Self::Error> {
         let layout = C::layout();
@@ -127,12 +127,12 @@ where
         }
 
         if !missing.is_empty() {
-            return Err(MsgConversionError::FieldsNotFound(missing));
+            return Err(ConversionError::FieldsNotFound(missing));
         }
 
         let point_step_size = cloud.point_step as usize;
         if point_step_size * cloud.dimensions.len() != cloud.data.len() {
-            return Err(MsgConversionError::DataLengthMismatch);
+            return Err(ConversionError::DataLengthMismatch);
         }
 
         // Ensure that the last byte used by any field fits into the point step.
@@ -143,7 +143,7 @@ where
             .max()
             .unwrap_or(0);
         if max_end > point_step_size {
-            return Err(MsgConversionError::DataLengthMismatch);
+            return Err(ConversionError::DataLengthMismatch);
         }
 
         let data = ByteBufferView::new(

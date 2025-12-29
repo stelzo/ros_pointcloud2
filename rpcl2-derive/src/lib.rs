@@ -21,7 +21,7 @@ fn get_allowed_types() -> HashMap<&'static str, usize> {
     allowed_datatypes
 }
 
-fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
+fn struct_field_remap_array(input: &DeriveInput) -> Vec<String> {
     let fields = match input.data {
         syn::Data::Struct(ref data) => match data.fields {
             syn::Fields::Named(ref fields) => &fields.named,
@@ -38,7 +38,7 @@ fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
             f.attrs.iter().for_each(|attr| {
                 if attr.path().is_ident("ros") {
                     let res = attr.parse_nested_meta(|meta| {
-                        if meta.path.is_ident("rename") {
+                        if meta.path.is_ident("remap") {
                             let new_name;
                             parenthesized!(new_name in meta.input);
                             let lit: LitStr = new_name.parse()?;
@@ -61,7 +61,7 @@ fn struct_field_rename_array(input: &DeriveInput) -> Vec<String> {
 
 /// This macro implements the `PointConvertible` trait for your struct so you can use your point for the PointCloud2 conversion.
 ///
-/// The struct field names are used in the message if you do not use the `rename` attribute for a custom name.
+/// The struct field names are used in the message if you do not use the `remap` attribute for a custom name.
 ///
 /// Note that the repr(C) attribute is required for the struct to work efficiently with C++ PCL.
 /// With Rust layout optimizations, the struct might not work with the PCL library but the message still conforms to the description of PointCloud2.
@@ -104,7 +104,7 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
     }
 
     let field_len_token: usize = fields.len();
-    let rename_arr = struct_field_rename_array(&input);
+    let remap_arr = struct_field_remap_array(&input);
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let layout = layout_of_type(&name, &input.data);
 
@@ -116,13 +116,13 @@ pub fn ros_point_derive(input: TokenStream) -> TokenStream {
 
                 #layout
 
-                let mut rename_idx = 0;
-                let rename_arr = vec![#(#rename_arr),*];
+                let mut remap_idx = 0;
+                let remap_arr = vec![#(#remap_arr),*];
                 let field_info: Vec<::ros_pointcloud2::LayoutField> = fields.into_iter().map(|field| {
                     match field {
                         (0, ty, size) => {
-                            rename_idx += 1;
-                            ::ros_pointcloud2::LayoutField::new(rename_arr[rename_idx - 1], ty, size)
+                            remap_idx += 1;
+                            ::ros_pointcloud2::LayoutField::new(remap_arr[remap_idx - 1], ty, size)
                         },
                         (1, _, size) => ::ros_pointcloud2::LayoutField::padding(size),
                         _ => unreachable!(),

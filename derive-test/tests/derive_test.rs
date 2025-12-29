@@ -5,10 +5,10 @@ use rpcl2_derive::*;
 #[repr(C, align(4))]
 struct MyPointXYZI {
     x: f32,
-    #[ros(rename("test"))]
+    #[ros(remap("test"))]
     y: u16,
     z: f32,
-    #[ros(rename("i"))]
+    #[ros(remap("i"))]
     intensity: i32,
     label: u8,
 }

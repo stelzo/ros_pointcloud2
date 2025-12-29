@@ -4,6 +4,7 @@ mod test {
 
     use crate::prelude::*;
     use crate::{ByteSimilarity, PointData};
+    use alloc::borrow::Cow;
     use alloc::string::{String, ToString};
     use alloc::vec::Vec;
 
@@ -269,8 +270,8 @@ mod test {
     #[test]
     fn strict_disallow_mismatched_same_size() {
         let pdata = PointData::new(42i32);
-        let res: Result<f32, MsgConversionError> = pdata.get_checked();
-        assert!(matches!(res, Err(MsgConversionError::TypeMismatch { .. })));
+        let res: Result<f32, ConversionError> = pdata.get_checked();
+        assert!(matches!(res, Err(ConversionError::TypeMismatch { .. })));
     }
 
     #[cfg(feature = "strict-type-check")]
@@ -278,7 +279,7 @@ mod test {
     fn strict_allow_rgb_f32() {
         let rgb = crate::points::RGB::new(1, 2, 3);
         let pdata = PointData::new(rgb);
-        let f_res: Result<f32, MsgConversionError> = pdata.get_checked();
+        let f_res: Result<f32, ConversionError> = pdata.get_checked();
         assert!(f_res.is_ok());
         let _f = f_res.unwrap();
         let rgb2: crate::points::RGB = pdata.get_checked().unwrap();
@@ -293,33 +294,15 @@ mod test {
     }
 
     #[test]
-    fn try_from_vec_deprecated_wrapper_forwards() {
-        let pts = vec![PointB::new(1.0, 2.0, 3.0), PointB::new(4.0, 5.0, 6.0)];
-        let msg_a = PointCloud2Msg::try_from_slice(&pts).unwrap();
-        #[expect(deprecated)]
-        let msg_b = PointCloud2Msg::try_from_vec(&pts).unwrap();
-        assert_eq!(msg_a.data, msg_b.data);
-        assert_eq!(msg_a.point_step, msg_b.point_step);
-        assert_eq!(msg_a.fields.len(), msg_b.fields.len());
-        for (fa, fb) in msg_a.fields.iter().zip(msg_b.fields.iter()) {
-            assert_eq!(fa.name, fb.name);
-            assert_eq!(fa.offset, fb.offset);
-            assert_eq!(fa.datatype, fb.datatype);
-            assert_eq!(fa.count, fb.count);
-        }
-        assert_eq!(msg_a.row_step, msg_b.row_step);
-    }
-
-    #[test]
     fn msg_conversion_error_is_core_error() {
-        let e = MsgConversionError::NumberConversion;
+        let e = ConversionError::NumberConversion;
         let _err_obj: &dyn core::error::Error = &e;
     }
 
     #[test]
     fn fields_not_found_display_contains_fields_in_unit_tests() {
         let fields: Vec<String> = vec!["x".to_string(), "y".to_string()];
-        let err = MsgConversionError::FieldsNotFound(fields.clone());
+        let err = ConversionError::FieldsNotFound(fields.clone());
         let s = format!("{}", err);
         assert!(s.contains("Some fields are not found"));
         assert!(s.contains("x") && s.contains("y"));
@@ -346,7 +329,7 @@ mod test {
 
         let res = crate::iterator::PointCloudIterator::<4, PointB>::try_from(&msg);
         match res {
-            Err(MsgConversionError::FieldsNotFound(names)) => {
+            Err(ConversionError::FieldsNotFound(names)) => {
                 assert!(names.contains(&"y".to_string()));
                 assert!(names.contains(&"t".to_string()));
             }
@@ -436,6 +419,268 @@ mod test {
     }
 
     #[test]
+    fn try_into_slice_zero_copy() {
+        let pts = vec![PointXYZ::new(1.0, 2.0, 3.0), PointXYZ::new(4.0, 5.0, 6.0)];
+        let msg = PointCloud2Msg::try_from_slice(&pts).unwrap();
+
+        // strict zero-copy view
+        let slice: &[PointXYZ] = msg
+            .try_into_slice_strict::<3, PointXYZ>()
+            .expect("strict should view as slice");
+        assert_eq!(slice.len(), pts.len());
+        assert_eq!(slice[0].x, pts[0].x);
+        assert_eq!(slice.as_ptr() as *const u8, msg.data.as_ptr() as *const u8);
+
+        // non-strict convenience API should return a borrowed slice in the same case
+        let cow = msg
+            .try_into_slice::<3, PointXYZ>()
+            .expect("should return borrowed in this case");
+        match cow {
+            Cow::Borrowed(s) => assert_eq!(s.as_ptr() as *const u8, msg.data.as_ptr() as *const u8),
+            Cow::Owned(_) => panic!("expected borrowed slice but got owned"),
+        }
+    }
+
+    #[test]
+    fn try_into_slice_rejects_stride_mismatch() {
+        // Create a message with an increased point_step (interleaved/stride mismatch)
+        let pts = vec![PointB::new(1.0, 2.0, 3.0), PointB::new(4.0, 5.0, 6.0)];
+        let base = PointCloud2Msg::try_from_slice(&pts).unwrap();
+        let old_step = base.point_step as usize;
+        let new_step = old_step + 4; // add padding to create stride mismatch
+        let mut new_data = Vec::with_capacity((base.data.len() / old_step) * new_step);
+        base.data.chunks(old_step).for_each(|chunk| {
+            new_data.extend_from_slice(chunk);
+            new_data.extend_from_slice(&[0; 4]);
+        });
+        let mut msg = base.clone();
+        msg.point_step = new_step as u32;
+        msg.row_step = (pts.len() as u32) * (new_step as u32);
+        msg.data = new_data;
+
+        // Strict view should fail because stride != sizeof(PointB)
+        assert!(msg.try_into_slice_strict::<4, PointB>().is_err());
+
+        // The convenience API should fall back to an owned Vec (Cow::Owned)
+        let cow = msg
+            .try_into_slice::<4, PointB>()
+            .expect("fallback to owned vec should succeed");
+        match cow {
+            Cow::Owned(vec) => assert_eq!(vec.len(), pts.len()),
+            Cow::Borrowed(_) => panic!("expected owned fallback due to stride mismatch"),
+        }
+    }
+
+    #[test]
+    fn try_into_slice_endian_mismatch() {
+        // When message endianness doesn't match the host, strict zero-copy should fail
+        // and the convenience API should fall back to an owned, converted Vec.
+        use crate::{Endian, FieldDatatype};
+
+        let pts = vec![PointXYZ::new(1.0, 2.0, 3.0), PointXYZ::new(4.0, 5.0, 6.0)];
+        let mut msg = PointCloud2Msg::try_from_slice(&pts).unwrap();
+
+        // flip stored fields to the opposite endian and set the flag
+        for i in 0..pts.len() {
+            let base = i * (msg.point_step as usize);
+            for f in msg.fields.iter() {
+                let datatype = FieldDatatype::try_from(f).unwrap();
+                let sz = datatype.size();
+                if sz > 1 {
+                    let start = base + f.offset as usize;
+                    let end = start + sz;
+                    msg.data[start..end].reverse();
+                }
+            }
+        }
+        msg.endian = if cfg!(target_endian = "little") {
+            Endian::Big
+        } else {
+            Endian::Little
+        };
+
+        // strict view must fail
+        assert!(msg.try_into_slice_strict::<3, PointXYZ>().is_err());
+
+        // convenience API should succeed and return an owned, converted Vec
+        let cow = msg
+            .try_into_slice::<3, PointXYZ>()
+            .expect("fallback should succeed");
+        match cow {
+            Cow::Owned(v) => assert_eq!(v, pts),
+            Cow::Borrowed(_) => panic!("expected owned fallback due to endian mismatch"),
+        }
+    }
+
+    #[test]
+    fn try_from_vec_strict_writes_system_endian() {
+        use crate::Endian;
+        let pts = vec![PointXYZ::new(1.0, 2.0, 3.0)];
+        let msg =
+            PointCloud2Msg::try_from_vec_strict(pts).expect("try_from_vec_strict should succeed");
+        if cfg!(target_endian = "little") {
+            assert_eq!(msg.endian, Endian::Little);
+        } else {
+            assert_eq!(msg.endian, Endian::Big);
+        }
+    }
+
+    #[test]
+    fn try_into_slice_unaligned_buffer() {
+        // Intentionally construct a message whose `data` pointer is misaligned for `PointXYZ`.
+        // This uses unsafe operations to create a Vec<u8> with an interior pointer; the
+        // resulting message is leaked to avoid triggering undefined behavior during drop.
+        use crate::ConversionError;
+
+        let pts = vec![PointXYZ::new(1.0, 2.0, 3.0), PointXYZ::new(4.0, 5.0, 6.0)];
+        let msg = PointCloud2Msg::try_from_slice(&pts).unwrap();
+
+        // Create an allocation and move the data one byte forward to make the first byte misaligned.
+        let mut v = Vec::with_capacity(msg.data.len() + 1);
+        v.push(0u8);
+        v.extend_from_slice(&msg.data);
+        let cap = v.capacity();
+        let ptr = v.as_mut_ptr();
+        core::mem::forget(v); // prevent the original Vec from being dropped
+
+        // SAFETY: creating a Vec from an interior pointer is undefined behavior if dropped.
+        // We avoid dropping the constructed message later by leaking it with `mem::forget`.
+        let data_unaligned = unsafe { Vec::from_raw_parts(ptr.add(1), msg.data.len(), cap - 1) };
+        let mut bad = msg.clone();
+        bad.data = data_unaligned;
+
+        match bad.try_into_slice_strict::<3, PointXYZ>() {
+            Err(ConversionError::UnalignedBuffer) => {}
+            other => panic!("expected UnalignedBuffer, got {:?}", other),
+        }
+
+        // Leak the malformed message to avoid deallocating the interior pointer.
+        core::mem::forget(bad);
+    }
+
+    #[test]
+    fn unsupported_field_type_errors_on_iter() {
+        let pts = vec![PointXYZ::new(1.0, 2.0, 3.0)];
+        let mut msg = PointCloud2Msg::try_from_slice(&pts).unwrap();
+        // Set an invalid datatype code to trigger UnsupportedFieldType during iterator setup.
+        msg.fields[0].datatype = 0xff;
+
+        let res = msg.try_into_iter::<3, PointXYZ>();
+        match res {
+            Err(ConversionError::UnsupportedFieldType(s)) => {
+                assert_eq!(s, "255");
+            }
+            Err(e) => panic!("expected UnsupportedFieldType, got {:?}", e),
+            Ok(_) => panic!("expected error, got Ok"),
+        }
+    }
+
+    #[test]
+    fn try_from_vec_zero_copy() {
+        let pts = vec![PointXYZ::new(1.0, 2.0, 3.0), PointXYZ::new(4.0, 5.0, 6.0)];
+        // record the underlying pointer as bytes before moving the vec
+        let len = pts.len();
+        // strict owned variant should succeed and reuse allocation of the consumed vector
+        let owned = pts.clone();
+        let ptr_owned = owned.as_ptr() as *const u8;
+        let msg_strict =
+            PointCloud2Msg::try_from_vec_strict(owned).expect("try_from_vec_strict should succeed");
+        assert_eq!(msg_strict.dimensions.len(), len);
+        assert_eq!(msg_strict.data.as_ptr() as *const u8, ptr_owned);
+
+        // convenience API should also succeed and prefer strict path when possible
+        let msg = PointCloud2Msg::try_from_vec(pts).expect("try_from_vec should succeed");
+        assert_eq!(msg.dimensions.len(), len);
+    }
+
+    #[test]
+    fn try_from_vec_fallback_on_size_mismatch() {
+        // Define a local point type where the Rust struct is larger than the declared layout.
+        #[derive(Clone, Debug, Default, Copy)]
+        #[repr(C)]
+        struct SmallLayoutPoint {
+            pub x: f32,
+            pub _pad: u32, // extra padding makes the struct larger than layout
+        }
+
+        impl From<IPoint<1>> for SmallLayoutPoint {
+            fn from(point: IPoint<1>) -> Self {
+                Self {
+                    x: point[0].get(),
+                    _pad: 0,
+                }
+            }
+        }
+
+        impl From<SmallLayoutPoint> for IPoint<1> {
+            fn from(point: SmallLayoutPoint) -> Self {
+                [point.x.into()].into()
+            }
+        }
+
+        unsafe impl PointConvertible<1> for SmallLayoutPoint {
+            fn layout() -> LayoutDescription {
+                // layout only includes the 'x' field (4 bytes) while struct != 4 bytes
+                LayoutDescription::new(&[LayoutField::new("x", "f32", 4)])
+            }
+        }
+
+        let pts = vec![
+            SmallLayoutPoint { x: 1.0, _pad: 0 },
+            SmallLayoutPoint { x: 2.0, _pad: 0 },
+        ];
+        // The struct size (8) != layout-derived point_step (4), so try_from_vec must fall back
+        // to a copying construction (it should succeed but not re-use the allocation).
+        let msg = PointCloud2Msg::try_from_vec(pts).expect("fallback construction should succeed");
+        assert_eq!(msg.dimensions.len(), 2);
+        assert_eq!(msg.point_step as usize, 4);
+    }
+
+    #[test]
+    fn try_from_vec_strict_rejects_size_mismatch() {
+        #[derive(Clone, Debug, Default, Copy)]
+        #[repr(C)]
+        struct SmallLayoutPoint2 {
+            pub x: f32,
+            pub _pad: u32,
+        }
+
+        impl From<IPoint<1>> for SmallLayoutPoint2 {
+            fn from(point: IPoint<1>) -> Self {
+                Self {
+                    x: point[0].get(),
+                    _pad: 0,
+                }
+            }
+        }
+
+        impl From<SmallLayoutPoint2> for IPoint<1> {
+            fn from(point: SmallLayoutPoint2) -> Self {
+                [point.x.into()].into()
+            }
+        }
+
+        unsafe impl PointConvertible<1> for SmallLayoutPoint2 {
+            fn layout() -> LayoutDescription {
+                LayoutDescription::new(&[LayoutField::new("x", "f32", 4)])
+            }
+        }
+
+        let pts = vec![SmallLayoutPoint2 { x: 1.0, _pad: 0 }];
+        match PointCloud2Msg::try_from_vec_strict(pts) {
+            Err(ConversionError::VecElementSizeMismatch {
+                element_size,
+                expected_point_step,
+            }) => {
+                assert_eq!(element_size, core::mem::size_of::<SmallLayoutPoint2>());
+                assert_eq!(expected_point_step, 4usize);
+            }
+            Err(e) => panic!("expected VecElementSizeMismatch, got {:?}", e),
+            Ok(_) => panic!("expected error, got Ok"),
+        }
+    }
+
+    #[test]
     fn write_empty_cloud_vec() {
         let cloud: Vec<PointXYZ> = vec![];
         let msg = PointCloud2Msg::try_from_slice(&cloud);
@@ -461,8 +706,7 @@ mod test {
         ];
         let copy = cloud.clone();
 
-        let msg: Result<PointCloud2Msg, MsgConversionError> =
-            PointCloud2Msg::try_from_slice(&cloud);
+        let msg: Result<PointCloud2Msg, ConversionError> = PointCloud2Msg::try_from_slice(&cloud);
         assert!(msg.is_ok());
         let msg = msg.unwrap();
         let to_p_type = msg.try_into_par_iter();

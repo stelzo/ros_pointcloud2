@@ -49,23 +49,18 @@ let processed_cloud = in_msg.try_into_iter().unwrap()
   .collect::<Vec<_>>();
 ```
 
-## Integrations
+## Support for ROS client libraries
 
-There are currently 4 implementations for common ROS crates. They were tested on the following distros.
+There is currently support for the following ROS libraries.
 
 - [r2r](https://github.com/sequenceplanner/r2r)
-  - Galactic
-  - Humble
-  - Jazzy
 - [rclrs](https://github.com/ros2-rust/ros2_rust)
-  - Humble
-  - Rolling
 - [ros2-client](https://github.com/Atostek/ros2-client.git)
-  - Jazzy
 - [rosrust](https://github.com/adnanademovic/rosrust)
-  - Noetic
 
-You can use `rosrust`, `r2r`, `rclrs`, or `ros2-client` by prefixing the designated macro somewhere in your scope after adding your ros crate to your `Cargo.toml`.
+They are tested on various distros with CI. Since the message definition itself never changed, this crate should work on all ROS distros for as long as the respective crate does not change its message generation pipeline.
+
+You can use this library with your ROS crate by prefixing the designated macro somewhere in your scope after adding your ros crate to your `Cargo.toml`.
 
 ```rust
 // r2r
@@ -97,7 +92,7 @@ let p_xyzi = PointXYZI::new(4.0, 5.0, 6.0, 7.0);
 assert_eq!(AsNalgebra::xyz(&p_xyzi), nalgebra::Point3::new(4.0, 5.0, 6.0));
 ```
 
-Please open an issue or PR if you need other integrations.
+Please open an issue or PR if you need support for other crates.
 
 ## Performance
 

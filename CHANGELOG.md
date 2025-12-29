@@ -1,17 +1,25 @@
 # Changelog
 
 ## v0.6.0 - v1.0.0
-- `try_from_iter` and `try_into_iter` now accepts references to iterators.
-- `try_from_vec` is now `try_from_slice` to better reflect that it does not take ownership of the data.
-- Adds the `strict-type-check` feature that enforces strict validation of field datatypes during conversion; RGB <-> f32 compatibility is preserved for legacy packed RGB fields. This feature is enabled by default. When `strict-type-check` is enabled, reading a mismatched type returns a `MsgConversionError::TypeMismatch` at runtime to allow on-the-fly type matching for the user.
-- The `MsgConversionError` variants are the same now on `std` and `no_std` builds.
+- `try_from_iter` and `try_into_iter` now accept references to iterators.
+- `try_from_vec` takes ownership again but tries to reuse the memory when possible.
+- Adds `try_from_vec_strict` that hard fails on unsupported layouts.
+- Adds `try_into_slice` that tries to create a zero-copy slice view, falls back to owned Vec if needed.
+- Adds `try_into_slice_strict` that hard fails on unsupported layouts.
+- Adds `try_from_slice`, which creates a message from a slice with minimal copy.
+- Adds full support for `rclrs`.
+- Renamed the `rename` attribute to `remap` for custom field names.
+- Renamed the `MsgConversionError` enum to `ConversionError`.
+- Adds the `strict-type-check` feature that enforces strict validation of field datatypes during conversion; RGB <-> f32 compatibility is preserved for legacy packed RGB fields. This feature is enabled by default. When `strict-type-check` is enabled, reading a mismatched type returns a `ConversionError::TypeMismatch` at runtime to allow on-the-fly type matching for the user.
+- The `ConversionError` variants are the same now on `std` and `no_std` builds.
 - Fixed copying structured pointclouds from vec with same endianness.
 - New feature `rkyv` for (de)serialization of PointCloud2Msg using rkyv. This allows zero-copy deserialization in ROS-like systems that use rkyv for message (de)serialization.
 - Many internal optimizations for runtime speed and code maintainability. The main benefit is removed need for allocations in the hot path of conversions.
 - Bump msrv to 1.87.
+- Adds various tests for edge cases.
 
 ## v0.5.2 -> v0.6.0
-- All derived points now require `Copy`. This allows `try_from_iter` and `try_from_slice` to not require ownership for the parameter.
+- All derived points now require `Copy`. This allows `try_from_iter` and `try_from_vec` to not require ownership for the parameter.
 - Renamed `rpcl2` derive attribute to `ros`. E.g. `#[rpcl2(rename("test"))]` -> `#[ros(rename("test"))]`.
 - Feature `ros2-interfaces-jazzy` moved to `ros2-interfaces-jazzy-serde` to keep up-to-date with the latest ros2-client.
 - Dropping rclrs support until their message generation strategy is finished and the integration can be made easier. The current implementation for is bad for long term maintenance. You can keep using `v0.5.2_rclrs` instead.

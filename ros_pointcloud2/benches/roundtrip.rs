@@ -164,7 +164,7 @@ pub fn heavy_computing(point: &PointXYZ, iterations: u32) -> f32 {
 
 fn roundtrip_vec(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_slice(&cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
     let total: Vec<PointXYZ> = internal_msg.try_into_vec().unwrap();
     orig_len == total.len()
 }
@@ -181,7 +181,7 @@ fn roundtrip(cloud: Vec<PointXYZB>) -> bool {
 
 fn roundtrip_filter_vec(cloud: Vec<PointXYZB>) -> bool {
     let orig_len = cloud.len();
-    let internal_msg = PointCloud2Msg::try_from_slice(&cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
     let total = internal_msg
         .try_into_iter()
         .unwrap()
@@ -242,7 +242,7 @@ fn roundtrip_computing_par_par(cloud: Vec<PointXYZB>) -> bool {
 }
 
 fn roundtrip_computing_vec(cloud: Vec<PointXYZB>) -> bool {
-    let internal_msg = PointCloud2Msg::try_from_slice(&cloud).unwrap();
+    let internal_msg = PointCloud2Msg::try_from_vec(cloud).unwrap();
     let total: f32 = internal_msg
         .try_into_vec()
         .unwrap()
