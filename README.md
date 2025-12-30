@@ -18,7 +18,7 @@ Get started with the example below or visit the [documentation](https://docs.rs/
 
 ```toml
 [dependencies]
-ros_pointcloud2 = "1.0.0-rc.1" # or use the old version 0.6 with feature flags for ros crates
+ros_pointcloud2 = "1.0.0-rc.1" # or use the old version 0.6
 ```
 
 ```rust
