@@ -42,20 +42,22 @@
 //! [dependencies]
 //! ros_pointcloud2 = "*"
 //!
-//! r2r = "0.9"
+//! r2r = "*"
 //! # ... or maybe for ROS1:
-//! rosrust = "0.9"
+//! rosrust = "*"
 //!
-//! nalgebra = "0.34"
+//! nalgebra = "*"
 //! ```
 //!
 //! Then invoke the macro in your crate root or tests to generate conversions:
-//! - r2r: [`impl_pointcloud2_for_r2r!`]
-//! - rclrs: [`impl_pointcloud2_for_rclrs!`]
-//! - rosrust: [`impl_pointcloud2_for_rosrust!`]
-//! - ros2-client: [`impl_pointcloud2_for_ros2_interfaces_jazzy_serde!`]
-//! - roslibrust ROS1: [`impl_pointcloud2_for_roslibrust_ros1!`]
-//! - roslibrust ROS2: [`impl_pointcloud2_for_roslibrust_ros2!`]
+//! | Library | Macro | ROS Version |
+//! | :--- | :--- | :--- |
+//! | [rclrs](https://docs.rs/rclrs/latest/rclrs/) | [`impl_pointcloud2_for_rclrs!`] | ROS 2 |
+//! | [r2r](https://docs.rs/r2r/latest/r2r/) | [`impl_pointcloud2_for_r2r!`] | ROS 2 |
+//! | [ros2-client](https://docs.rs/ros2-client/latest/ros2_client/) | [`impl_pointcloud2_for_ros2_interfaces_jazzy_serde!`] | ROS 2 |
+//! | [rosrust](https://docs.rs/rosrust/latest/rosrust/) | [`impl_pointcloud2_for_rosrust!`] | ROS 1 |
+//! | [roslibrust](https://docs.rs/roslibrust/latest/roslibrust/) | [`impl_pointcloud2_for_roslibrust_ros1!`] | ROS 1 |
+//! | [roslibrust](https://docs.rs/roslibrust/latest/roslibrust/) | [`impl_pointcloud2_for_roslibrust_ros2!`] | ROS 2 |
 //!
 //! The roslibrust macros need to be invoked with the crate root where the messages are included via `include!`.
 //!
@@ -204,7 +206,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // Setup an allocator with #[global_allocator]
 // see: https://doc.rust-lang.org/std/alloc/trait.GlobalAlloc.html
-#![allow(unexpected_cfgs)]
 
 #[cfg(doc)]
 #[doc = concat!("Custom Field Type Example (docs only).\n\n```rust\n", include_str!("../examples/custom_enum_field_filter.rs"), "\n```")]

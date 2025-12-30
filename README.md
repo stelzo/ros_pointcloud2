@@ -57,12 +57,12 @@ There is currently support for the following ROS libraries.
 
 | Library | Macro | ROS Version |
 | :--- | :--- | :--- |
-| [r2r](https://github.com/sequenceplanner/r2r) | `impl_pointcloud2_for_r2r!()` | ROS 2 |
-| [rclrs](https://github.com/ros2-rust/ros2_rust) | `impl_pointcloud2_for_rclrs!()` | ROS 2 |
-| [ros2-client](https://github.com/Atostek/ros2-client.git) | `impl_pointcloud2_for_ros2_interfaces_jazzy_serde!()` | ROS 2 |
-| [rosrust](https://github.com/adnanademovic/rosrust) | `impl_pointcloud2_for_rosrust!()` | ROS 1 |
-| [roslibrust](https://github.com/roslibrust/roslibrust) | `impl_pointcloud2_for_roslibrust_ros1!(crate)` | ROS 1 |
-| [roslibrust](https://github.com/roslibrust/roslibrust) | `impl_pointcloud2_for_roslibrust_ros2!(crate)` | ROS 2 |
+| [rclrs](https://docs.rs/rclrs/latest/rclrs/) | `impl_pointcloud2_for_rclrs!()` | ROS 2 |
+| [r2r](https://docs.rs/r2r/latest/r2r/) | `impl_pointcloud2_for_r2r!()` | ROS 2 |
+| [ros2-client](https://docs.rs/ros2-client/latest/ros2_client/) | `impl_pointcloud2_for_ros2_interfaces_jazzy_serde!()` | ROS 2 |
+| [rosrust](https://docs.rs/rosrust/latest/rosrust/) | `impl_pointcloud2_for_rosrust!()` | ROS 1 |
+| [roslibrust](https://docs.rs/roslibrust/latest/roslibrust/) | `impl_pointcloud2_for_roslibrust_ros1!(crate)` | ROS 1 |
+| [roslibrust](https://docs.rs/roslibrust/latest/roslibrust/) | `impl_pointcloud2_for_roslibrust_ros2!(crate)` | ROS 2 |
 
 Note that the macros for `roslibrust` need the root path where messages are included via `include!` as a parameter.
 
