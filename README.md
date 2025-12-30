@@ -5,17 +5,20 @@
   </p>
 </p>
 
-## NOTE: This crate is under active development for v1.0.0 release. See the docs.rs page for the latest stable documentation.
+This library provides ergonomic and safe abstractions for the `PointCloud2` type, including conversions to and from prominent ROS libraries.
 
-ros_pointcloud2 uses its own type for the message `PointCloud2Msg` to keep the library framework agnostic. ROS1 and ROS2 are supported with impl macros for common crates.
+To remain framework-agnostic, the crate uses its own `PointCloud2Msg` type, ensuring compatibility across different ROS ecosystems.
 
-Get started with the example below, check out the other use cases in the `examples` folder or see the [Documentation](https://docs.rs/ros_pointcloud2/latest/ros_pointcloud2/) for a complete guide.
+Get started with the example below or visit the [documentation](https://docs.rs/ros_pointcloud2/1.0.0-rc.1/ros_pointcloud2/) for a complete guide.
 
 ## Quickstart
 
+> [!NOTE]  
+> We are transitioning to a new version (v1.0.0). Please open an issue if you encounter problems. The stable version remains v0.6.0. For the latest stable release, refer to the [v0.6.0 documentation](https://docs.rs/ros_pointcloud2/0.6.0/ros_pointcloud2/). Check the [changelog](./CHANGELOG.rst) for a full list of changes
+
 ```toml
 [dependencies]
-ros_pointcloud2 = "1"
+ros_pointcloud2 = "1.0.0-rc.1" # or use the old version 0.6 with feature flags for ros crates
 ```
 
 ```rust
@@ -29,8 +32,7 @@ let cloud_points = vec![
 
 let out_msg = PointCloud2Msg::try_from_slice(&cloud_points).unwrap();
 
-// Add your ROS crate impl macro in your crate to enable conversions.
-// For example, for r2r:
+// Outside of your main
 // impl_pointcloud2_for_r2r!();
 
 // Convert to your ROS crate message type.
@@ -53,32 +55,22 @@ let processed_cloud = in_msg.try_into_iter().unwrap()
 
 There is currently support for the following ROS libraries.
 
-- [r2r](https://github.com/sequenceplanner/r2r)
-- [rclrs](https://github.com/ros2-rust/ros2_rust)
-- [ros2-client](https://github.com/Atostek/ros2-client.git)
-- [rosrust](https://github.com/adnanademovic/rosrust)
-- [roslibrust](https://github.com/roslibrust/roslibrust)
+| Library | Macro | ROS Version |
+| :--- | :--- | :--- |
+| [r2r](https://github.com/sequenceplanner/r2r) | `impl_pointcloud2_for_r2r!()` | ROS 2 |
+| [rclrs](https://github.com/ros2-rust/ros2_rust) | `impl_pointcloud2_for_rclrs!()` | ROS 2 |
+| [ros2-client](https://github.com/Atostek/ros2-client.git) | `impl_pointcloud2_for_ros2_interfaces_jazzy_serde!()` | ROS 2 |
+| [rosrust](https://github.com/adnanademovic/rosrust) | `impl_pointcloud2_for_rosrust!()` | ROS 1 |
+| [roslibrust](https://github.com/roslibrust/roslibrust) | `impl_pointcloud2_for_roslibrust_ros1!(crate)` | ROS 1 |
+| [roslibrust](https://github.com/roslibrust/roslibrust) | `impl_pointcloud2_for_roslibrust_ros2!(crate)` | ROS 2 |
 
-They are tested on various distros with CI. Since the message definition itself never changed, this crate should work on all ROS distros for as long as the respective crate does not change its message generation pipeline.
+Note that the macros for `roslibrust` need the root path where messages are included via `include!` as a parameter.
 
-You can use this library with your ROS crate by prefixing the designated macro somewhere in your scope after adding your ros crate to your `Cargo.toml`.
+The macros are tested on various distros with CI. Since the message definition itself is static for a long time now, this crate should work on all ROS distros for as long as the respective ROS library or framework does not change its message generation pipeline.
 
-```rust
-// r2r
-ros_pointcloud2::impl_pointcloud2_for_r2r!();
-// rclrs
-ros_pointcloud2::impl_pointcloud2_for_rclrs!();
-// rosrust
-ros_pointcloud2::impl_pointcloud2_for_rosrust!();
-// ros2-client
-ros_pointcloud2::impl_pointcloud2_for_ros2_interfaces_jazzy_serde!();
-// roslibrust ROS1 (needs the root path where messages are included via include!)
-ros_pointcloud2::impl_pointcloud2_for_roslibrust_ros1!(crate);
-// roslibrust ROS2 (same here)
-ros_pointcloud2::impl_pointcloud2_for_roslibrust_ros2!(crate);
-```
+You can use this library with your ROS crate by prefixing the designated macro somewhere in your scope after adding your ROS crate to your `Cargo.toml`.
 
-Also, indicate the following dependencies to your linker inside the `package.xml` of your package if your crate of choice uses them.
+Also, add the following dependencies to your `package.xml` (if your library of choice uses them) to ensure all message types are correctly resolved.
 
 ```xml
 <depend>std_msgs</depend>
@@ -86,7 +78,10 @@ Also, indicate the following dependencies to your linker inside the `package.xml
 <depend>builtin_interfaces</depend>
 ```
 
-There is also nalgebra support to convert common point types to nalgebra `Point3` type.
+Please open an issue or PR if you need support for other ROS libraries.
+
+There is also nalgebra support to convert common point types to the nalgebra `Point3` type.
+
 ```rust
 ros_pointcloud2::impl_pointxyz_for_nalgebra!();
 
@@ -97,14 +92,17 @@ let p_xyzi = PointXYZI::new(4.0, 5.0, 6.0, 7.0);
 assert_eq!(AsNalgebra::xyz(&p_xyzi), nalgebra::Point3::new(4.0, 5.0, 6.0));
 ```
 
-Please open an issue or PR if you need support for other crates.
-
 ## Performance
 
-This library offers a speed up when compared to PointCloudLibrary (PCL) conversions but the specific factor depends heavily on the use case and system.
-See [this repository](https://github.com/stelzo/ros_pcl_conv_bench) for a detailed benchmark.
+This library is designed with Rust's zero-cost philosophy in mind. It minimizes overhead by avoiding unnecessary allocations during conversion and leveraging zero-copy iterators and memory views for point data when possible.
 
-For minimizing the conversion overhead in general, always use the functions that best fit your use case.
+In many cases, this results in a significant speedup compared to standard PointCloudLibrary (PCL) conversions. However, the exact factor depends on your specific data layout and system.
+
+Unlike many other implementations, this crate provides full spec compliance for the PointCloud2 message format, including correct handling of endianness and diverse field layouts.
+
+For detailed benchmarks, see the [ros_pcl_conv_bench](https://github.com/stelzo/ros_pcl_conv_bench) repository.
+
+To minimize the conversion overhead in general, always use the function that best fits your use case.
 
 ### License
 

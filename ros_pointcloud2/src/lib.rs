@@ -96,8 +96,7 @@
 //!
 //! let out_msg = PointCloud2Msg::try_from_slice(&cloud_points).unwrap();
 //!
-//! // Add your ROS crate impl macro in your crate to enable conversions.
-//! // For example, for r2r:
+//! // Outside of your main
 //! // impl_pointcloud2_for_r2r!();
 //!
 //! // Convert to your ROS crate message type.

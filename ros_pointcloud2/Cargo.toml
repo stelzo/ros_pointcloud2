@@ -1,6 +1,6 @@
 [package]
 name = "ros_pointcloud2"
-version = "1.0.0-rc1"
+version = "1.0.0-rc.1"
 edition = "2021"
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Customizable conversions for working with sensor_msgs/PointCloud2."
@@ -31,7 +31,7 @@ rust-version = "1.87"
 
 [dependencies]
 rayon = { version = "1", optional = true }
-rpcl2-derive = { version = "1", optional = true, path = "../rpcl2-derive" }
+rpcl2-derive = { version = "1.0.0-rc.1", optional = true, path = "../rpcl2-derive" }
 serde = { version = "1", features = ["derive"], optional = true }
 rkyv = { version = "0.8", optional = true }
 
