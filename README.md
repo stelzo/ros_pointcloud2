@@ -58,7 +58,7 @@ let processed_cloud = in_msg.try_into_iter().unwrap()
 There is currently support for the following ROS libraries.
 
 - [rclrs](https://docs.rs/rclrs/latest/rclrs/) Feature: `"rclrs"`
-- [Hiroz](https://zettascalelabs.github.io/hiroz/) Feature: `"hiroz"` Macro: `impl_pointcloud2_for_hiroz!`
+- [Hiroz](https://zettascalelabs.github.io/hiroz/) Feature: `"hiroz"`
 - [r2r](https://docs.rs/r2r/latest/r2r/) Feature: `"r2r"`
 - [ros2-client](https://docs.rs/ros2-client/latest/ros2_client/) Feature: `"ros2_interfaces_jazzy_serde"`
 - [rosrust](https://docs.rs/rosrust/latest/rosrust/) Feature: `"rosrust"`
