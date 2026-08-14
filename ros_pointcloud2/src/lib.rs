@@ -442,6 +442,147 @@ pub struct PointCloud2Msg {
     pub dense: Denseness,
 }
 
+/// The point-field metadata needed to decode a borrowed point-cloud payload.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PointFieldDescription {
+    pub offset: u32,
+    pub datatype: u8,
+}
+
+/// Read-only point-cloud storage used by the zero-copy point iterators.
+///
+/// Implementing this trait allows an external owner to be decoded directly
+/// without constructing an owned [`PointCloud2Msg`] or copying its payload.
+pub trait PointCloud2Source {
+    fn point_count(&self) -> usize;
+    fn field(&self, name: &str) -> Option<PointFieldDescription>;
+    fn endian(&self) -> Endian;
+    fn point_step(&self) -> u32;
+    fn data(&self) -> &[u8];
+}
+
+impl PointCloud2Source for PointCloud2Msg {
+    fn point_count(&self) -> usize {
+        self.dimensions.len()
+    }
+
+    fn field(&self, name: &str) -> Option<PointFieldDescription> {
+        self.fields
+            .iter()
+            .find(|field| field.name == name)
+            .map(|field| PointFieldDescription {
+                offset: field.offset,
+                datatype: field.datatype,
+            })
+    }
+
+    fn endian(&self) -> Endian {
+        self.endian
+    }
+
+    fn point_step(&self) -> u32 {
+        self.point_step
+    }
+
+    fn data(&self) -> &[u8] {
+        &self.data
+    }
+}
+
+/// A point-cloud view backed by borrowed metadata and bytes.
+#[derive(Clone, Copy, Debug)]
+pub struct PointCloud2View<'a> {
+    pub dimensions: CloudDimensions,
+    pub fields: &'a [PointFieldMsg],
+    pub endian: Endian,
+    pub point_step: u32,
+    pub data: &'a [u8],
+}
+
+impl<'a> From<&'a PointCloud2Msg> for PointCloud2View<'a> {
+    fn from(cloud: &'a PointCloud2Msg) -> Self {
+        Self {
+            dimensions: cloud.dimensions,
+            fields: &cloud.fields,
+            endian: cloud.endian,
+            point_step: cloud.point_step,
+            data: &cloud.data,
+        }
+    }
+}
+
+impl PointCloud2Source for PointCloud2View<'_> {
+    fn point_count(&self) -> usize {
+        self.dimensions.len()
+    }
+
+    fn field(&self, name: &str) -> Option<PointFieldDescription> {
+        self.fields
+            .iter()
+            .find(|field| field.name == name)
+            .map(|field| PointFieldDescription {
+                offset: field.offset,
+                datatype: field.datatype,
+            })
+    }
+
+    fn endian(&self) -> Endian {
+        self.endian
+    }
+
+    fn point_step(&self) -> u32 {
+        self.point_step
+    }
+
+    fn data(&self) -> &[u8] {
+        self.data
+    }
+}
+
+impl dyn PointCloud2Source + '_ {
+    /// Decode points directly from this source without copying its byte buffer.
+    pub fn try_into_iter<'a, const N: usize, C>(
+        &'a self,
+    ) -> Result<impl Iterator<Item = C> + 'a, ConversionError>
+    where
+        C: PointConvertible<N> + 'a,
+    {
+        iterator::PointCloudIterator::try_from_source(self)
+    }
+
+    /// Decode points in parallel directly from this source.
+    #[cfg(feature = "rayon")]
+    pub fn try_into_par_iter<'a, const N: usize, C>(
+        &'a self,
+    ) -> Result<impl rayon::iter::ParallelIterator<Item = C> + 'a, ConversionError>
+    where
+        C: PointConvertible<N> + Send + Sync + 'a,
+    {
+        iterator::PointCloudIterator::try_from_source(self)
+    }
+}
+
+/// Decode points directly from any borrowed point-cloud source.
+pub fn try_into_iter<'a, const N: usize, C>(
+    source: &'a dyn PointCloud2Source,
+) -> Result<impl Iterator<Item = C> + 'a, ConversionError>
+where
+    C: PointConvertible<N> + 'a,
+{
+    iterator::PointCloudIterator::try_from_source(source)
+}
+
+/// Decode points in parallel directly from any borrowed point-cloud source.
+#[cfg(feature = "rayon")]
+pub fn try_into_par_iter<'a, const N: usize, C>(
+    source: &'a dyn PointCloud2Source,
+) -> Result<impl rayon::iter::ParallelIterator<Item = C> + 'a, ConversionError>
+where
+    C: PointConvertible<N> + Send + Sync + 'a,
+{
+    iterator::PointCloudIterator::try_from_source(source)
+}
+
 /// Endianess encoding hint for the message.
 #[derive(Default, Clone, Debug, PartialEq, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

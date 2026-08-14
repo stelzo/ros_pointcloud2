@@ -1,6 +1,7 @@
 //! Iterator implementations for [`PointCloud2Msg`] including a parallel iterator for rayon.
 use crate::{
-    ConversionError, Endian, FieldDatatype, IPoint, PointCloud2Msg, PointConvertible, PointData,
+    ConversionError, Endian, FieldDatatype, IPoint, PointCloud2Msg, PointCloud2Source,
+    PointConvertible, PointData,
 };
 
 use alloc::string::{String, ToString};
@@ -107,6 +108,17 @@ where
     type Error = ConversionError;
 
     fn try_from(cloud: &'a PointCloud2Msg) -> Result<Self, Self::Error> {
+        Self::try_from_source(cloud)
+    }
+}
+
+impl<'a, const N: usize, C> PointCloudIterator<'a, N, C>
+where
+    C: PointConvertible<N> + 'a,
+{
+    pub(crate) fn try_from_source(
+        cloud: &'a dyn PointCloud2Source,
+    ) -> Result<Self, ConversionError> {
         let layout = C::layout();
         let fields_only = crate::ordered_field_names_from_layout(&layout);
 
@@ -116,7 +128,7 @@ where
         let mut missing: Vec<String> = Vec::new();
 
         for &name in fields_only.iter() {
-            match cloud.fields.iter().find(|f| f.name == name) {
+            match cloud.field(name) {
                 Some(field) => {
                     datatypes[idx] = field.datatype.try_into()?;
                     offsets[idx] = field.offset as usize;
@@ -130,8 +142,10 @@ where
             return Err(ConversionError::FieldsNotFound(missing));
         }
 
-        let point_step_size = cloud.point_step as usize;
-        if point_step_size * cloud.dimensions.len() != cloud.data.len() {
+        let point_count = cloud.point_count();
+        let point_step_size = cloud.point_step() as usize;
+        if point_count == 0 || point_step_size.checked_mul(point_count) != Some(cloud.data().len())
+        {
             return Err(ConversionError::DataLengthMismatch);
         }
 
@@ -147,18 +161,18 @@ where
         }
 
         let data = ByteBufferView::new(
-            cloud.data.as_slice(),
+            cloud.data(),
             point_step_size,
             0,
-            cloud.dimensions.len() - 1,
+            point_count - 1,
             offsets,
             datatypes,
-            cloud.endian,
+            cloud.endian(),
         );
 
         Ok(Self {
             iteration: 0,
-            iteration_back: cloud.dimensions.len() - 1,
+            iteration_back: point_count - 1,
             data,
             _phantom: core::marker::PhantomData,
         })

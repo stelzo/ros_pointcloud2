@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   nightly:
-    runs-on: ubuntu-dev-noble-arm
+    runs-on: ubuntu-dev-resolute
     steps:
       - uses: actions/checkout@v4
         with:

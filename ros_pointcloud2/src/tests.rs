@@ -346,6 +346,22 @@ mod test {
         assert_traits::<crate::points::PointXYZ>();
     }
 
+    #[test]
+    fn borrowed_view_uses_existing_point_iterator_without_copying_payload() {
+        let points = [
+            crate::points::PointXYZI::new(1.0, 2.0, 3.0, 0.25),
+            crate::points::PointXYZI::new(4.0, 5.0, 6.0, 0.75),
+        ];
+        let owned = PointCloud2Msg::try_from_slice(&points).unwrap();
+        let view = crate::PointCloud2View::from(&owned);
+
+        assert_eq!(view.data.as_ptr(), owned.data.as_ptr());
+        let decoded: Vec<crate::points::PointXYZI> = crate::try_into_iter(&view).unwrap().collect();
+        assert_eq!(decoded.len(), points.len());
+        assert_eq!(decoded[0].x, points[0].x);
+        assert_eq!(decoded[1].intensity, points[1].intensity);
+    }
+
     // e2e tests moved from `tests/e2e_test.rs` — they run as crate unit tests now.
     use pretty_assertions::assert_eq;
 
