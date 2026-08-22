@@ -2,6 +2,7 @@
 name = "derive-test"
 version = "0.1.0"
 edition = "2021"
+publish = false
 readme = "../README.md"
 description = "Test package for the derive feature of ros_pointcloud2"
 repository = "https://codeberg.org/stelzo/ros_pointcloud2"

@@ -2,6 +2,7 @@
 name = "roslibrust_tests"
 version = "0.1.0"
 edition = "2021"
+publish = false
 authors = ["Christopher Sieh <stelzo@steado.de>"]
 description = "Test crate for roslibrust with ros_pointcloud2."
 repository = "https://codeberg.org/stelzo/ros_pointcloud2"
