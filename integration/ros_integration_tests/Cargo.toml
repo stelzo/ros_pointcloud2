@@ -20,7 +20,7 @@ ros2-interfaces-jazzy-rkyv = { version = "0.0.5", features = [
 ], optional = true }
 r2r = { version = "0.9", optional = true }
 rclrs = { version = "0.7", optional = true }
-hiroz-msgs = { package = "hiroz-msgs", version = "0.1.0", git = "https://github.com/ZettaScaleLabs/hiroz.git", default-features = false, features = [
+hiroz-msgs = { package = "hiroz-msgs", version = "0.2.0", git = "https://github.com/ZettaScaleLabs/hiroz.git", tag = "v0.2.0", default-features = false, features = [
   "sensor_msgs",
   "jazzy",
 ], optional = true }

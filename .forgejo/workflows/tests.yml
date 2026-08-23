@@ -10,14 +10,13 @@ env:
 
 jobs:
   tests:
-    runs-on: ubuntu-dev-noble-arm
+    runs-on: ubuntu-dev-resolute
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Linting
         run: |
-          rustup update
           rustup component add clippy
           cargo clippy -p ros_pointcloud2 -p rpcl2-derive -p derive-test --all-targets --all-features -- -D warnings
       - name: Build examples with features
@@ -32,19 +31,18 @@ jobs:
   no_std:
     needs:
       - tests
-    runs-on: ubuntu-dev-noble-arm
+    runs-on: ubuntu-dev-resolute
     steps:
       - uses: actions/checkout@v4
       - name: no_std build
         run: |
-          rustup update
           rustup target add thumbv7em-none-eabihf
           cargo build --target thumbv7em-none-eabihf --manifest-path ros_pointcloud2/ensure_no_std/Cargo.toml
 
   hiroz:
     needs:
       - tests
-    runs-on: ubuntu-dev-noble-arm
+    runs-on: ubuntu-dev-resolute
     steps:
       - uses: actions/checkout@v4
       - name: Hiroz integration
@@ -101,7 +99,7 @@ jobs:
   roslibrust:
     needs:
       - tests
-    runs-on: ubuntu-dev-noble-arm
+    runs-on: ubuntu-dev-resolute
     steps:
       - uses: actions/checkout@v4
         with:

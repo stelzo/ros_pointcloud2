@@ -21,9 +21,8 @@ jobs:
           submodules: recursive
       - name: Linting
         run: |
+          rustup toolchain install nightly --component clippy
           rustup default nightly
-          rustup update
-          rustup component add clippy
           cargo clippy -p ros_pointcloud2 -p rpcl2-derive -p derive-test --all-targets --all-features -- -D warnings
       - name: Workspace Tests
         run: cargo test --features derive,rayon,serde
